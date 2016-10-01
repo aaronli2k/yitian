@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry excluding="webapp/src/taglib/|logging/|client/|webapp/src/classes/|outlook/" kind="src" path=""/>
+	<classpathentry kind="src" path="client"/>
+	<classpathentry kind="src" path="logging"/>
+	<classpathentry kind="src" path="outlook"/>
+	<classpathentry kind="src" path="webapp/src/classes"/>
+	<classpathentry kind="src" path="webapp/src/taglib"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="C:/Users/aaron li/Google Drive/eclipse-java-mars-R-win32-x86_64/javamail-samples/gimap-1.5.6.jar"/>
+	<classpathentry kind="lib" path="C:/Users/aaron li/Google Drive/eclipse-java-mars-R-win32-x86_64/javamail-samples/javax.mail-1.5.6.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
