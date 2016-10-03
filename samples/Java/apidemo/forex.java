@@ -93,6 +93,7 @@ public class forex {
 	public String ProfitPct;
 	public String ExitMethod;
 	public String ValidDuration;
+	public String Importance;
 	
 	public String OrderID;
 	public String OrderStatus;

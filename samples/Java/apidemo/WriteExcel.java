@@ -139,20 +139,23 @@ public void setOutputFile(String inputFile) {
        		  addLabel(excelSheet, 8, 0, "Loss %");
        		  addLabel(excelSheet, 9, 0, "Exit Method");
        		  addLabel(excelSheet, 10, 0, "Duration");
-       		  addLabel(excelSheet, 11, 0, "Order ID");
-       		  addLabel(excelSheet, 12, 0, "Order Status");
-       		  addLabel(excelSheet, 13, 0, "Market Price");
-       		  addLabel(excelSheet, 14, 0, "Trigger Price");
-       		  addLabel(excelSheet, 15, 0, "Actual Price");
-       		  addLabel(excelSheet, 16, 0, "Max Drawdown");
-       		  addLabel(excelSheet, 17, 0, "Peak gain");
-       		  addLabel(excelSheet, 18, 0, "Lost/Gain");
+       		  addLabel(excelSheet, 11, 0, "Importance");
+       		  addLabel(excelSheet, 12, 0, "Order ID");
+       		  addLabel(excelSheet, 13, 0, "Order Status");
+       		  addLabel(excelSheet, 14, 0, "Market Price");
+       		  addLabel(excelSheet, 15, 0, "Trigger Price");
+       		  addLabel(excelSheet, 16, 0, "Open Price");
+       		  addLabel(excelSheet, 17, 0, "Max Drawdown");
+       		  addLabel(excelSheet, 18, 0, "Peak gain");
+       		  addLabel(excelSheet, 19, 0, "Lost/Gain");
        		
-       		  addLabel(excelSheet, 19, 0, "SeqNo.");
-       		  addLabel(excelSheet, 20, 0, "Closed Price");
-       		  addLabel(excelSheet, 21, 0, "Closed Time");
+       		  addLabel(excelSheet, 20, 0, "SeqNo.");
+       		  addLabel(excelSheet, 21, 0, "Closed Price");
        		  
        		  addLabel(excelSheet, 22, 0, "Open Time");
+       		  addLabel(excelSheet, 23, 0, "Closed Time");
+       		  addLabel(excelSheet, 24, 0, "Comment");
+
    //    		  addLabel(excelSheet, 19, 0, "Date");
    //    		  addLabel(excelSheet, 20, 0, "Date");
    //    		  addLabel(excelSheet, 21, 0, "Date");
@@ -163,43 +166,46 @@ public void setOutputFile(String inputFile) {
        	  		//loop thru all orders in HashMap;
        	  		rowPos = 1;
        			//	System.out.println("Looping thru all orders: " + new Date());
-       				SortedSet<Long> keys = new TreeSet<Long>(orderHashMap.keySet());
-       				for (Long key : keys){
-       					orderDetail = orderHashMap.get(key);
-       					if(orderDetail == null) continue;
-       				   // do something
+       			SortedSet<Long> keys = new TreeSet<Long>(orderHashMap.keySet());
+       			for (Long key : keys){
+       				orderDetail = orderHashMap.get(key);
+       				if(orderDetail == null) continue;
+       			   // do something
        					
-       			do{		
-       				content = excelSheet.getCell(19, rowPos).getContents();
-           	  		if(content == null || content.isEmpty())
-           	  			break;
-           	  		else if(orderDetail.orderSeqNo == Long.parseLong(content))
-           	  			break; 
-           	  		rowPos++;	        	 
-       			}while(true);
-       			addLabel(excelSheet, 0, rowPos, orderDetail.Date);
-       			addLabel(excelSheet, 1, rowPos, orderDetail.Time);
-       			addLabel(excelSheet, 2, rowPos, orderDetail.Symbol);
-       			addLabel(excelSheet, 3, rowPos, orderDetail.Quantity);
-       			addLabel(excelSheet, 4, rowPos, orderDetail.TradeMethod);
-       			addLabel(excelSheet, 5, rowPos, orderDetail.EntryMethod);
-       			addLabel(excelSheet, 6, rowPos, orderDetail.TriggerPct);
-       			addLabel(excelSheet, 7, rowPos, orderDetail.LossPct);
-       			addLabel(excelSheet, 8, rowPos, orderDetail.ProfitPct);
-       			addLabel(excelSheet, 9, rowPos, orderDetail.ExitMethod);
-       			addLabel(excelSheet, 10, rowPos, orderDetail.ValidDuration);
-       			addLabel(excelSheet, 11, rowPos, orderDetail.orderIdList.toString());
-       			addLabel(excelSheet, 12, rowPos, orderDetail.OrderStatus);
-       			addLabel(excelSheet, 13, rowPos, orderDetail.MarketPrice);
-       			addLabel(excelSheet, 14, rowPos, orderDetail.TriggeredPrice);
-       			addLabel(excelSheet, 15, rowPos, orderDetail.ActualPrice);
-       			addLabel(excelSheet, 16, rowPos, orderDetail.MaxDrawdown);
-       			addLabel(excelSheet, 17, rowPos, orderDetail.PeakGain);
-       			addLabel(excelSheet, 18, rowPos, orderDetail.LossGain);
-       			addLabel(excelSheet, 19, rowPos, new Long(orderDetail.orderSeqNo).toString());
-         		addLabel(excelSheet, 20, rowPos, orderDetail.ClosedPrice);
-           		addLabel(excelSheet, 21, rowPos, orderDetail.CloseTime);
-           		addLabel(excelSheet, 22, rowPos, orderDetail.OpenTime);
+       				do{		
+       					content = excelSheet.getCell(20, rowPos).getContents();
+       					if(content == null || content.isEmpty())
+       						break;
+       					else if(orderDetail.orderSeqNo == Long.parseLong(content))
+       						break; 
+       					rowPos++;	        	 
+       				}while(true);
+       			
+       				addLabel(excelSheet, 0, rowPos, orderDetail.Date);
+	       			addLabel(excelSheet, 1, rowPos, orderDetail.Time);
+	       			addLabel(excelSheet, 2, rowPos, orderDetail.Symbol);
+	       			addLabel(excelSheet, 3, rowPos, orderDetail.Quantity);
+	       			addLabel(excelSheet, 4, rowPos, orderDetail.TradeMethod);
+	       			addLabel(excelSheet, 5, rowPos, orderDetail.EntryMethod);
+	       			addLabel(excelSheet, 6, rowPos, orderDetail.TriggerPct);
+	       			addLabel(excelSheet, 7, rowPos, orderDetail.LossPct);
+	       			addLabel(excelSheet, 8, rowPos, orderDetail.ProfitPct);
+	       			addLabel(excelSheet, 9, rowPos, orderDetail.ExitMethod);
+	       			addLabel(excelSheet, 10, rowPos, orderDetail.ValidDuration);
+	       			addLabel(excelSheet, 11, rowPos, orderDetail.Importance);
+	       			addLabel(excelSheet, 12, rowPos, orderDetail.orderIdList.toString());
+	       			addLabel(excelSheet, 13, rowPos, orderDetail.OrderStatus);
+	       			addLabel(excelSheet, 14, rowPos, orderDetail.MarketPrice);
+	       			addLabel(excelSheet, 15, rowPos, orderDetail.TriggeredPrice);
+	       			addLabel(excelSheet, 16, rowPos, orderDetail.ActualPrice);
+	       			addLabel(excelSheet, 17, rowPos, orderDetail.MaxDrawdown);
+	       			addLabel(excelSheet, 18, rowPos, orderDetail.PeakGain);
+	       			addLabel(excelSheet, 19, rowPos, orderDetail.LossGain);
+	       			addLabel(excelSheet, 20, rowPos, new Long(orderDetail.orderSeqNo).toString());
+	         		addLabel(excelSheet, 21, rowPos, orderDetail.ClosedPrice);
+	           		addLabel(excelSheet, 22, rowPos, orderDetail.OpenTime);
+	           		addLabel(excelSheet, 23, rowPos, orderDetail.CloseTime);
+	           		addLabel(excelSheet, 24, rowPos, orderDetail.comment);
        			
        		
 	        	 /* 

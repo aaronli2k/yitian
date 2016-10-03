@@ -63,38 +63,39 @@ public class ReadExcel {
     	  orderDetail.ProfitPct = sheet.getCell(8, i).getContents();
     	  orderDetail.ExitMethod = sheet.getCell(9, i).getContents();
     	  orderDetail.ValidDuration = sheet.getCell(10, i).getContents();
+    	  orderDetail.Importance = sheet.getCell(11, i).getContents();
     	 
-    	  orderDetail.OrderID = sheet.getCell(11, i).getContents();
+    	  orderDetail.OrderID = sheet.getCell(12, i).getContents();
     	  
     	  
-    	  if(!orderDetail.OrderID.isEmpty()) continue;
-    	  
+    	  if(!orderDetail.OrderID.isEmpty()) continue;    	  
     	  if(orderDetail.Date.contains("Date")) continue;
     	  
-    	  String[] timeString = orderDetail.Time.split(":");
-    	  int t1, t2;
-    	  t1 = Integer.parseInt(timeString[0]);
-    	  t2 = Integer.parseInt(timeString[1]);
 
-    	  String result = String.format("%1$02d%2$02d00",	t1, t2);
     		  
+    	  DateFormat formatter; 			    	      
+		  formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+		  String orderDateStr= orderDetail.Date + " " + orderDetail.Time;	
+    	  Date  orderTime  = null;
+		  try {
+				orderTime  = (Date)formatter.parse(orderDateStr);
+		  }catch (ParseException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+		} 
+		  formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+		  orderDateStr = formatter.format(orderTime);
+    	  currentDateCode = orderDetail.orderSeqNo = Long.parseLong(orderDateStr + "00");
     	  
-    	  currentDateCode = orderDetail.orderSeqNo = Long.parseLong(orderDetail.Date + result);
-    	  
-    	  
-    	  //Maybe we need to confirm below later.
-    	  while(orderHashMap.get(orderDetail.orderSeqNo) != null){
-    		  orderDetail.orderSeqNo++;
-    	  }
-    	  
+  	  
     	  
     	  if(currentDateCode.equals(lastDateCode)){
     		  orderDetail.orderSeqNo = currentSeqNo + 1;
         	  currentSeqNo = orderDetail.orderSeqNo;    		  
-    	}else{
+    	  }else{
     		currentSeqNo = orderDetail.orderSeqNo;
     		lastDateCode = currentSeqNo;
-    	}
+    	  }
     	  
     	  
     	  /* orderDetail.OrderStatus;
@@ -131,18 +132,7 @@ public class ReadExcel {
     	 */ 
     	  
     	  
-    	  //Handle effective duration is longer than 60 seconds.
-		  DateFormat formatter; 			    	      
-		  formatter = new SimpleDateFormat("yyyyMMdd HH:mm");
-		  String orderDateStr= orderDetail.Date + " " + orderDetail.Time + ":00";	
-    	  Date  orderTime  = null;
-		  Date orderPlusDuration = null; //Added 1 minutes.
-		  try {
-				orderTime  = (Date)formatter.parse(orderDateStr);
-		  }catch (ParseException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-		} 
+    	
 		  
 
     	  int validDurationinM = 0;
@@ -229,7 +219,7 @@ public class ReadExcel {
   public static void main(String[] args) throws IOException {
     ReadExcel test = new ReadExcel();
     test.setInputFile("Forex.xls");
- //   test.read();
+    test.read(null);
   }
 
 } 

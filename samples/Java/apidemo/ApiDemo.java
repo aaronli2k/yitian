@@ -144,6 +144,8 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	public final Contract m_contract_AUDCNH = new Contract("AUD", "CASH", "IDEALPRO", "CNH", 20.0, 2.0);
 	public final Contract m_contract_CNHJPY = new Contract("CNH", "CASH", "IDEALPRO", "JPY", 50.0, 3.0);
 	public final Contract m_contract_USDCNH = new Contract("USD", "CASH", "IDEALPRO", "CNH", 30.0, 3.0);
+	public final Contract m_contract_EURCNH = new Contract("EUR", "CASH", "IDEALPRO", "CNH", 40.0, 3.0);
+
 	
 	
 		
@@ -301,12 +303,14 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	ForexListner m_stockListener_AUDCNH = new ForexListner(m_contract_AUDCNH);		
 	ForexListner m_stockListener_CNHJPY = new ForexListner(m_contract_CNHJPY);	
 	ForexListner m_stockListener_USDCNH = new ForexListner(m_contract_USDCNH);	
+	ForexListner m_stockListener_EURCNH = new ForexListner(m_contract_EURCNH);	
 	
 	
 
 	
 	ConcurrentHashMap<String, ForexListner> forexListenerHashMap = new ConcurrentHashMap<String, ForexListner>();
 	ConcurrentHashMap<String, ForexListner> currentListeningMap = new ConcurrentHashMap<String, ForexListner>();
+	ArrayList<String> currentMarketDataList = new ArrayList<String>();
 	ConcurrentHashMap<String, ForexListner> historyListeningMap = new ConcurrentHashMap<String, ForexListner>();
 
 	long tickCounter = 100;
@@ -329,65 +333,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	private int nextOrderId = 0, currentMaxOrderId = 0;
 
 	
-	private double calculatePrice(String actualPrice, String percent, String action, String profitOrStop){
-		double price;
-		
-		double numPrice, numPercent;
-		
-		if(actualPrice != null && !actualPrice.isEmpty()){
-			numPrice = Double.parseDouble(actualPrice);
-		}else
-			return 0.0;
-		
-		if(percent != null && !percent.isEmpty()){
-			numPercent = Double.parseDouble(percent);
-		}else
-			return 0.0;
-					
-		
-		if(action.equals("SELL")){
-			 if(action.equals("PROFIT"))			  
-			   price = numPrice * (1 - numPercent / 100);
-			 else				 
-				 price = numPrice * (1 + numPercent / 100);
-			  
-		}else 
-		{
-			 if(action.equals("PROFIT"))			  
-			   price = numPrice * (1 + numPercent / 100);
-			 else				 
-			 price = numPrice * (1 - numPercent / 100);			
-		}
-		return fixDoubleDigi(price);
-	}
 	
-	public double fixDoubleDigi(double price){
-		
-		if(price < 1.0){
-		 double prices = price;
-		 DecimalFormat df = new DecimalFormat("#.#####");      
-		  price = Double.valueOf(df.format(prices));
-		  return price = Math.round(prices * 10000.0) / 10000.0;
-		 }else if(price < 10.0){
-			 double prices = price;
-			 DecimalFormat df = new DecimalFormat("#.####");  
-			 price = Double.valueOf(df.format(prices));
-			 price = Math.round(prices * 1000.0) / 1000.0;
-			 return price;
-			 }else if(price < 100.0){
-				 double prices = price;
-				 DecimalFormat df = new DecimalFormat("##.###");      
-				 price = Double.valueOf(df.format(prices));
-				 price = Math.round(prices * 100.0) / 100.0;
-				 return price;
-				 }else {
-					 double prices = price;
-					 DecimalFormat df = new DecimalFormat("###.###");      
-					 price = Double.valueOf(df.format(prices));
-					 price = Math.round(prices * 100.0) / 100.0;
-					 return price;
-					 }
-	}
 	
 	// getter methods
 	public ArrayList<String> accountList() 	{ return m_acctList; }
@@ -501,6 +447,9 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
     	contractMap.put("AUDCNH", m_contract_AUDCNH);
     	contractMap.put("CNHJPY", m_contract_CNHJPY);
     	contractMap.put("USDCNH", m_contract_USDCNH);
+    	contractMap.put("EURCNH", m_contract_EURCNH);
+
+    	
     	
 	
     	
@@ -536,23 +485,24 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
     	forexListenerHashMap.put("AUDCNH", m_stockListener_AUDCNH);
     	forexListenerHashMap.put("CNHJPY", m_stockListener_CNHJPY);
     	forexListenerHashMap.put("USDCNH", m_stockListener_USDCNH);
-    	
+    	forexListenerHashMap.put("EURCNH", m_stockListener_EURCNH);
+
     	
 		m_tabbedPanel.addTab( "Connection", m_connectionPanel);
 	
-/*		
-		m_tabbedPanel.addTab( "Market Data", m_mktDataPanel);
+		
+	//	m_tabbedPanel.addTab( "Market Data", m_mktDataPanel);
 		m_tabbedPanel.addTab( "Trading", m_tradingPanel);
-		m_tabbedPanel.addTab( "Account Info", m_acctInfoPanel);
-		m_tabbedPanel.addTab( "Acct/Pos Multi", m_acctPosMultiPanel);
-		m_tabbedPanel.addTab( "Options", m_optionsPanel);
-		m_tabbedPanel.addTab( "Combos", m_comboPanel);
-		m_tabbedPanel.addTab( "Contract Info", m_contractInfoPanel);
-		m_tabbedPanel.addTab( "Advisor", m_advisorPanel);
+	//	m_tabbedPanel.addTab( "Account Info", m_acctInfoPanel);
+	//	m_tabbedPanel.addTab( "Acct/Pos Multi", m_acctPosMultiPanel);
+	//	m_tabbedPanel.addTab( "Options", m_optionsPanel);
+	//	m_tabbedPanel.addTab( "Combos", m_comboPanel);
+	//	m_tabbedPanel.addTab( "Contract Info", m_contractInfoPanel);
+	//	m_tabbedPanel.addTab( "Advisor", m_advisorPanel);
 //		m_tabbedPanel.addTab( "Prices", m_pricesPanel);
 		
 		// m_tabbedPanel.addTab( "Strategy", m_stratPanel); in progress
-			*/ 
+			 
 		m_msg.setEditable( false);
 		m_msg.setLineWrap( true);
 		JScrollPane msgScroll = new JScrollPane( m_msg);
@@ -871,7 +821,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 		    	// Using DateFormat format method we can create a string 
 		    	// representation of a date with the defined format.
 		    	
-		   	        String orderDateStr= orderDetail.Date + " " + orderDetail.Time + ":00";		   	      
+		   	        String orderDateStr= orderDetail.Date + " " + orderDetail.Time;		   	      
 		   	  
 		   	     
 		   	     
@@ -952,6 +902,67 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	}
 	
 	
+	private double calculatePrice(String actualPrice, String percent, String action, String profitOrStop){
+		double price;
+		
+		double numPrice, numPercent;
+		
+		if(actualPrice != null && !actualPrice.isEmpty()){
+			numPrice = Double.parseDouble(actualPrice);
+		}else
+			return 0.0;
+		
+		if(percent != null && !percent.isEmpty()){
+			numPercent = Double.parseDouble(percent);
+		}else
+			return 0.0;
+					
+		
+		if(action.equals("SELL")){
+			 if(action.equals("PROFIT"))			  
+			   price = numPrice * (1 - numPercent / 100);
+			 else				 
+				 price = numPrice * (1 + numPercent / 100);
+			  
+		}else 
+		{
+			 if(action.equals("PROFIT"))			  
+			   price = numPrice * (1 + numPercent / 100);
+			 else				 
+			 price = numPrice * (1 - numPercent / 100);			
+		}
+		return fixDoubleDigi(price);
+	}
+	
+	public double fixDoubleDigi(double price){
+		
+		if(price < 1.0){
+		 double prices = price;
+		 DecimalFormat df = new DecimalFormat("#.#####");      
+		  price = Double.valueOf(df.format(prices));
+		  return price = Math.round(prices * 10000.0) / 10000.0;
+		 }else if(price < 10.0){
+			 double prices = price;
+			 DecimalFormat df = new DecimalFormat("#.####");  
+			 price = Double.valueOf(df.format(prices));
+			 price = Math.round(prices * 1000.0) / 1000.0;
+			 return price;
+			 }else if(price < 100.0){
+				 double prices = price;
+				 DecimalFormat df = new DecimalFormat("##.###");      
+				 price = Double.valueOf(df.format(prices));
+				 price = Math.round(prices * 100.0) / 100.0;
+				 return price;
+				 }else {
+					 double prices = price;
+					 DecimalFormat df = new DecimalFormat("###.###");      
+					 price = Double.valueOf(df.format(prices));
+					 price = Math.round(prices * 100.0) / 100.0;
+					 return price;
+					 }
+	}
+	
+	
 	private double calTriggerPrice(forex orderDetail, Contract currentContract){
 		Integer duration = Integer.parseInt(orderDetail.ValidDuration);
 		double triggerPrice;
@@ -966,8 +977,8 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 		Double high = 0.0, low = Double.MAX_VALUE;
 		
 		
-		
-		if(duration <= 60 || (!iterator.hasNext())){
+		//If historical data not available yet, use real time tick price.
+		if((!iterator.hasNext())){
 			
 			if(orderDetail.TradeMethod.equals("SELL")){
 				  triggerPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
@@ -980,23 +991,13 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 				}
 			
 			
-		}else if(duration <= 5 * 60){
-			
-			
-			
+		}else if(duration <= 60){ //If duration is less or euqual to 60 seconds. use 5 minutes bar high and low.
 			if(orderDetail.TradeMethod.equals("SELL")){
 				triggerPrice = currentContract.historicalBarMap.get(treereverse.first()).low() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
-		
-			 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-							  
-				}else 
-				{
+				}else {
 					triggerPrice = currentContract.historicalBarMap.get(treereverse.first()).high() * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
-					 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-				}
-		}
-		else if(duration <= 30 * 60){
-
+				}			
+		}else if(duration <= 5 * 60){//If duration is 5 minutes, let's use last 10 minutes's high and low.
 			while(iterator.hasNext() && counter < 2){
 				Bar bar = currentContract.historicalBarMap.get(iterator.next());
 				if(high < bar.high())
@@ -1007,44 +1008,13 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			
 			if(orderDetail.TradeMethod.equals("SELL")){
 				triggerPrice = low * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
-		
-			 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-							  
 				}else 
 				{
 					triggerPrice = high * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
-					 //Let's set profit taking to 0.6% and adjust it later in order managing task.
 				}
-			
-			
-		}else{
-			while(iterator.hasNext() && counter < 3){
+		}else if(duration <= 15 * 60){//If duration is 15 minutes, let's use last 30 minutes's high and low.
+			while(iterator.hasNext() && counter < 6){
 				Bar bar = currentContract.historicalBarMap.get(iterator.next());
-				
-				DateFormat formatter; 			    	      
-			   	 formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
-
-		    	// Get the date today using Calendar object.
-		    	       
-		    	// Using DateFormat format method we can create a string 
-		    	// representation of a date with the defined format.
-		    	
-		   	        String orderDateStr= orderDetail.Date + " " + orderDetail.Time + ":00";		   	      
-		   	  
-		   	     
-		   	     
-		   	    //Aaron only valid after specified time	
-		   	    
-					try {
-						Date  barTime  = (Date)formatter.parse(bar.formattedTime());
-						if(barTime.before(new Date(System.currentTimeMillis() - 3 * 60 * 60)))
-							continue;
-					} catch (ParseException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-		   	    
-				
 				if(high < bar.high())
 					high = bar.high();
 				if(low > bar.low())
@@ -1053,13 +1023,42 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			
 			if(orderDetail.TradeMethod.equals("SELL")){
 				triggerPrice = low * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
-		
-			 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-							  
 				}else 
 				{
 					triggerPrice = high * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
-					 //Let's set profit taking to 0.6% and adjust it later in order managing task.
+				}
+		}
+		else if(duration <= 30 * 60){//If duration is 30 minutes, let's use last 60 minutes's high and low.
+
+			while(iterator.hasNext() && counter < 12){
+				Bar bar = currentContract.historicalBarMap.get(iterator.next());
+				if(high < bar.high())
+					high = bar.high();
+				if(low > bar.low())
+					low = bar.low();
+			}
+			
+			if(orderDetail.TradeMethod.equals("SELL")){
+				triggerPrice = low * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
+				}else 
+				{
+					triggerPrice = high * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
+				}
+			
+		}else{//If duration is longer than 30 minutes, let's use last 90 minutes's high and low.
+			while(iterator.hasNext() && counter < 18){
+				Bar bar = currentContract.historicalBarMap.get(iterator.next());
+				if(high < bar.high())
+					high = bar.high();
+				if(low > bar.low())
+					low = bar.low();
+			}
+			
+			if(orderDetail.TradeMethod.equals("SELL")){
+				triggerPrice = low * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);	
+				}else 
+				{
+					triggerPrice = high * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
 				}
 			
 			
@@ -1136,7 +1135,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	    	// Using DateFormat format method we can create a string 
 	    	// representation of a date with the defined format.
 	    	
-	   	    String orderDateStr= orderDetail.Date + " " + orderDetail.Time + ":00";		   	      
+	   	    String orderDateStr= orderDetail.Date + " " + orderDetail.Time;		   	      
 	   	  
 	   	     //Aaron only valid after specified time
 	   	     parent.goodAfterTime(orderDateStr);	   	     
@@ -1233,7 +1232,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 		    	// Using DateFormat format method we can create a string 
 		    	// representation of a date with the defined format.
 		    	
-		   	        orderDateStr= orderDetail.Date + " " + orderDetail.Time + ":00";		   	      
+		   	        orderDateStr= orderDetail.Date + " " + orderDetail.Time;		   	      
 		   	  
 		   	     
 		   	     
@@ -1395,19 +1394,65 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			//Request new necessary 
 			for(Entry<Long, forex> entry : orderHashMap2.entrySet()){
 				contractDetail = contractMap.get(entry.getValue().Symbol);
-				if(currentListeningMap.containsKey(entry.getValue().Symbol) == false)
+				if(currentMarketDataList.contains(entry.getValue().Symbol) == false )
 				{
 					forexListenerDetail = forexListenerHashMap.get(entry.getValue().Symbol);
+					if(forexListenerDetail != null && entry.getValue().Symbol != null && contractDetail != null){			
+						controller().reqTopMktData( contractDetail, "", false, forexListenerDetail);
+						currentListeningMap.put(entry.getValue().Symbol, forexListenerDetail);
+						currentMarketDataList.add(entry.getValue().Symbol);
+//						System.out.println(new Date() + "Request market data " + entry.getValue().Symbol); 
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
 					
-					ApiDemo.INSTANCE.controller().reqTopMktData( contractDetail, "", false, forexListenerDetail);
-					if(forexListenerDetail != null && entry.getValue().Symbol != null){
-					currentListeningMap.put(entry.getValue().Symbol, forexListenerDetail);
 					}
 				}	
 			}
 			
 			
-			if(tickCounter > 0){
+			if(currentMarketDataList.contains("NZDUSD") == false)
+			{
+				contractDetail = contractMap.get("NZDUSD");
+				forexListenerDetail = forexListenerHashMap.get("NZDUSD");
+				if(forexListenerDetail != null && contractDetail != null){			
+					controller().reqTopMktData( contractDetail, "", false, forexListenerDetail);
+					currentListeningMap.put("NZDUSD", forexListenerDetail);
+					currentMarketDataList.add("NZDUSD");
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				
+				}
+			}	
+			
+			if(currentMarketDataList.contains("AUDUSD") == false)
+			{
+				contractDetail = contractMap.get("AUDUSD");
+				forexListenerDetail = forexListenerHashMap.get("AUDUSD");
+				if(forexListenerDetail != null && contractDetail != null){			
+					controller().reqTopMktData( contractDetail, "", false, forexListenerDetail);
+					currentListeningMap.put("AUDUSD", forexListenerDetail);
+					currentMarketDataList.add("AUDUSD");
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				
+				}
+			}	
+			
+			
+			
+			if(true){
 				tickCounter = 0;
 				return;
 				}
@@ -1432,11 +1477,15 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			
 			//Request only necessary 
 			for(Entry<Long, forex> entry : orderHashMap2.entrySet()){
-				contractDetail = contractMap.get(entry.getValue().Symbol);
+			contractDetail = contractMap.get(entry.getValue().Symbol);
 				forexListenerDetail = forexListenerHashMap.get(entry.getValue().Symbol);
-				ApiDemo.INSTANCE.controller().reqTopMktData( contractDetail, "", false, forexListenerDetail);
+				if(contractDetail != null && forexListenerDetail != null){
+				controller().reqTopMktData( contractDetail, "", false, forexListenerDetail);
 				currentListeningMap.put(entry.getValue().Symbol, forexListenerDetail);
-				
+				}
+				else{
+					System.out.println("null pointer here " + entry.getValue().Symbol);
+				}
 		//		currentListeningMap.containsKey(entry.getValue().Symbol)
 				
 			}
@@ -1467,13 +1516,13 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 		@Override
 		public void historicalDataEnd() {
 			// TODO Auto-generated method stub
-			System.out.println(new Date() + " end of bar high: ");
+//			System.out.println(new Date() + " end of bar high: ");
 			TreeSet<String> keys = new TreeSet<String>(m_currencyContract.historicalBarMap.keySet());
 			TreeSet<String> treereverse = (TreeSet) keys.descendingSet();
 			for (String key : treereverse){
 			Bar bar = m_currencyContract.historicalBarMap.get(key);
-			System.out.println(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
-			show(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
+//			System.out.println(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
+//			show(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
 
 			}
 		}
@@ -1481,13 +1530,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	
 	
 	public void requestHistoricalBar(String endTime, Contract currencyContract){
-		forex orderDetail;
-		;
-		
-		
-		
-		
-
+		//forex orderDetail;
 		
 		//Only request it once.
 		/*
@@ -1504,7 +1547,13 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 		    currencyContract = contractMap.get(orderDetail.Symbol);
 		  */  
 			histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract);
-			controller().reqHistoricalData(currencyContract, endTime, 3600 * 4, DurationUnit.SECOND, BarSize._30_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+			if(forexHistoricalHandler != null && currencyContract != null)
+				controller().reqHistoricalData(currencyContract, endTime, 3600 * 2, DurationUnit.SECOND, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+			else
+			{
+				System.out.println("Null pointer here" + currencyContract.toString() + forexHistoricalHandler.toString());
+				
+			}
 			//Let's wait 1 second her
 			/*
 			try {
@@ -1591,8 +1640,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	        
 	        
 	        while(true){
-		// TODO Auto-generated method stub
-				try {
+						try {
 					Thread.sleep(1000);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -1601,11 +1649,20 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 				Date systemTimePlus1M = new Date(), systemTimePlus2M = new Date(), orderTime= new Date();
 					
 		
+				//Check connection with server every second.
+				//Check whether current connection is disconnected. If yes, connect it
+	    		if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED"))
+	    		{
+	    			m_connectionPanel.onConnect();
+	    		}
+				
+			//Request order Id.	
 			fileReadingCounter++;	 
 			ApiDemo.INSTANCE.controller().client().reqIds(-1);
 			nextOrderId = ApiDemo.INSTANCE.controller().availableId();
 			
-			if(fileReadingCounter%60  == 0 && !((m_contract_NZDUSD.getAskPrice() > 0 && m_contract_NZDUSD.getBidPrice() > 0 && m_contract_AUDUSD.getAskPrice() > 0 && m_contract_AUDUSD.getBidPrice() > 0)))
+			//Request real time tick price data if it isn't available.
+			if(m_connectionPanel.m_status.getText().toUpperCase().equals("CONNECTED") && ((m_contract_NZDUSD.getAskPrice() == 0 || m_contract_NZDUSD.getBidPrice() == 0 || m_contract_AUDUSD.getAskPrice() == 0 || m_contract_AUDUSD.getBidPrice() == 0)))
 			{
 				requestTickData(orderHashMap);  	
 			}
@@ -1630,14 +1687,14 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 		   	        
 		   	        
 		   	    // displaying the Tree set data
-				   System.out.println("Tree set data in reverse order: ");     
+//				   System.out.println("Tree set data in reverse order: ");     
 				   if (iterator.hasNext()){
 //					   System.out.println(iterator.next() + " ");
 					  do {
 						  Long key = (Long) iterator.next();
 						  orderDetail = orderHashMap.get(key);
 						  
-						  formatter = new SimpleDateFormat("yyyyMMdd HH:mm");
+						  formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 
 					    	// Get the date today using Calendar object.
 					    	// Using DateFormat format method we can create a string 
@@ -1653,7 +1710,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 						  
 						 if(historicalDataReq.contains(orderDetail.Symbol))
 					    	continue;
-					  }while((orderDetail.ValidDuration.equals("60") || orderTime.before(new Date())) && iterator.hasNext() );
+					  }while((/*orderDetail.ValidDuration.equals("60") || */orderTime.before(new Date())) && iterator.hasNext() );
 					  if(orderDetail != null ){
 						  historicalDataReq.add(orderDetail.Symbol);
 						  orderDateStr = formatter.format(new Date());
@@ -1675,27 +1732,24 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			
 			try 			    	    
 		     {	
-		    	if(fileReadingCounter > 100){
+		    	if(fileReadingCounter > 300){
 		 			m_connectionPanel.m_orderSubmission.setText(new Date() + " Order submission task is running.");
 
 		    		
-		    		//Check whether current connection is disconnected. If yes, connect it
-		    		if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED"))
-		    		{
-		    			m_connectionPanel.onConnect();
-		    		}
+		    		
 		    		
 		    		
  		   	        
 		    		
-		    		//requestRealtimeBar();
-		    		//request report every 5 minutes;
+		    		
 		    			String[] fileNameStrs = inputFileName.split("\\.");
 		    		
-		    			/*
+		    			
 		    	   		 excelInput.setInputFile(inputFileName);
 		    	   		 orderHashMap = excelInput.read(orderHashMap);	
-		    	   		*/ 
+		    	 		 show(new Date() + " File " + inputFileName + " is read back. Total size in HashMap: " + orderHashMap.size() + " orders.");
+
+		    	   		/**/ 
 	
 				   
     	      
@@ -1707,14 +1761,13 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 				    	
 	  		   	        orderDateStr = formatter.format(new Date());
 		    	   		 
-		    	   		excelOutput.setOutputFile(fileNameStrs[0] + "_" + orderDateStr + "." + fileNameStrs[1]);
+		    	   		excelOutput.setOutputFile(fileNameStrs[0] + "_" + "Report_" + orderDateStr + "." + fileNameStrs[1]);
 		    	   		excelOutput.write(orderHashMap);
 		    	   		fileReadingCounter = 0;
-		//    	   		show(new Date() + " File " + inputFileName + " read back. Total size in HashMap: " + orderHashMap.size() + " orders.");
 		    	   		show(new Date() + " File " + fileNameStrs[0] + "_" + orderDateStr + "." + fileNameStrs[1] + " write back.");
 		    			
 		    	   		
-		    	   		requestTickData(orderHashMap);  	   		
+		    //	   		requestTickData(orderHashMap);  	   		
 	    	   	 }
 		    	
 		    } 
@@ -1745,7 +1798,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 //			    System.out.println(new Date() + "Looping thru all orders: " + orderDetail.orderSeqNo + " " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
 			    		
 			    	if(orderDetail!=null && orderDetail.OrderStatus !=null && !orderDetail.OrderStatus.isEmpty()){
-			    	  if(fileReadingCounter % 100 == 0){
+			    	  if(fileReadingCounter % 1000 == 0){
 			    		System.out.println(" Already submitted orders: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol + orderDetail.orderIdList.toString() + "Submit status: " + orderDetail.OrderStatus + " Fill @" + orderDetail.ActualPrice + " Comment: " + orderDetail.comment);
 //			    		show(new Date() + " Already submitted orders: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol + orderDetail.orderIdList.toString() + "Submit status: " + orderDetail.OrderStatus + " Fill @" + orderDetail.ActualPrice + " Comment: " + orderDetail.comment);
 			    	  }
@@ -1805,12 +1858,12 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 							e.printStackTrace();
 						}
 			    		
-					    System.out.print("Try to submit: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
+					    System.out.println("Try to submit: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
 					    show(new Date() + " Try to submit: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
 					    
 			    		//Check whether price information is valid or not.
 			    		System.out.println(orderDetail.Symbol + " BID price: " + contractMap.get(orderDetail.Symbol).getBidPrice() );
-			    		if(contractMap.get(orderDetail.Symbol).getBidPrice() == 0){
+			    		if(contractMap.get(orderDetail.Symbol).historicalBarMap.isEmpty()){
 						    System.out.println("Close price is 0: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
 			    			continue;
 			    		}
@@ -2144,7 +2197,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 					entry.getValue().comment = "Error code: " + errorCode + errorMsg;
 					
 					//Error code 202 means it is cancelled in system. But sometimes it is updated in live orders.
-					if(errorCode == 202)
+					if(errorCode >= 200 && errorCode <= 203)
 						entry.getValue().OrderStatus = "Cancelled";
 					orderHashMap.put(entry.getKey(), entry.getValue());						
 				}	
@@ -2165,7 +2218,8 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	 
     public void run() {
         System.out.println("Hello from a Order managing thread!");
-        
+        Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+
         
         
     while(true){

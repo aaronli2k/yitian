@@ -6,6 +6,7 @@ package com.ib.controller;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map.Entry;
@@ -141,7 +142,13 @@ public class ApiController implements EWrapper {
 
 	@Override public void nextValidId(int orderId) {
 		m_orderId = orderId;
-		m_reqId = m_orderId + 10000000; // let order id's not collide with other request id's
+		if(m_reqId <= m_orderId + 10000000)
+			m_reqId = m_orderId + 10000000; // let order id's not collide with other request id's
+		else{
+//			m_reqId = m_orderId + 10000000 + 1; // let order id's not collide with other request id's
+//			System.out.println("Oh, request Id is assigend "  + m_reqId);
+			//request Id has been assigned, do nothing.
+		}
 		m_connected  = true;
 		if (m_connectionHandler != null) {
 			m_connectionHandler.connected();
@@ -486,6 +493,7 @@ public class ApiController implements EWrapper {
 			return;
 
     	int reqId = m_reqId++;
+
     	m_topMktDataMap.put( reqId, handler);
     	m_client.reqMktData( reqId, contract, genericTickList, snapshot, Collections.<TagValue>emptyList() );
 		sendEOM();
@@ -702,6 +710,7 @@ public class ApiController implements EWrapper {
 
     	m_tradeReportHandler = handler;
     	m_client.reqExecutions( m_reqId++, filter);
+
 		sendEOM();
     }
 
@@ -997,6 +1006,7 @@ public class ApiController implements EWrapper {
 			return;
 
     	int reqId = m_reqId++;
+
     	m_historicalDataMap.put( reqId, handler);
     	String durationStr = duration + " " + durationUnit.toString().charAt( 0);
     	m_client.reqHistoricalData(reqId, contract, endDateTime, durationStr, barSize.toString(), whatToShow.toString(), rthOnly ? 1 : 0, 2, Collections.<TagValue>emptyList() );
@@ -1050,6 +1060,7 @@ public class ApiController implements EWrapper {
 
     	int reqId = m_reqId++;
     	m_realTimeBarMap.put( reqId, handler);
+
     	ArrayList<TagValue> realTimeBarsOptions = new ArrayList<TagValue>();
     	m_client.reqRealTimeBars(reqId, contract, 0, whatToShow.toString(), rthOnly, realTimeBarsOptions);
 		sendEOM();
@@ -1206,6 +1217,7 @@ public class ApiController implements EWrapper {
 			return;
 
 		int reqId = m_reqId++;
+/
 		m_accountUpdateMultiMap.put( reqId, handler);
 		m_client.reqAccountUpdatesMulti( reqId, account, modelCode, ledgerAndNLV);
 		sendEOM();
