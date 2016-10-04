@@ -1217,7 +1217,7 @@ public class ApiController implements EWrapper {
 			return;
 
 		int reqId = m_reqId++;
-/
+
 		m_accountUpdateMultiMap.put( reqId, handler);
 		m_client.reqAccountUpdatesMulti( reqId, account, modelCode, ledgerAndNLV);
 		sendEOM();

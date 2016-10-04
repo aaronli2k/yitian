@@ -1065,6 +1065,20 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 		
 		}
 			
+		//Make sure that trigger price is 0.1 away from current bid/ask price.
+		if(orderDetail.TradeMethod.equals("SELL")){
+			if(triggerPrice < contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100))
+				triggerPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
+				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
+						  
+			}
+		else 
+			{
+			if(triggerPrice > contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100))
+				 triggerPrice = contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
+				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
+			}
+		
 		
 		return triggerPrice;
 		
@@ -1844,6 +1858,23 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 				 				}	
 				 				keys1 = null;
 			    		}
+			    		
+			    		//Make sure that we would submit an duplicate order with current open order;
+						for (HashMap.Entry<Integer, Order> entry : liveOrderMap.entrySet()) {
+							Order order2Loop = entry.getValue();
+						    
+						    if(orderHashMap.get(order2Loop.seqOrderNo()).equals(orderDetail.Symbol) && order2Loop.parentId() == 0){
+						    	{
+						    		needToSubmit = false;
+						    		orderDetail.OrderStatus = "Cancelled";
+						    		orderDetail.comment = "Cancelled due to duplicated order in open order";						    		
+						    		orderHashMap.put(orderDetail.orderSeqNo, orderDetail);
+						    		System.out.println(new Date() + " canceld Order:  " + order2Loop.orderId());				    		
+						    	}
+						    }    
+						}
+			    		
+			    		
 			    		if(needToSubmit == false)
 			    			continue;
 			    		
@@ -2290,13 +2321,13 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 				
  						lmtPrice = calculatePrice(orderDetail.ActualPrice, orderDetail.ProfitPct, action, "PROFIT");
  						if (order.lmtPrice() != lmtPrice){					
- 							System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied limit Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " Old LMT: " + order.lmtPrice() + "New limite: " + lmtPrice );
- 							show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Limit Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + lmtPrice);
- 							order.lmtPrice(lmtPrice);
- 							ForexOrderHandler orderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
- 							controller().placeOrModifyOrder( currencyContract, order, orderHandler);	
+ //							System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied limit Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " Old LMT: " + order.lmtPrice() + "New limite: " + lmtPrice );
+ //							show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Limit Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + lmtPrice);
+ //							order.lmtPrice(lmtPrice);
+ //							ForexOrderHandler orderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
+ //							controller().placeOrModifyOrder( currencyContract, order, orderHandler);	
  							
- 							submittedOrderHashMap.put(order.orderId(), order);
+ //							submittedOrderHashMap.put(order.orderId(), order);
  						}else
  							System.out.println("SeqNo: " + orderDetail.orderSeqNo + " Did NOT change LIMIT" + " " + currencyContract.symbol() + currencyContract.currency());
  					}else  //below is the stp order. //when price reach targeted profit, let's change stp type to trailing stop. And if price reached filled price + 0.1%, adjust it to filled price.
