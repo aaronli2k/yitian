@@ -144,7 +144,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	public final Contract m_contract_AUDCNH = new Contract("AUD", "CASH", "IDEALPRO", "CNH", 20.0, 2.0);
 	public final Contract m_contract_CNHJPY = new Contract("CNH", "CASH", "IDEALPRO", "JPY", 50.0, 3.0);
 	public final Contract m_contract_USDCNH = new Contract("USD", "CASH", "IDEALPRO", "CNH", 30.0, 3.0);
-	public final Contract m_contract_EURCNH = new Contract("EUR", "CASH", "IDEALPRO", "CNH", 40.0, 3.0);
+	public final Contract m_contract_EURCNH = new Contract("EUR", "CASH", "IDEALPRO", "CNH", 30.0, 3.0);
+	public final Contract m_contract_GBPCNH = new Contract("GBP", "CASH", "IDEALPRO", "CNH", 30.0, 3.0);
 
 	
 	
@@ -304,9 +305,10 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	ForexListner m_stockListener_CNHJPY = new ForexListner(m_contract_CNHJPY);	
 	ForexListner m_stockListener_USDCNH = new ForexListner(m_contract_USDCNH);	
 	ForexListner m_stockListener_EURCNH = new ForexListner(m_contract_EURCNH);	
+	ForexListner m_stockListener_GBPCNH = new ForexListner(m_contract_GBPCNH);	
 	
 	
-
+	
 	
 	ConcurrentHashMap<String, ForexListner> forexListenerHashMap = new ConcurrentHashMap<String, ForexListner>();
 	ConcurrentHashMap<String, ForexListner> currentListeningMap = new ConcurrentHashMap<String, ForexListner>();
@@ -331,6 +333,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	
 	//Execution report map
 	ConcurrentHashMap<Integer, forex> executedOrderMap = new ConcurrentHashMap<Integer, forex>();
+	ConcurrentHashMap<Integer, forex> liveForexOrderMap = new ConcurrentHashMap<Integer, forex>();
 
 	
 	int fileReadingCounter = 301;
@@ -453,6 +456,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
     	contractMap.put("CNHJPY", m_contract_CNHJPY);
     	contractMap.put("USDCNH", m_contract_USDCNH);
     	contractMap.put("EURCNH", m_contract_EURCNH);
+    	contractMap.put("GBPCNH", m_contract_GBPCNH);
 
     	
     	
@@ -491,6 +495,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
     	forexListenerHashMap.put("CNHJPY", m_stockListener_CNHJPY);
     	forexListenerHashMap.put("USDCNH", m_stockListener_USDCNH);
     	forexListenerHashMap.put("EURCNH", m_stockListener_EURCNH);
+    	forexListenerHashMap.put("GBPCNH", m_stockListener_GBPCNH);
 
     	
 		m_tabbedPanel.addTab( "Connection", m_connectionPanel);
@@ -1721,7 +1726,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	    	String orderDateStr;
 	    	
 	        System.out.println("Hello from a Order submission thread!");
-	        Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+//	        Thread.currentThread().setPriority(Thread.MAX_PRIORITY - 1);
 	        
 	        
 	     // creating reverse set
@@ -1936,12 +1941,13 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				 				}	
 				 				keys1 = null;
 			    		}
-			    		
-			    		//Make sure that we would submit an duplicate order with current open order;
+			    		//To be confirmed later.
+			    		/*
+			    		//Make sure that we would NOT submit an duplicate order with current open order;
 						for (HashMap.Entry<Integer, Order> entry : liveOrderMap.entrySet()) {
 							Order order2Loop = entry.getValue();
 						    forex tmpOrder = orderHashMap.get(order2Loop.seqOrderNo());
-						    if(tmpOrder != null && tmpOrder.equals(orderDetail.Symbol) && order2Loop.parentId() == 0){
+						    if(tmpOrder != null && tmpOrder.Symbol.equals(orderDetail.Symbol) && order2Loop.parentId() != 0){
 						    	{
 						    		needToSubmit = false;
 						    		orderDetail.OrderStatus = "Cancelled";
@@ -1952,7 +1958,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 						    }    
 						}
 			    		
-			    		
+*/
 			    		if(needToSubmit == false)
 			    			continue;
 			    		
@@ -1967,8 +1973,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 							e.printStackTrace();
 						}
 			    		
-					    System.out.println("Try to submit: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
-					    show(new Date() + " Try to submit: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
+	//				    System.out.println("Try to submit: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
+	//				    show(new Date() + " Try to submit: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
 					    
 			    		//Check whether price information is valid or not.
 			    		System.out.println(orderDetail.Symbol + " BID price: " + contractMap.get(orderDetail.Symbol).getBidPrice() );
@@ -2340,7 +2346,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	 
     public void run() {
         System.out.println("Hello from a Order managing thread!");
-        Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+ //       Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
 
         
         
@@ -2404,31 +2410,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
  				else if(orderDetail.MaxDrawdown == null || orderDetail.MaxDrawdown.isEmpty() || Double.parseDouble(orderDetail.MaxDrawdown) > currencyContract.getAskPrice())
  					orderDetail.MaxDrawdown = new Double(currencyContract.getAskPrice()).toString();
  				orderHashMap.put(order.seqOrderNo(), orderDetail);
- 				if(false)
- 				{
-
- 					String action = order.action().toString();
- 					//if it is a buy, then this is a short position. To buy high is stop and buy low is profit taking.
-					//if it is a sell. then this is a long position. To sell high is limit and sell low is stop loss.
- 					if(order.action().equals(Action.BUY) && order.getOrderType().equals("LMT") || order.action().equals(Action.SELL) && order.getOrderType().equals("LMT") )
- 					{				
-				
- 						lmtPrice = calculatePrice(orderDetail.ActualPrice, orderDetail.ProfitPct, action, "PROFIT");
- 						if (order.lmtPrice() != lmtPrice){					
- //							System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied limit Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " Old LMT: " + order.lmtPrice() + "New limite: " + lmtPrice );
- //							show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Limit Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + lmtPrice);
- //							order.lmtPrice(lmtPrice);
- //							ForexOrderHandler orderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
- //							controller().placeOrModifyOrder( currencyContract, order, orderHandler);	
- 							
- //							submittedOrderHashMap.put(order.orderId(), order);
- 						}else
- 							System.out.println("SeqNo: " + orderDetail.orderSeqNo + " Did NOT change LIMIT" + " " + currencyContract.symbol() + currencyContract.currency());
- 					}else  //below is the stp order. //when price reach targeted profit, let's change stp type to trailing stop. And if price reached filled price + 0.1%, adjust it to filled price.
- 					{
- 						changeSTPPrice(action, orderDetail, order, currencyContract); 						
- 					}					
-				}
+ 	
  			}
 		}
  		} 		
@@ -2438,108 +2420,6 @@ public class ApiDemo implements IConnectionHandler, Runnable {
     }
 
 
- private void changeSTPPrice(String action, forex orderDetail, Order order, Contract currencyContract){
-	//Now let's try to adjust stop price as well if it it above cost level.
-		double stpPrice = 0;// = calculatePrice(orderDetail.ActualPrice, "0", action, "STOP");
-		//If action is buy which is a short position, if price fell below profit taking price, then attach trailing buy
-		if(action.equals("BUY") /*&& currencyContract.getAskPrice() <= Double.parseDouble(orderDetail.ActualPrice) * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100) */){
-	//		stpPrice = Double.parseDouble(orderDetail.ActualPrice);
-			placeTrailingStopOrder(action, orderDetail, order, currencyContract);
-			return;
-			}		
-		//If action is buy which is a long position, if price rise above profit taking price, then attach trailing sell
-		else if(action.equals("SELL")/* && currencyContract.getBidPrice() >= Double.parseDouble(orderDetail.ActualPrice) * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100) */){
-			placeTrailingStopOrder(action, orderDetail, order, currencyContract);
-			return;
-		}
-		//Change STP price to actual filled price.
-		else if(action.equals("BUY") && currencyContract.getBidPrice() <= Double.parseDouble(orderDetail.ActualPrice) * 0.999 ){
-			stpPrice = Double.parseDouble(orderDetail.ActualPrice);
-			}
-		//Change STP price to actual filled price.
-		else if(action.equals("SELL") && currencyContract.getAskPrice() >= Double.parseDouble(orderDetail.ActualPrice) * 1.001 ){
-			stpPrice = Double.parseDouble(orderDetail.ActualPrice);
-			}
-		//Change STP price to max loss price after actual filled price.
-		else if(action.equals("SELL") && order.auxPrice() <= Double.parseDouble(orderDetail.ActualPrice) * (1 - Double.parseDouble(orderDetail.LossPct) / 100) ){
-			stpPrice = Double.parseDouble(orderDetail.ActualPrice) * (1 - Double.parseDouble(orderDetail.LossPct) / 100);
-			}
-		//Change STP price to max loss price after actual filled price.
-		else if(action.equals("BUY") && order.auxPrice() >= Double.parseDouble(orderDetail.ActualPrice) * (1 + Double.parseDouble(orderDetail.LossPct) / 100) ){
-			stpPrice = Double.parseDouble(orderDetail.ActualPrice) * (1 + Double.parseDouble(orderDetail.LossPct) / 100);
-			}
-		//Not need to change stop price.
-		else
-		{
-			System.out.println("SeqNo: " + orderDetail.orderSeqNo + " Did NOT change STOP" + " " + currencyContract.symbol() + currencyContract.currency());
-			return;
-		}
-		stpPrice = fixDoubleDigi(stpPrice);
-
-		if (order.auxPrice() == stpPrice)
-			return;
-		System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + stpPrice);
-		show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + stpPrice);
-		order.auxPrice(stpPrice);
-		ForexOrderHandler stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
-		controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
-		submittedOrderHashMap.put(order.orderId(), order);
- }
-
- private void placeTrailingStopOrder(String action, forex orderDetail, Order inOrder, Contract currencyContract){
-	 
-	 	//Let's check whether this trail order already exists or not. If yes, ignore it.
-	 //This is the parent order.
-//	 if(inOrder.parentId() == 0)
-//		 return;
-	 
-	 for(Entry<Integer, Order> entry : liveOrderMap.entrySet()){
-		 System.out.println("Sequ of live order: " + entry.getValue().seqOrderNo() + " Action: " + entry.getValue().action());
-		 System.out.println("Type of live order: " + entry.getValue().orderType() + " In order Type: " + inOrder.orderType());
-		 System.out.println("OrderId of live order: " + entry.getValue().orderId() + " orderId In order Type: " + inOrder.orderId());
-		 System.out.println("Sequ of in order: " + inOrder.seqOrderNo() + " Action: " + inOrder.action());
-		 
-		if(entry.getValue().orderId() == (inOrder.orderId() + 1) && entry.getValue().orderType().equals("TRAIL") && inOrder.orderType().equals("STP")){
-			Order trailOrder = entry.getValue();
-//			trailOrder.action(action);
-//			trailOrder.orderType("TRAIL");
-			trailOrder.trailingPercent(0.1);
-//			order.auxPrice(Double.MAX_VALUE);//
-//			trailOrder.trailStopPrice(inOrder.auxPrice());
-			trailOrder.totalQuantity(inOrder.totalQuantity());
-			// ! [trailingstop]
-			
-			trailOrder.seqOrderNo(inOrder.seqOrderNo());
-//			trailOrder.orderId(nextOrderId);
-//			trailOrder.parentId(0);
-			//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
-	        //to activate all its predecessors
-			trailOrder.transmit(true);				    				 
-			trailOrder.account(m_acctList.get(0));		
-			trailOrder.tif("GTC");
-			
-			
-			System.out.println(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending trailing STP Order: " + trailOrder.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + inOrder.auxPrice() + "Current: " + trailOrder.trailingPercent());
-			show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending trailing STP Order: " + trailOrder.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + inOrder.auxPrice() + "Current: " + trailOrder.trailingPercent());
-
-			ForexOrderHandler stporderHandler = new ForexOrderHandler(trailOrder, orderDetail.orderSeqNo);
-			controller().placeOrModifyOrder( currencyContract, trailOrder, stporderHandler);	
-			submittedOrderHashMap.put(trailOrder.orderId(), trailOrder);
-			return; //Trail order already exist. Just return from it.
-		}
-	 }
-	 
-	 
-	 	controller().client().reqIds(-1);
-		
-		if(nextOrderId < controller().availableId())
-			nextOrderId = controller().availableId();
-		
-		if(currentMaxOrderId >= nextOrderId)
-			nextOrderId = currentMaxOrderId + 1;
-	 
-		
- }
 
 
 private void adjustStopPrice(Integer orderId, Order order){
@@ -2614,12 +2494,6 @@ private void adjustStopPrice(Integer orderId, Order order){
 				if (order.auxPrice() >= newStopPrice)
 					return;
 	}	
-			
-	//	newStopPrice = Double.parseDouble(orderDetail.ActualPrice);
-		//		placeTrailingStopOrder(action, orderDetail, order, currencyContract);
-				
-			
-
 			
 			System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + newStopPrice);
 			show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + newStopPrice);
