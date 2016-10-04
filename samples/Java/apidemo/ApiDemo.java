@@ -1201,6 +1201,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			//Trail stop order.
 			nextOrderId++;			
 			
+			/*
 			Order trailOrder = new Order();
 			trailOrder.action(action.equals("BUY") ? "SELL" : "BUY");
 			trailOrder.orderType("TRAIL");
@@ -1216,11 +1217,15 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 			trailOrder.orderId(nextOrderId);
 			trailOrder.parentId(0);
+			*/
 			//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
 	        //to activate all its predecessors
+			/*
 			trailOrder.transmit(true);				    				 
 			trailOrder.account(m_acctList.get(0));		
 			trailOrder.tif("GTC");
+			*/
+			
 			
 			
 			nextOrderId++;	    									
@@ -1322,7 +1327,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				stopLossSell.tif("GTC");
 			
 		
-				Order trailOrderSell = new Order();
+/*				Order trailOrderSell = new Order();
 				trailOrderSell.action(action.equals("BUY") ? "SELL" : "BUY");
 				trailOrderSell.orderType("TRAIL");
 				trailOrderSell.trailingPercent(1);
@@ -1341,7 +1346,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		        //to activate all its predecessors
 				trailOrderSell.transmit(true);				    				 
 				trailOrderSell.account(m_acctList.get(0));		
-				trailOrderSell.tif("GTC");
+				trailOrderSell.tif("GTC");*/
 				
 				
 				
@@ -1382,11 +1387,11 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					System.out.println(new Date() + "Send StopLossBuy orderId: " + stopLoss.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 					show(new Date() + "Send StopLossBuy orderId: " + stopLoss.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 
-					orderTransmit(contractMap.get(orderDetail.Symbol), trailOrder, orderDetail.orderSeqNo);
+	/*				orderTransmit(contractMap.get(orderDetail.Symbol), trailOrder, orderDetail.orderSeqNo);
 					
 					System.out.println(new Date() + "Send trailOrder orderId: " + trailOrder.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 					show(new Date() + "Send trailOrder orderId: " + trailOrder.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
-
+*/
 		
 					
 					/*
@@ -1432,11 +1437,11 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					show(new Date() + "Send stopLossSell orderId: " + stopLossSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 
 					
-					orderTransmit(contractMap.get(orderDetail.Symbol), trailOrderSell, orderDetail.orderSeqNo);
+/*					orderTransmit(contractMap.get(orderDetail.Symbol), trailOrderSell, orderDetail.orderSeqNo);
 					
 					System.out.println(new Date() + "Send trailOrderSell orderId: " + trailOrderSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 					show(new Date() + "Send trailOrderSell orderId: " + trailOrderSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
-
+*/
 		
 
 					
@@ -2077,6 +2082,9 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 //	    								parent.orderId( 0);
 //			ApiDemo.INSTANCE.controller().removeOrderHandler( this);
 			forex orderDetail = orderHashMap.get(m_orderSeqNo);
+			
+			if(orderDetail == null)
+				return;
 			orderDetail.comment = "Error code: " + errorCode + errorMsg;
 			
 			//Error code 202 means it is cancelled in system. But sometimes it is not updated in orders status report.
@@ -2105,7 +2113,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			//Put all executed order into map for later tracking.
 			forex orderDetail = new forex();			
 			orderDetail.ActualPrice = new Double(execution.avgPrice()).toString();
-			orderDetail.Symbol = contract.symbol();
+			orderDetail.Symbol = contract.symbol() + contract.currency();
 			orderDetail.OrderID = new Integer(execution.orderId()).toString();
 			//Put executed order into map;
 			executedOrderMap.put(execution.orderId(), orderDetail);
@@ -2178,7 +2186,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			    	orderHashMap.put(seqNo, orderDetail);			
 			    }    
 			}
-			System.out.println(execution.time() + " " +  execution.side() + " " + contract.symbol() + contract.currency() + " " + execution.cumQty() + " Filled @ " + execution.avgPrice() + "OrderId: " + execution.orderId());
+			System.out.println(execution.time() + " " +  execution.side() + " " + contract.symbol() + contract.currency() + " " + execution.cumQty() + " Filled @ " + execution.avgPrice() + " OrderId: " + execution.orderId());
 
 			//Order status after trade report.
 			if(orderHashMap.get(order.seqOrderNo()) != null)
@@ -2382,6 +2390,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
  		for(Entry<Integer, Order> entry : liveOrderMap.entrySet()){
  			
+ 			adjustStopPrice(entry.getKey(), entry.getValue());
+ 			
  			Order order = entry.getValue();
  			orderDetail = null;
  			if(order != null)
@@ -2394,8 +2404,9 @@ public class ApiDemo implements IConnectionHandler, Runnable {
  				else if(orderDetail.MaxDrawdown == null || orderDetail.MaxDrawdown.isEmpty() || Double.parseDouble(orderDetail.MaxDrawdown) > currencyContract.getAskPrice())
  					orderDetail.MaxDrawdown = new Double(currencyContract.getAskPrice()).toString();
  				orderHashMap.put(order.seqOrderNo(), orderDetail);
- 				if((orderDetail.OrderStatus != null) && (orderDetail.OrderStatus.equals("Filled")))
+ 				if(false)
  				{
+
  					String action = order.action().toString();
  					//if it is a buy, then this is a short position. To buy high is stop and buy low is profit taking.
 					//if it is a sell. then this is a long position. To sell high is limit and sell low is stop loss.
@@ -2531,7 +2542,93 @@ public class ApiDemo implements IConnectionHandler, Runnable {
  }
 
 
+private void adjustStopPrice(Integer orderId, Order order){
+	forex orderDetail;
+	
+	//If current order is parent order, just return
+	if(order.parentId() == 0)
+		return;
+	
+	order = submittedOrderHashMap.get(orderId);
+	
+	if(order == null)
+		return;
+	
+	//If current order is profit taking order, just return
+	if(order.orderType().equals("LMT"))
+		return;
+	
+	orderDetail = executedOrderMap.get(order.parentId());
+	if(orderDetail == null)
+		return;
+	Double openPrice = 0.0;
+	if(orderDetail.ActualPrice != null && !orderDetail.ActualPrice.isEmpty())
+		openPrice = Double.parseDouble(orderDetail.ActualPrice);
+	
+	Double currentBidPrice, currentAskPrice, newStopPrice;
+	Contract currencyContract = contractMap.get(orderDetail.Symbol);
 
+	if(currencyContract == null)
+		return;
+	
+	currentBidPrice = currencyContract.getBidPrice();
+	currentAskPrice = currencyContract.getAskPrice();
+	Action action = order.action();
+	
+	//This is a short position, we need to buy it at a price higher than current ask price 
+	if(action.equals(Action.BUY)){
+		//If current ask price 0.3 % is bigger than actual price, adjust STOP price to current price + 0.1% 
+		if(currentAskPrice > (openPrice * (1 + 0.3/100))){
+			newStopPrice = currentAskPrice * (1 + 0.1/100);
+		}
+		//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
+		else if(currentAskPrice > (openPrice * (1 + 0.2/100))){
+			newStopPrice = openPrice;
+		}else{//defaul set stop price as 0.1 loss
+			newStopPrice = openPrice * (1 + 0.1/100);
+		}
+		newStopPrice = fixDoubleDigi(newStopPrice);
+
+		if(order.auxPrice() == 0.0)
+			return;
+		
+		if (order.auxPrice() <= newStopPrice)
+			return;
+	}else{//This is a long position, we need to sell it at a price higher than current bid price 
+
+		//If current bid price 0.3 % is less than actual price, adjust STOP price to current price - 0.1% 
+				if(currentBidPrice < (openPrice * (1 - 0.3/100))){
+					newStopPrice = currentBidPrice * (1 - 0.1/100);
+				}
+				//If current bid price 0.2 % is less than actual price, adjust STOP price to actual open price 
+				else if(currentAskPrice < (openPrice * (1 - 0.2/100))){
+					newStopPrice = openPrice;
+				}else{//defaul set stop price as 0.1 loss
+					newStopPrice = openPrice * (1 - 0.1/100);
+				}
+				newStopPrice = fixDoubleDigi(newStopPrice);
+
+				if(order.auxPrice() == 0.0)
+					return;
+				
+				if (order.auxPrice() >= newStopPrice)
+					return;
+	}	
+			
+	//	newStopPrice = Double.parseDouble(orderDetail.ActualPrice);
+		//		placeTrailingStopOrder(action, orderDetail, order, currencyContract);
+				
+			
+
+			
+			System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + newStopPrice);
+			show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + newStopPrice);
+			order.auxPrice(newStopPrice);
+			ForexOrderHandler stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
+			controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
+			submittedOrderHashMap.put(order.orderId(), order);
+	
+}
  
 
 }
