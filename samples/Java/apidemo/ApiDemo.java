@@ -76,7 +76,7 @@ import jxl.write.WriteException;
 import jxl.write.biff.RowsExceededException;
 import samples.testbed.orders.OrderSamples;
 
-public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
+public class ApiDemo implements IConnectionHandler, Runnable {
 	static { NewLookAndFeel.register(); }
 	public static ApiDemo INSTANCE;
 
@@ -316,7 +316,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	long tickCounter = 100;
 	
 	
-	Timer m_timer = new Timer( 5000, this); //1 seconds timer
+//	Timer m_timer = new Timer( 5000, this); //1 seconds timer
 	
 	ReadExcel excelInput = new ReadExcel();
 	WriteExcel excelOutput = new WriteExcel();
@@ -328,6 +328,11 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	
 	//All live order in system.
 	ConcurrentHashMap<Integer, Order> liveOrderMap = new ConcurrentHashMap<Integer, Order>();
+	
+	//Execution report map
+	ConcurrentHashMap<Integer, forex> executedOrderMap = new ConcurrentHashMap<Integer, forex>();
+
+	
 	int fileReadingCounter = 301;
 
 	private int nextOrderId = 0, currentMaxOrderId = 0;
@@ -597,7 +602,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	@Override public void disconnected() {
 		show( "disconnected");
 		m_connectionPanel.m_status.setText( "disconnected");
-		m_timer.stop();
+	//	m_timer.stop();
 	}
 
 	@Override public void accountList(ArrayList<String> list) {
@@ -777,6 +782,14 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	private Order bracketStopOrder(forex orderDetail, int orderID){
 		{
 			ApiDemo.INSTANCE.controller().client().reqIds(-1);
+			
+			if(nextOrderId < ApiDemo.INSTANCE.controller().availableId())
+				nextOrderId = ApiDemo.INSTANCE.controller().availableId();
+			
+			if(currentMaxOrderId >= nextOrderId)
+				nextOrderId = currentMaxOrderId + 1;
+
+			
 			//BRACKET ORDER
 		        //! [bracketsubmit]
 			 Double triggerPrice;
@@ -802,7 +815,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			}
 			 
 //			 nextOrderId = 0;
-			 int parentOrderId = orderID;
+			 int parentOrderId = nextOrderId;
 			 String action = orderDetail.TradeMethod;
 			  //This will be our main or "parent" order
 				Order parent = new Order();
@@ -814,7 +827,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 				parent.auxPrice(fixDoubleDigi(triggerPrice));
 				
 				DateFormat formatter; 			    	      
-			   	 formatter = new SimpleDateFormat("yyyyMMdd hh:mm");
+			   	 formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 
 		    	// Get the date today using Calendar object.
 		    	       
@@ -837,7 +850,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 				} 
 				
 				parent.goodTillDate(orderDateStr);
-				
+				parent.tif("GTD");
 				//The parent and children orders will need this attribute set to false to prevent accidental executions.
 		        //The LAST CHILD will have it set to true.
 				parent.transmit(false);				    					
@@ -856,7 +869,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 				
 				*/
 				//This is profit taking order. Its order is is parent Id plus one. And its parent ID is above parent Id;
-				orderID++;
+				nextOrderId++;
 				Order takeProfit = new Order();
 				takeProfit.orderId(parent.orderId() + 1);
 				takeProfit.action(action.equals("BUY") ? "SELL" : "BUY");
@@ -879,6 +892,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 				}
 				*/
 				
+				nextOrderId++;
 				//This is Loss STOPing  order. Its order is is parent Id plus two. And its parent ID is above parent Id;
 				Order stopLoss = new Order();
 				stopLoss.orderId(parent.orderId() + 2);
@@ -1067,15 +1081,17 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			
 		//Make sure that trigger price is 0.1 away from current bid/ask price.
 		if(orderDetail.TradeMethod.equals("SELL")){
-			if(triggerPrice < contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100))
-				triggerPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
+			Double currentLowPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - 0.1 / 100); 
+			if(triggerPrice > currentLowPrice)
+				triggerPrice = currentLowPrice;
 				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
 						  
 			}
 		else 
 			{
-			if(triggerPrice > contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100))
-				 triggerPrice = contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
+			Double currentHighPrice = contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + 0.1 / 100); 
+			if(triggerPrice < currentHighPrice)
+				 triggerPrice = currentHighPrice;
 				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
 			}
 		
@@ -1164,8 +1180,8 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			
 			parent.goodTillDate(orderDateStr);
 			parent.tif("GTD");
-			nextOrderId++;
 			
+			nextOrderId++;			
 			//This is Loss STOPing  order. Its order is is parent Id plus two. And its parent ID is above parent Id;
 			Order stopLoss = new Order();
 			stopLoss.orderId(nextOrderId);
@@ -1180,6 +1196,31 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			stopLoss.transmit(true);				    				 
 			stopLoss.account(m_acctList.get(0));
 			stopLoss.tif("GTC");
+			
+			
+			//Trail stop order.
+			nextOrderId++;			
+			
+			Order trailOrder = new Order();
+			trailOrder.action(action.equals("BUY") ? "SELL" : "BUY");
+			trailOrder.orderType("TRAIL");
+			trailOrder.trailingPercent(1);
+//			order.auxPrice(Double.MAX_VALUE);//
+			if(trailOrder.action().equals("BUY"))
+				trailOrder.trailStopPrice(stopLossPrice * 1.01);
+			else
+				trailOrder.trailStopPrice(stopLossPrice * 0.99);
+			trailOrder.totalQuantity(quantity);
+			// ! [trailingstop]
+			
+
+			trailOrder.orderId(nextOrderId);
+			trailOrder.parentId(0);
+			//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
+	        //to activate all its predecessors
+			trailOrder.transmit(true);				    				 
+			trailOrder.account(m_acctList.get(0));		
+			trailOrder.tif("GTC");
 			
 			
 			nextOrderId++;	    									
@@ -1281,6 +1322,28 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 				stopLossSell.tif("GTC");
 			
 		
+				Order trailOrderSell = new Order();
+				trailOrderSell.action(action.equals("BUY") ? "SELL" : "BUY");
+				trailOrderSell.orderType("TRAIL");
+				trailOrderSell.trailingPercent(1);
+//				order.auxPrice(Double.MAX_VALUE);//
+				if(trailOrderSell.action().equals("BUY"))
+					trailOrderSell.trailStopPrice(stopLossPrice * 1.01);
+				else
+					trailOrderSell.trailStopPrice(stopLossPrice * 0.99);
+				trailOrderSell.totalQuantity(quantity);
+				// ! [trailingstop]
+				
+
+				trailOrderSell.orderId(nextOrderId);
+				trailOrderSell.parentId(0);
+				//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
+		        //to activate all its predecessors
+				trailOrderSell.transmit(true);				    				 
+				trailOrderSell.account(m_acctList.get(0));		
+				trailOrderSell.tif("GTC");
+				
+				
 				
 				nextOrderId++;	    									
 				
@@ -1319,6 +1382,12 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 					System.out.println(new Date() + "Send StopLossBuy orderId: " + stopLoss.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 					show(new Date() + "Send StopLossBuy orderId: " + stopLoss.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 
+					orderTransmit(contractMap.get(orderDetail.Symbol), trailOrder, orderDetail.orderSeqNo);
+					
+					System.out.println(new Date() + "Send trailOrder orderId: " + trailOrder.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
+					show(new Date() + "Send trailOrder orderId: " + trailOrder.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
+
+		
 					
 					/*
 					 //Let's wait for 1 second.
@@ -1361,6 +1430,14 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 					
 					System.out.println(new Date() + "Send stopLossSell orderId: " + stopLossSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 					show(new Date() + "Send stopLossSell orderId: " + stopLossSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
+
+					
+					orderTransmit(contractMap.get(orderDetail.Symbol), trailOrderSell, orderDetail.orderSeqNo);
+					
+					System.out.println(new Date() + "Send trailOrderSell orderId: " + trailOrderSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
+					show(new Date() + "Send trailOrderSell orderId: " + trailOrderSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
+
+		
 
 					
 					 //Let's wait for 1 second.
@@ -1649,7 +1726,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			   // create descending set
 			   Iterator<Long> iterator;
 			   iterator = treeadd.iterator();
-			     
+			   orderDetail =   orderHashMap.get(iterator);
 			  
 	        
 	        
@@ -1675,6 +1752,46 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			ApiDemo.INSTANCE.controller().client().reqIds(-1);
 			nextOrderId = ApiDemo.INSTANCE.controller().availableId();
 			
+			//Read back all order information first.
+			try 			    	    
+		     {	
+		    	if(fileReadingCounter > 300){
+		 			m_connectionPanel.m_orderSubmission.setText(new Date() + " Order submission task is running.");    		
+		    			String[] fileNameStrs = inputFileName.split("\\.");
+		    		
+		    			
+		    	   		 excelInput.setInputFile(inputFileName);
+		    	   		 orderHashMap = excelInput.read(orderHashMap);	
+		    	 		 show(new Date() + " File " + inputFileName + " is read back. Total size in HashMap: " + orderHashMap.size() + " orders.");
+
+		    	   		/**/ 
+	
+				   
+   	      
+					   	 formatter = new SimpleDateFormat("yyyyMMdd");
+
+				    	// Get the date today using Calendar object.
+				    	// Using DateFormat format method we can create a string 
+				    	// representation of a date with the defined format.
+				    	
+	  		   	        orderDateStr = formatter.format(new Date());
+		    	   		 
+		    	   		excelOutput.setOutputFile(fileNameStrs[0] + "_" + "Report_" + orderDateStr + "." + fileNameStrs[1]);
+		    	   		excelOutput.write(orderHashMap);
+		    	   		fileReadingCounter = 0;
+		    	   		show(new Date() + " File " + fileNameStrs[0] + "_" + orderDateStr + "." + fileNameStrs[1] + " write back.");
+		    			
+		    	   		
+		    //	   		requestTickData(orderHashMap);  	   		
+	    	   	 }
+		    	
+		    } 
+			catch (Exception e){
+				
+				e.printStackTrace();
+			}	
+			
+			
 			//Request real time tick price data if it isn't available.
 			if(m_connectionPanel.m_status.getText().toUpperCase().equals("CONNECTED") && ((m_contract_NZDUSD.getAskPrice() == 0 || m_contract_NZDUSD.getBidPrice() == 0 || m_contract_AUDUSD.getAskPrice() == 0 || m_contract_AUDUSD.getBidPrice() == 0)))
 			{
@@ -1683,7 +1800,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
   	
 
 			//Request historical data every 5 seconds.
-			if(fileReadingCounter % 10 == 0){
+			if(m_connectionPanel.m_status.getText().toUpperCase().equals("CONNECTED") && (fileReadingCounter % 5 == 0 || (orderDetail != null && contractMap.get(orderDetail.Symbol).historicalBarMap.isEmpty()) )){
 	    					    	      
 			   	 formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 
@@ -1744,51 +1861,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			}
 			
 			
-			try 			    	    
-		     {	
-		    	if(fileReadingCounter > 300){
-		 			m_connectionPanel.m_orderSubmission.setText(new Date() + " Order submission task is running.");
 
-		    		
-		    		
-		    		
-		    		
- 		   	        
-		    		
-		    		
-		    			String[] fileNameStrs = inputFileName.split("\\.");
-		    		
-		    			
-		    	   		 excelInput.setInputFile(inputFileName);
-		    	   		 orderHashMap = excelInput.read(orderHashMap);	
-		    	 		 show(new Date() + " File " + inputFileName + " is read back. Total size in HashMap: " + orderHashMap.size() + " orders.");
-
-		    	   		/**/ 
-	
-				   
-    	      
-					   	 formatter = new SimpleDateFormat("yyyyMMdd");
-
-				    	// Get the date today using Calendar object.
-				    	// Using DateFormat format method we can create a string 
-				    	// representation of a date with the defined format.
-				    	
-	  		   	        orderDateStr = formatter.format(new Date());
-		    	   		 
-		    	   		excelOutput.setOutputFile(fileNameStrs[0] + "_" + "Report_" + orderDateStr + "." + fileNameStrs[1]);
-		    	   		excelOutput.write(orderHashMap);
-		    	   		fileReadingCounter = 0;
-		    	   		show(new Date() + " File " + fileNameStrs[0] + "_" + orderDateStr + "." + fileNameStrs[1] + " write back.");
-		    			
-		    	   		
-		    //	   		requestTickData(orderHashMap);  	   		
-	    	   	 }
-		    	
-		    } 
-			catch (Exception e){
-				
-				e.printStackTrace();
-			}	
 			
 			//loop thru all orders in HashMap;
 		//	System.out.println("Looping thru all orders: " + new Date());
@@ -1862,8 +1935,8 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			    		//Make sure that we would submit an duplicate order with current open order;
 						for (HashMap.Entry<Integer, Order> entry : liveOrderMap.entrySet()) {
 							Order order2Loop = entry.getValue();
-						    
-						    if(orderHashMap.get(order2Loop.seqOrderNo()).equals(orderDetail.Symbol) && order2Loop.parentId() == 0){
+						    forex tmpOrder = orderHashMap.get(order2Loop.seqOrderNo());
+						    if(tmpOrder != null && tmpOrder.equals(orderDetail.Symbol) && order2Loop.parentId() == 0){
 						    	{
 						    		needToSubmit = false;
 						    		orderDetail.OrderStatus = "Cancelled";
@@ -1895,7 +1968,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			    		//Check whether price information is valid or not.
 			    		System.out.println(orderDetail.Symbol + " BID price: " + contractMap.get(orderDetail.Symbol).getBidPrice() );
 			    		if(contractMap.get(orderDetail.Symbol).historicalBarMap.isEmpty()){
-						    System.out.println("Close price is 0: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
+						    System.out.println("Historical price map is empty: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
 			    			continue;
 			    		}
 					    System.out.println("Preparing: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
@@ -2007,8 +2080,10 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			orderDetail.comment = "Error code: " + errorCode + errorMsg;
 			
 			//Error code 202 means it is cancelled in system. But sometimes it is not updated in orders status report.
-			if(errorCode >= 200 && errorCode <= 203)
-				orderDetail.OrderStatus = "Cancelled";
+			if(errorCode >= 200 && errorCode <= 203){
+				if(orderDetail.OrderStatus == null || !orderDetail.OrderStatus.equals("Filled"))
+					orderDetail.OrderStatus = "Cancelled";
+				}
 			
 			orderHashMap.put(m_orderSeqNo, orderDetail);
 			SwingUtilities.invokeLater( new Runnable() {
@@ -2026,11 +2101,20 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			// TODO Auto-generated method stub
 			
 			liveOrderMap.remove(execution.orderId());
-				
+			
+			//Put all executed order into map for later tracking.
+			forex orderDetail = new forex();			
+			orderDetail.ActualPrice = new Double(execution.avgPrice()).toString();
+			orderDetail.Symbol = contract.symbol();
+			orderDetail.OrderID = new Integer(execution.orderId()).toString();
+			//Put executed order into map;
+			executedOrderMap.put(execution.orderId(), orderDetail);
+			
 			Order order = submittedOrderHashMap.get(execution.orderId());
 			if(order != null){
 				
-			
+				
+				
 				Long groupId = null;
 				groupId = order.groupId();
 
@@ -2058,7 +2142,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 				
 				for (HashMap.Entry<Long, forex> entry : orderHashMap.entrySet()) {
 				    Long key = entry.getKey();
-				    forex orderDetail = entry.getValue();
+				    orderDetail = entry.getValue();
 				    
 				    if(orderDetail.orderIdList.contains(order.orderId())){
 				    	if(orderDetail.OrderStatus.equals("Filled")){
@@ -2077,7 +2161,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 				
 			long seqNo = order.seqOrderNo();
 			
-			forex orderDetail = orderHashMap.get(seqNo);
+			orderDetail = orderHashMap.get(seqNo);
 			if(orderDetail != null)		{			    
 			    if(orderDetail.orderIdList.contains(execution.orderId())){			    
 			    	orderDetail.OrderStatus = "Filled";			
@@ -2103,7 +2187,6 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 			
 			
 			}
-			
 	}
 		@Override
 		public void tradeReportEnd() {
@@ -2123,7 +2206,7 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 		@Override
 		public void openOrder(Contract contract, Order order, OrderState orderState) {
 			// TODO Auto-generated method stub
-//			System.out.print(contract.symbol() + contract.currency() + " " + order.orderId() +  " " +orderState.getStatus());
+  //  		System.out.println(new Date() + " Live order Current size: " + liveOrderMap.size());
 			
 			
 			Order originalOrder = submittedOrderHashMap.get(order.orderId());
@@ -2348,13 +2431,13 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 	//Now let's try to adjust stop price as well if it it above cost level.
 		double stpPrice = 0;// = calculatePrice(orderDetail.ActualPrice, "0", action, "STOP");
 		//If action is buy which is a short position, if price fell below profit taking price, then attach trailing buy
-		if(action.equals("BUY") && currencyContract.getAskPrice() <= Double.parseDouble(orderDetail.ActualPrice) * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100) ){
+		if(action.equals("BUY") /*&& currencyContract.getAskPrice() <= Double.parseDouble(orderDetail.ActualPrice) * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100) */){
 	//		stpPrice = Double.parseDouble(orderDetail.ActualPrice);
 			placeTrailingStopOrder(action, orderDetail, order, currencyContract);
 			return;
 			}		
 		//If action is buy which is a long position, if price rise above profit taking price, then attach trailing sell
-		else if(action.equals("SELL") && currencyContract.getBidPrice() >= Double.parseDouble(orderDetail.ActualPrice) * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100) ){
+		else if(action.equals("SELL")/* && currencyContract.getBidPrice() >= Double.parseDouble(orderDetail.ActualPrice) * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100) */){
 			placeTrailingStopOrder(action, orderDetail, order, currencyContract);
 			return;
 		}
@@ -2395,9 +2478,42 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
  private void placeTrailingStopOrder(String action, forex orderDetail, Order inOrder, Contract currencyContract){
 	 
 	 	//Let's check whether this trail order already exists or not. If yes, ignore it.
+	 //This is the parent order.
+//	 if(inOrder.parentId() == 0)
+//		 return;
 	 
 	 for(Entry<Integer, Order> entry : liveOrderMap.entrySet()){
-		if(entry.getValue().parentId() == inOrder.parentId() && entry.getValue().orderType().equals("TRAIL")){
+		 System.out.println("Sequ of live order: " + entry.getValue().seqOrderNo() + " Action: " + entry.getValue().action());
+		 System.out.println("Type of live order: " + entry.getValue().orderType() + " In order Type: " + inOrder.orderType());
+		 System.out.println("OrderId of live order: " + entry.getValue().orderId() + " orderId In order Type: " + inOrder.orderId());
+		 System.out.println("Sequ of in order: " + inOrder.seqOrderNo() + " Action: " + inOrder.action());
+		 
+		if(entry.getValue().orderId() == (inOrder.orderId() + 1) && entry.getValue().orderType().equals("TRAIL") && inOrder.orderType().equals("STP")){
+			Order trailOrder = entry.getValue();
+//			trailOrder.action(action);
+//			trailOrder.orderType("TRAIL");
+			trailOrder.trailingPercent(0.1);
+//			order.auxPrice(Double.MAX_VALUE);//
+//			trailOrder.trailStopPrice(inOrder.auxPrice());
+			trailOrder.totalQuantity(inOrder.totalQuantity());
+			// ! [trailingstop]
+			
+			trailOrder.seqOrderNo(inOrder.seqOrderNo());
+//			trailOrder.orderId(nextOrderId);
+//			trailOrder.parentId(0);
+			//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
+	        //to activate all its predecessors
+			trailOrder.transmit(true);				    				 
+			trailOrder.account(m_acctList.get(0));		
+			trailOrder.tif("GTC");
+			
+			
+			System.out.println(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending trailing STP Order: " + trailOrder.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + inOrder.auxPrice() + "Current: " + trailOrder.trailingPercent());
+			show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending trailing STP Order: " + trailOrder.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + inOrder.auxPrice() + "Current: " + trailOrder.trailingPercent());
+
+			ForexOrderHandler stporderHandler = new ForexOrderHandler(trailOrder, orderDetail.orderSeqNo);
+			controller().placeOrModifyOrder( currencyContract, trailOrder, stporderHandler);	
+			submittedOrderHashMap.put(trailOrder.orderId(), trailOrder);
 			return; //Trail order already exist. Just return from it.
 		}
 	 }
@@ -2411,38 +2527,10 @@ public class ApiDemo implements IConnectionHandler, Runnable, ActionListener {
 		if(currentMaxOrderId >= nextOrderId)
 			nextOrderId = currentMaxOrderId + 1;
 	 
-		Order trailOrder = new Order();
-		trailOrder.action(action);
-		trailOrder.orderType("TRAIL");
-		trailOrder.trailingPercent(0.1);
-//		order.auxPrice(Double.MAX_VALUE);//
-		trailOrder.trailStopPrice(inOrder.auxPrice());
-		trailOrder.totalQuantity(inOrder.totalQuantity());
-		// ! [trailingstop]
 		
-
-		trailOrder.orderId(nextOrderId);
-		trailOrder.parentId(inOrder.parentId());
-		//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
-        //to activate all its predecessors
-		trailOrder.transmit(true);				    				 
-		trailOrder.account(m_acctList.get(0));		
-		trailOrder.tif("GTC");
-		
-		
-		System.out.println(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending trailing STP Order: " + trailOrder.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + inOrder.auxPrice() + "Current: " + trailOrder.trailingPercent());
-		show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending trailing STP Order: " + trailOrder.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + inOrder.auxPrice() + "Current: " + trailOrder.trailingPercent());
-
-		ForexOrderHandler stporderHandler = new ForexOrderHandler(trailOrder, orderDetail.orderSeqNo);
-		controller().placeOrModifyOrder( currencyContract, trailOrder, stporderHandler);	
-		submittedOrderHashMap.put(trailOrder.orderId(), trailOrder);
  }
 
-@Override
-public void actionPerformed(ActionEvent e) {
-	// TODO Auto-generated method stub
-	
-}
+
 
  
 
