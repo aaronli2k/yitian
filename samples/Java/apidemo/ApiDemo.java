@@ -530,9 +530,10 @@ public class ApiDemo implements IConnectionHandler, Runnable {
         m_frame.setSize( 1024, 768);
         m_frame.setVisible( true);
         m_frame.setDefaultCloseOperation( JFrame.EXIT_ON_CLOSE);
+        m_frame.setTitle("Built @ " + new Date()); 
         
-        // make initial connection to local host, port 7496, client id 0, no connection options
-		controller().connect( "127.0.0.1", 7496, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
+        // make initial connection to local host, port 4001, client id 0, no connection options
+		controller().connect( "127.0.0.1", 4001, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
     
 		 Thread me = Thread.currentThread();
 		 
