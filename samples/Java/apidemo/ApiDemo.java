@@ -147,10 +147,76 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	public final Contract m_contract_EURCNH = new Contract("EUR", "CASH", "IDEALPRO", "CNH", 30.0, 3.0);
 	public final Contract m_contract_GBPCNH = new Contract("GBP", "CASH", "IDEALPRO", "CNH", 30.0, 3.0);
 
-	
-	
 		
 	
+	ForexListner m_stockListener_NZDUSD = new ForexListner(m_contract_NZDUSD);		
+	ForexListner m_stockListener_AUDUSD = new ForexListner(m_contract_AUDUSD);	
+	ForexListner m_stockListener_GBPUSD = new ForexListner(m_contract_GBPUSD);	
+	ForexListner m_stockListener_EURUSD = new ForexListner(m_contract_EURUSD);		
+	ForexListner m_stockListener_EURCHF = new ForexListner(m_contract_EURCHF);	
+	ForexListner m_stockListener_EURGBP = new ForexListner(m_contract_EURGBP);	
+	ForexListner m_stockListener_EURJPY = new ForexListner(m_contract_EURJPY);		
+	ForexListner m_stockListener_USDCAD = new ForexListner(m_contract_USDCAD);	
+	ForexListner m_stockListener_USDCHF = new ForexListner(m_contract_USDCHF);	
+	ForexListner m_stockListener_USDJPY = new ForexListner(m_contract_USDJPY);   				
+	ForexListner m_stockListener_CADJPY = new ForexListner(m_contract_CADJPY);	
+	ForexListner m_stockListener_CADCHF = new ForexListner(m_contract_CADCHF);	
+	ForexListner m_stockListener_CHFJPY = new ForexListner(m_contract_CHFJPY);		
+	ForexListner m_stockListener_EURCAD = new ForexListner(m_contract_EURCAD);	
+	ForexListner m_stockListener_EURSGD = new ForexListner(m_contract_EURSGD);	
+	ForexListner m_stockListener_GBPCAD = new ForexListner(m_contract_GBPCAD);		
+	ForexListner m_stockListener_GBPJPY = new ForexListner(m_contract_GBPJPY);	
+	ForexListner m_stockListener_GBPSGD = new ForexListner(m_contract_GBPSGD);	
+	ForexListner m_stockListener_USDSGD = new ForexListner(m_contract_USDSGD);		
+	ForexListner m_stockListener_AUDCAD = new ForexListner(m_contract_AUDCAD);			
+	ForexListner m_stockListener_EURAUD = new ForexListner(m_contract_EURAUD);	
+	ForexListner m_stockListener_CHFAUD = new ForexListner(m_contract_CHFAUD);		
+	ForexListner m_stockListener_AUDJPY = new ForexListner(m_contract_AUDJPY);	
+	ForexListner m_stockListener_AUDSGD = new ForexListner(m_contract_AUDSGD);	
+	ForexListner m_stockListener_EURNZD = new ForexListner(m_contract_EURNZD);		
+	ForexListner m_stockListener_AUDNZD = new ForexListner(m_contract_AUDNZD);	
+	ForexListner m_stockListener_GBPAUD = new ForexListner(m_contract_GBPAUD);	
+	ForexListner m_stockListener_GBPNZD = new ForexListner(m_contract_GBPNZD);		
+	ForexListner m_stockListener_NZDJPY = new ForexListner(m_contract_NZDJPY);	
+	ForexListner m_stockListener_AUDCNH = new ForexListner(m_contract_AUDCNH);		
+	ForexListner m_stockListener_CNHJPY = new ForexListner(m_contract_CNHJPY);	
+	ForexListner m_stockListener_USDCNH = new ForexListner(m_contract_USDCNH);	
+	ForexListner m_stockListener_EURCNH = new ForexListner(m_contract_EURCNH);	
+	ForexListner m_stockListener_GBPCNH = new ForexListner(m_contract_GBPCNH);	
+	
+	
+	
+	
+	ConcurrentHashMap<String, ForexListner> forexListenerHashMap = new ConcurrentHashMap<String, ForexListner>();
+	ConcurrentHashMap<String, ForexListner> currentListeningMap = new ConcurrentHashMap<String, ForexListner>();
+	ArrayList<String> currentMarketDataList = new ArrayList<String>();
+	ConcurrentHashMap<String, ForexListner> historyListeningMap = new ConcurrentHashMap<String, ForexListner>();
+
+	long tickCounter = 100;
+	
+	
+//	Timer m_timer = new Timer( 5000, this); //1 seconds timer
+	
+	ReadExcel excelInput = new ReadExcel();
+	WriteExcel excelOutput = new WriteExcel();
+	String inputFileName = "Forex.xls";
+
+	ArrayList<String> historicalDataReq = new ArrayList<String>();
+
+	ConcurrentHashMap<Long, forex> orderHashMap = new ConcurrentHashMap<Long, forex>();
+	
+	//All live order in system.
+	ConcurrentHashMap<Integer, Order> liveOrderMap = new ConcurrentHashMap<Integer, Order>();
+	
+	//Execution report map
+	ConcurrentHashMap<Integer, forex> executedOrderMap = new ConcurrentHashMap<Integer, forex>();
+	ConcurrentHashMap<Integer, forex> liveForexOrderMap = new ConcurrentHashMap<Integer, forex>();
+
+	
+	int fileReadingCounter = 301;
+
+	private int nextOrderId = 0, currentMaxOrderId = 0;
+
 	class ForexListner extends TopMktDataAdapter implements IRealTimeBarHandler{
 		Contract m_contract_listener;
 		 int counter = 0;
@@ -246,23 +312,19 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			public void realtimeBar(Bar bar) {
 				// TODO Auto-generated method stub
 			 
-		//	 m_contract_listener.add(bar.close());
 			 
 			 if((bar.close() > m_contract_listener.ma() * 1.10) || (bar.close() < m_contract_listener.ma() * 0.9)){ 
 		           System.out.println("ILLEGAL " + m_contract_listener.symbol() + m_contract_listener.currency() + " MID: " + bar.close() + " MA: " + m_contract_listener.ma());
 				 
 				 return;}
 			 
-	//		 System.out.println("Moving average: " + m_contract_listener.symbol() + m_contract_listener.currency() + " MID: " + contractMap.get(m_contract_listener.symbol() + m_contract_listener.currency()).getClosePrice());
-			  
+ 
 			 
 			 m_contract_listener.setClosePrice(bar.close());
 
-	//	 System.out.println(m_contract_listener.symbol() + m_contract_listener.currency() + " CLose price: " + contractMap.get(m_contract_listener.symbol() + m_contract_listener.currency()).getClosePrice() );
-			 
+		 
              contractMap.put(m_contract_listener.symbol() + m_contract_listener.currency(), m_contract_listener);
              
-   //          System.out.println(m_contract_listener.symbol() + m_contract_listener.currency() + " MID: " + contractMap.get(m_contract_listener.symbol() + m_contract_listener.currency()).getClosePrice());
 
 			}
 
@@ -270,76 +332,6 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		 
 	}
 	
-	
-	
-	ForexListner m_stockListener_NZDUSD = new ForexListner(m_contract_NZDUSD);		
-	ForexListner m_stockListener_AUDUSD = new ForexListner(m_contract_AUDUSD);	
-	ForexListner m_stockListener_GBPUSD = new ForexListner(m_contract_GBPUSD);	
-	ForexListner m_stockListener_EURUSD = new ForexListner(m_contract_EURUSD);		
-	ForexListner m_stockListener_EURCHF = new ForexListner(m_contract_EURCHF);	
-	ForexListner m_stockListener_EURGBP = new ForexListner(m_contract_EURGBP);	
-	ForexListner m_stockListener_EURJPY = new ForexListner(m_contract_EURJPY);		
-	ForexListner m_stockListener_USDCAD = new ForexListner(m_contract_USDCAD);	
-	ForexListner m_stockListener_USDCHF = new ForexListner(m_contract_USDCHF);	
-	ForexListner m_stockListener_USDJPY = new ForexListner(m_contract_USDJPY);   				
-	ForexListner m_stockListener_CADJPY = new ForexListner(m_contract_CADJPY);	
-	ForexListner m_stockListener_CADCHF = new ForexListner(m_contract_CADCHF);	
-	ForexListner m_stockListener_CHFJPY = new ForexListner(m_contract_CHFJPY);		
-	ForexListner m_stockListener_EURCAD = new ForexListner(m_contract_EURCAD);	
-	ForexListner m_stockListener_EURSGD = new ForexListner(m_contract_EURSGD);	
-	ForexListner m_stockListener_GBPCAD = new ForexListner(m_contract_GBPCAD);		
-	ForexListner m_stockListener_GBPJPY = new ForexListner(m_contract_GBPJPY);	
-	ForexListner m_stockListener_GBPSGD = new ForexListner(m_contract_GBPSGD);	
-	ForexListner m_stockListener_USDSGD = new ForexListner(m_contract_USDSGD);		
-	ForexListner m_stockListener_AUDCAD = new ForexListner(m_contract_AUDCAD);			
-	ForexListner m_stockListener_EURAUD = new ForexListner(m_contract_EURAUD);	
-	ForexListner m_stockListener_CHFAUD = new ForexListner(m_contract_CHFAUD);		
-	ForexListner m_stockListener_AUDJPY = new ForexListner(m_contract_AUDJPY);	
-	ForexListner m_stockListener_AUDSGD = new ForexListner(m_contract_AUDSGD);	
-	ForexListner m_stockListener_EURNZD = new ForexListner(m_contract_EURNZD);		
-	ForexListner m_stockListener_AUDNZD = new ForexListner(m_contract_AUDNZD);	
-	ForexListner m_stockListener_GBPAUD = new ForexListner(m_contract_GBPAUD);	
-	ForexListner m_stockListener_GBPNZD = new ForexListner(m_contract_GBPNZD);		
-	ForexListner m_stockListener_NZDJPY = new ForexListner(m_contract_NZDJPY);	
-	ForexListner m_stockListener_AUDCNH = new ForexListner(m_contract_AUDCNH);		
-	ForexListner m_stockListener_CNHJPY = new ForexListner(m_contract_CNHJPY);	
-	ForexListner m_stockListener_USDCNH = new ForexListner(m_contract_USDCNH);	
-	ForexListner m_stockListener_EURCNH = new ForexListner(m_contract_EURCNH);	
-	ForexListner m_stockListener_GBPCNH = new ForexListner(m_contract_GBPCNH);	
-	
-	
-	
-	
-	ConcurrentHashMap<String, ForexListner> forexListenerHashMap = new ConcurrentHashMap<String, ForexListner>();
-	ConcurrentHashMap<String, ForexListner> currentListeningMap = new ConcurrentHashMap<String, ForexListner>();
-	ArrayList<String> currentMarketDataList = new ArrayList<String>();
-	ConcurrentHashMap<String, ForexListner> historyListeningMap = new ConcurrentHashMap<String, ForexListner>();
-
-	long tickCounter = 100;
-	
-	
-//	Timer m_timer = new Timer( 5000, this); //1 seconds timer
-	
-	ReadExcel excelInput = new ReadExcel();
-	WriteExcel excelOutput = new WriteExcel();
-	String inputFileName = "Forex.xls";
-
-	ArrayList<String> historicalDataReq = new ArrayList<String>();
-
-	ConcurrentHashMap<Long, forex> orderHashMap = new ConcurrentHashMap<Long, forex>();
-	
-	//All live order in system.
-	ConcurrentHashMap<Integer, Order> liveOrderMap = new ConcurrentHashMap<Integer, Order>();
-	
-	//Execution report map
-	ConcurrentHashMap<Integer, forex> executedOrderMap = new ConcurrentHashMap<Integer, forex>();
-	ConcurrentHashMap<Integer, forex> liveForexOrderMap = new ConcurrentHashMap<Integer, forex>();
-
-	
-	int fileReadingCounter = 301;
-
-	private int nextOrderId = 0, currentMaxOrderId = 0;
-
 	
 	
 	
@@ -355,10 +347,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	
     public static void start( ApiDemo apiDemo ) {
     		
-    	//Aaron to start a timer thread
-    //	timer = new Thread();
-    //    timer.start();
-    	
+   	
         INSTANCE = apiDemo;
         INSTANCE.run();
         
@@ -562,15 +551,32 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		 
 		 (new OrderManagingThread()).start();
 		 (new OrderSubmittingThread()).start();
-		 
+		 (new MarketDataManagingThread()).start();
+
 		 
 		 
     }
 	
 	 
     ITimeHandler timeHandler = new ITimeHandler() {
+
+
 		@Override public void currentTime(long time) {
 		//	show( "Server date/time is " + Formats.fmtDate(time * 1000) );
+			
+//    	DateFormat formatterDate, formatterTime; 			    	      
+//		
+//    	formatterDate = new SimpleDateFormat("yy-mm-dd");
+//    	formatterTime = new SimpleDateFormat("HH:mm:ss");			
+//			
+//			try {
+////				Runtime.getRuntime().exec("cmd /C date " + formatterDate.format(time * 1000));//date // dd-MM-yy
+////				Runtime.getRuntime().exec("cmd /C time " + formatterTime.format(time * 1000)); // hh:mm:ss
+//			} catch (IOException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			} 
+
 		}
 	};
 	 
@@ -605,7 +611,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	}
 	
 	@Override public void disconnected() {
-		show( "disconnected");
+	//	show( "disconnected");
 		m_connectionPanel.m_status.setText( "disconnected");
 	//	m_timer.stop();
 	}
@@ -649,6 +655,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		private final JLabel m_dataLink = new JLabel("Price Data not available. Please check connection and restart");
 		private final JLabel m_orderSubmission = new JLabel("Order submission task isn't running");
 		private final JLabel m_orderManaging = new JLabel("Order managing task isn't running");
+		private final JLabel m_marketDataManaging = new JLabel("m_marketDataManaging task isn't running");
 
 		
 		private final JLabel m_defaultPortNumberLabel = new JLabel("<html>Live Trading ports:<b> TWS: 7496; IB Gateway: 4001.</b><br>"
@@ -698,7 +705,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			p3.add("Data link status: ", m_dataLink);
 			p3.add("Order submission task status: ", m_orderSubmission);
 			p3.add("Order managing task status: ", m_orderManaging);			
-
+			p3.add("Market Data managing task status: ", m_marketDataManaging);
 			
 			JPanel p4 = new JPanel( new BorderLayout() );
 			p4.add( p1, BorderLayout.WEST);
@@ -759,15 +766,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		System.out.println("Orders in OrderHashMap: " + order2Send.orderId() + " " + contract2Send.symbol() + contract2Send.currency() + " STOP: " + order2Send.auxPrice() + " LMT: " + order2Send.lmtPrice());
 
 		
-		/*
-		//Guy, let's rest 100ms here
-		 try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		 */
+		
 		//Aaron for tracing submitted order status and forex order status
 		 String submittedStatus;
 		if(submittedOrderHashMap.get(order2Send.orderId()) == null){
@@ -778,182 +777,21 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		 
 		System.out.println(new Date() + "Submitted orderId: " + order2Send.orderId() + " in submittedOrderHashMap " + submittedStatus + " Total submitted orders: " + submittedOrderHashMap.size());
 
-		
-		 
+			 
 		System.out.println(new Date() + "Submitted order sequence No.: " + order2Send.seqOrderNo() + " in orderHashMap " + orderHashMap.get(order2Send.seqOrderNo()).OrderStatus);
 		
+		/*try {
+			Thread.sleep(100);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}*/
+		
 	}
 	
-	private Order bracketStopOrder(forex orderDetail, int orderID){
-		{
-			ApiDemo.INSTANCE.controller().client().reqIds(-1);
-			
-			if(nextOrderId < ApiDemo.INSTANCE.controller().availableId())
-				nextOrderId = ApiDemo.INSTANCE.controller().availableId();
-			
-			if(currentMaxOrderId >= nextOrderId)
-				nextOrderId = currentMaxOrderId + 1;
 
-			
-			//BRACKET ORDER
-		        //! [bracketsubmit]
-			 Double triggerPrice;
-			 Double profitTakingPrice;
-			 Double stopLossPrice;
-			 Double quantity = Double.parseDouble(orderDetail.Quantity);
-			 
-			 triggerPrice = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));	
-			if(orderDetail.TradeMethod.equals("SELL")){
-	//		  triggerPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
-				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-				 profitTakingPrice = triggerPrice * (1 -  1.0 / 100);
-			 // profitTakingPrice = triggerPrice * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100);
-			  stopLossPrice = triggerPrice * (1 + (Double.parseDouble(orderDetail.LossPct) - Double.parseDouble(orderDetail.TriggerPct) ) / 100);
-			  
-			}else 
-			{
-	//			 triggerPrice = contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
-				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-				 profitTakingPrice = triggerPrice * (1 + 1.0 / 100);
-				// profitTakingPrice = triggerPrice * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100);
-				 stopLossPrice = triggerPrice * (1 - (Double.parseDouble(orderDetail.LossPct) - Double.parseDouble(orderDetail.TriggerPct) )  / 100);				
-			}
-			 
-//			 nextOrderId = 0;
-			 int parentOrderId = nextOrderId;
-			 String action = orderDetail.TradeMethod;
-			  //This will be our main or "parent" order
-				Order parent = new Order();
-				parent.orderId(parentOrderId);
-				parent.parentId(0);
-				parent.action(action);
-				parent.orderType("STP");
-				parent.totalQuantity(quantity);
-				parent.auxPrice(fixDoubleDigi(triggerPrice));
-				
-				DateFormat formatter; 			    	      
-			   	 formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
-
-		    	// Get the date today using Calendar object.
-		    	       
-		    	// Using DateFormat format method we can create a string 
-		    	// representation of a date with the defined format.
-		    	
-		   	        String orderDateStr= orderDetail.Date + " " + orderDetail.Time;		   	      
-		   	  
-		   	     
-		   	     
-		   	    //Aaron only valid after specified time
-			   	parent.goodAfterTime(orderDateStr);  
-		   	    try {
-					Date  orderTime  = (Date)formatter.parse(orderDateStr);
-					Date orderPlusDuration = new Date(orderTime.getTime() + Integer.parseInt(orderDetail.ValidDuration) * 1000);
-					orderDateStr = formatter.format(orderPlusDuration);
-		   	    } catch (ParseException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				} 
-				
-				parent.goodTillDate(orderDateStr);
-				parent.tif("GTD");
-				//The parent and children orders will need this attribute set to false to prevent accidental executions.
-		        //The LAST CHILD will have it set to true.
-				parent.transmit(false);				    					
-				parent.account(m_acctList.get(0));
-				
-				
-					    									
-				orderTransmit(contractMap.get(orderDetail.Symbol), parent, orderDetail.orderSeqNo);
-				/*
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				
-				*/
-				//This is profit taking order. Its order is is parent Id plus one. And its parent ID is above parent Id;
-				nextOrderId++;
-				Order takeProfit = new Order();
-				takeProfit.orderId(parent.orderId() + 1);
-				takeProfit.action(action.equals("BUY") ? "SELL" : "BUY");
-				takeProfit.orderType("LMT");
-				takeProfit.totalQuantity(quantity);
-				takeProfit.lmtPrice(fixDoubleDigi(profitTakingPrice));
-				takeProfit.parentId(parent.orderId());
-				takeProfit.transmit(false);				    					
-				takeProfit.account(m_acctList.get(0));
-				takeProfit.tif("GTC");
-				
-				orderTransmit(contractMap.get(orderDetail.Symbol), takeProfit, orderDetail.orderSeqNo);
-				
-				/*
-				try {
-					Thread.sleep(100);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				*/
-				
-				nextOrderId++;
-				//This is Loss STOPing  order. Its order is is parent Id plus two. And its parent ID is above parent Id;
-				Order stopLoss = new Order();
-				stopLoss.orderId(parent.orderId() + 2);
-				stopLoss.action(action.equals("BUY") ? "SELL" : "BUY");
-				stopLoss.orderType("STP");
-				//Stop trigger price
-				stopLoss.auxPrice(fixDoubleDigi(stopLossPrice));
-				stopLoss.totalQuantity(quantity);
-				stopLoss.parentId(parent.orderId());
-				//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
-		        //to activate all its predecessors
-				stopLoss.transmit(true);				    				 
-				stopLoss.account(m_acctList.get(0));
-				stopLoss.tif("GTC");
-				
-				orderTransmit(contractMap.get(orderDetail.Symbol), stopLoss, orderDetail.orderSeqNo);
-			 
-				return parent;
-		
-		 }
-	}
 	
-	
-	private double calculatePrice(String actualPrice, String percent, String action, String profitOrStop){
-		double price;
-		
-		double numPrice, numPercent;
-		
-		if(actualPrice != null && !actualPrice.isEmpty()){
-			numPrice = Double.parseDouble(actualPrice);
-		}else
-			return 0.0;
-		
-		if(percent != null && !percent.isEmpty()){
-			numPercent = Double.parseDouble(percent);
-		}else
-			return 0.0;
-					
-		
-		if(action.equals("SELL")){
-			 if(action.equals("PROFIT"))			  
-			   price = numPrice * (1 - numPercent / 100);
-			 else				 
-				 price = numPrice * (1 + numPercent / 100);
-			  
-		}else 
-		{
-			 if(action.equals("PROFIT"))			  
-			   price = numPrice * (1 + numPercent / 100);
-			 else				 
-			 price = numPrice * (1 - numPercent / 100);			
-		}
-		return fixDoubleDigi(price);
-	}
-	
-	public double fixDoubleDigi(double price){
+	private double fixDoubleDigi(double price){
 		
 		if(price < 1.0){
 		 double prices = price;
@@ -1105,6 +943,132 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		
 	}
 	
+	
+	private Order bracketStopOrder(forex orderDetail, int orderID){
+		{
+			ApiDemo.INSTANCE.controller().client().reqIds(-1);
+			
+			if(nextOrderId < ApiDemo.INSTANCE.controller().availableId())
+				nextOrderId = ApiDemo.INSTANCE.controller().availableId();
+			
+			if(currentMaxOrderId >= nextOrderId)
+				nextOrderId = currentMaxOrderId + 1;
+
+			
+			//BRACKET ORDER
+		        //! [bracketsubmit]
+			 Double triggerPrice;
+			 Double profitTakingPrice;
+			 Double stopLossPrice;
+			 Double quantity = Double.parseDouble(orderDetail.Quantity);
+			 
+			 triggerPrice = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));	
+			if(orderDetail.TradeMethod.equals("SELL")){
+	//		  triggerPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
+				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
+				 profitTakingPrice = triggerPrice * (1 -  1.0 / 100);
+			 // profitTakingPrice = triggerPrice * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100);
+			  stopLossPrice = triggerPrice * (1 + (Double.parseDouble(orderDetail.LossPct)) / 100);
+			  
+			}else 
+			{
+	//			 triggerPrice = contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
+				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
+				 profitTakingPrice = triggerPrice * (1 + 1.0 / 100);
+				// profitTakingPrice = triggerPrice * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100);
+				 stopLossPrice = triggerPrice * (1 - (Double.parseDouble(orderDetail.LossPct))  / 100);				
+			}
+			 
+//			 nextOrderId = 0;
+			 int parentOrderId = nextOrderId;
+			 String action = orderDetail.TradeMethod;
+			  //This will be our main or "parent" order
+				Order parent = new Order();
+				parent.orderId(parentOrderId);
+				parent.parentId(0);
+				parent.action(action);
+				parent.orderType("STP");
+				parent.totalQuantity(quantity);
+				parent.auxPrice(fixDoubleDigi(triggerPrice));
+				
+				DateFormat formatter; 			    	      
+			   	 formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+
+		    	// Get the date today using Calendar object.
+		    	       
+		    	// Using DateFormat format method we can create a string 
+		    	// representation of a date with the defined format.
+		    	
+		   	        String orderDateStr= orderDetail.Date + " " + orderDetail.Time;		   	      
+		   	  
+		   	     
+		   	     
+		   	    //Aaron only valid after specified time
+			   	parent.goodAfterTime(orderDateStr);  
+		   	    try {
+					Date  orderTime  = (Date)formatter.parse(orderDateStr);
+					Date orderPlusDuration = new Date(orderTime.getTime() + Integer.parseInt(orderDetail.ValidDuration) * 1000);
+					orderDateStr = formatter.format(orderPlusDuration);
+		   	    } catch (ParseException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} 
+				
+				parent.goodTillDate(orderDateStr);
+				parent.tif("GTD");
+				//The parent and children orders will need this attribute set to false to prevent accidental executions.
+		        //The LAST CHILD will have it set to true.
+				parent.transmit(false);				    					
+				parent.account(m_acctList.get(0));
+				
+				
+					    									
+				orderTransmit(contractMap.get(orderDetail.Symbol), parent, orderDetail.orderSeqNo);
+				
+
+				//This is profit taking order. Its order is is parent Id plus one. And its parent ID is above parent Id;
+				nextOrderId++;
+				Order takeProfit = new Order();
+				takeProfit.orderId(parent.orderId() + 1);
+				takeProfit.action(action.equals("BUY") ? "SELL" : "BUY");
+				takeProfit.orderType("LMT");
+				takeProfit.totalQuantity(quantity);
+				takeProfit.lmtPrice(fixDoubleDigi(profitTakingPrice));
+				takeProfit.parentId(parent.orderId());
+				takeProfit.transmit(false);				    					
+				takeProfit.account(m_acctList.get(0));
+				takeProfit.tif("GTC");
+				
+				orderTransmit(contractMap.get(orderDetail.Symbol), takeProfit, orderDetail.orderSeqNo);
+				
+				
+
+				
+				nextOrderId++;
+				//This is Loss STOPing  order. Its order is is parent Id plus two. And its parent ID is above parent Id;
+				Order stopLoss = new Order();
+				stopLoss.orderId(parent.orderId() + 2);
+				stopLoss.action(action.equals("BUY") ? "SELL" : "BUY");
+				stopLoss.orderType("STP");
+				//Stop trigger price
+				stopLoss.auxPrice(fixDoubleDigi(stopLossPrice));
+				stopLoss.totalQuantity(quantity);
+				stopLoss.parentId(parent.orderId());
+				//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
+		        //to activate all its predecessors
+				stopLoss.transmit(true);				    				 
+				stopLoss.account(m_acctList.get(0));
+				stopLoss.tif("GTC");
+				
+				orderTransmit(contractMap.get(orderDetail.Symbol), stopLoss, orderDetail.orderSeqNo);
+			 
+				return parent;
+		
+		 }
+	}
+	
+	
+	
 	private void OcaOrder(forex orderDetail){
 		
 		ApiDemo.INSTANCE.controller().client().reqIds(-1);
@@ -1134,7 +1098,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					 //Let's set profit taking to 0.6% and adjust it later in order managing task.
 					 profitTakingPrice = triggerPrice * (1 - 1.0 / 100);
 				//  profitTakingPrice = triggerPrice * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100);
-				  stopLossPrice = triggerPrice * (1 + (Double.parseDouble(orderDetail.LossPct) - Double.parseDouble(orderDetail.TriggerPct) )  / 100);
+				  stopLossPrice = triggerPrice * (1 + (Double.parseDouble(orderDetail.LossPct))  / 100);
 				  
 				}else 
 				{
@@ -1142,7 +1106,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					 //Let's set profit taking to 0.6% and adjust it later in order managing task.
 					 profitTakingPrice = triggerPrice * (1 + 1.0 / 100);
 					// profitTakingPrice = triggerPrice * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100);
-					 stopLossPrice = triggerPrice * (1 - (Double.parseDouble(orderDetail.LossPct) - Double.parseDouble(orderDetail.TriggerPct) )  / 100);				
+					 stopLossPrice = triggerPrice * (1 - (Double.parseDouble(orderDetail.LossPct))  / 100);				
 				}
 		 
 			int parentOrderId = nextOrderId;
@@ -1203,34 +1167,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			stopLoss.tif("GTC");
 			
 			
-			//Trail stop order.
-			nextOrderId++;			
-			
-			/*
-			Order trailOrder = new Order();
-			trailOrder.action(action.equals("BUY") ? "SELL" : "BUY");
-			trailOrder.orderType("TRAIL");
-			trailOrder.trailingPercent(1);
-//			order.auxPrice(Double.MAX_VALUE);//
-			if(trailOrder.action().equals("BUY"))
-				trailOrder.trailStopPrice(stopLossPrice * 1.01);
-			else
-				trailOrder.trailStopPrice(stopLossPrice * 0.99);
-			trailOrder.totalQuantity(quantity);
-			// ! [trailingstop]
-			
-
-			trailOrder.orderId(nextOrderId);
-			trailOrder.parentId(0);
-			*/
-			//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
-	        //to activate all its predecessors
-			/*
-			trailOrder.transmit(true);				    				 
-			trailOrder.account(m_acctList.get(0));		
-			trailOrder.tif("GTC");
-			*/
-			
+					
 			
 			
 			nextOrderId++;	    									
@@ -1263,7 +1200,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 						 //Let's set profit taking to 0.6% and adjust it later in order managing task.
 						profitTakingPrice = triggerPrice * (1 - 1.0 / 100);
 					//  profitTakingPrice = triggerPrice * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100);
-					  stopLossPrice = triggerPrice * (1 + (Double.parseDouble(orderDetail.LossPct) - Double.parseDouble(orderDetail.TriggerPct) )  / 100);
+					  stopLossPrice = triggerPrice * (1 + (Double.parseDouble(orderDetail.LossPct))  / 100);
 					  
 					}else 
 					{
@@ -1272,7 +1209,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 						 //Let's set profit taking to 0.6% and adjust it later in order managing task.
 						 profitTakingPrice = triggerPrice * (1 + 1.0 / 100);
 						//  profitTakingPrice = triggerPrice * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100);
-						 stopLossPrice = triggerPrice * (1 - (Double.parseDouble(orderDetail.LossPct) - Double.parseDouble(orderDetail.TriggerPct) )  / 100);				
+						 stopLossPrice = triggerPrice * (1 - (Double.parseDouble(orderDetail.LossPct))  / 100);				
 					}
 				nextOrderId++;
 			  parentOrderId = nextOrderId;
@@ -1289,15 +1226,9 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		        //The LAST CHILD will have it set to true.
 				parentSell.transmit(true);				    					
 				parentSell.account(m_acctList.get(0));
-	//			DateFormat formatter; 			    	      
-	//		   	 formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
-
-		    	// Get the date today using Calendar object.
-		    	       
-		    	// Using DateFormat format method we can create a string 
-		    	// representation of a date with the defined format.
+	
 		    	
-		   	        orderDateStr= orderDetail.Date + " " + orderDetail.Time;		   	      
+		   	    orderDateStr= orderDetail.Date + " " + orderDetail.Time;		   	      
 		   	  
 		   	     
 		   	     
@@ -1332,27 +1263,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				stopLossSell.tif("GTC");
 			
 		
-/*				Order trailOrderSell = new Order();
-				trailOrderSell.action(action.equals("BUY") ? "SELL" : "BUY");
-				trailOrderSell.orderType("TRAIL");
-				trailOrderSell.trailingPercent(1);
-//				order.auxPrice(Double.MAX_VALUE);//
-				if(trailOrderSell.action().equals("BUY"))
-					trailOrderSell.trailStopPrice(stopLossPrice * 1.01);
-				else
-					trailOrderSell.trailStopPrice(stopLossPrice * 0.99);
-				trailOrderSell.totalQuantity(quantity);
-				// ! [trailingstop]
-				
-
-				trailOrderSell.orderId(nextOrderId);
-				trailOrderSell.parentId(0);
-				//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
-		        //to activate all its predecessors
-				trailOrderSell.transmit(true);				    				 
-				trailOrderSell.account(m_acctList.get(0));		
-				trailOrderSell.tif("GTC");*/
-				
+			
 				
 				
 				nextOrderId++;	    									
@@ -1392,35 +1303,12 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					System.out.println(new Date() + "Send StopLossBuy orderId: " + stopLoss.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 					show(new Date() + "Send StopLossBuy orderId: " + stopLoss.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 
-	/*				orderTransmit(contractMap.get(orderDetail.Symbol), trailOrder, orderDetail.orderSeqNo);
-					
-					System.out.println(new Date() + "Send trailOrder orderId: " + trailOrder.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
-					show(new Date() + "Send trailOrder orderId: " + trailOrder.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
-*/
-		
-					
-					/*
-					 //Let's wait for 1 second.
-					 try {
-							Thread.sleep(1000);
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-						*/
-						orderTransmit(contractMap.get(orderDetail.Symbol), takeProfit, orderDetail.orderSeqNo);
-						System.out.println(new Date() + "Send takeProfitBuy orderId: " + takeProfit.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
-						show(new Date() + "Send takeProfitBuy orderId: " + takeProfit.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
+	
+					orderTransmit(contractMap.get(orderDetail.Symbol), takeProfit, orderDetail.orderSeqNo);
+					System.out.println(new Date() + "Send takeProfitBuy orderId: " + takeProfit.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
+					show(new Date() + "Send takeProfitBuy orderId: " + takeProfit.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 
-						/*
-						//Let's wait for 1 second.
-						 try {
-								Thread.sleep(1000);
-							} catch (InterruptedException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-				*/	 				 
+							 
 				}
 				
 
@@ -1442,39 +1330,14 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					show(new Date() + "Send stopLossSell orderId: " + stopLossSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 
 					
-/*					orderTransmit(contractMap.get(orderDetail.Symbol), trailOrderSell, orderDetail.orderSeqNo);
-					
-					System.out.println(new Date() + "Send trailOrderSell orderId: " + trailOrderSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
-					show(new Date() + "Send trailOrderSell orderId: " + trailOrderSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
-*/
-		
 
-					
-					 //Let's wait for 1 second.
-					/* 
-					try {
-							Thread.sleep(1000);
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					 */
 						orderTransmit(contractMap.get(orderDetail.Symbol), takeProfitSell, orderDetail.orderSeqNo);
 						
 						System.out.println(new Date() + "Send takeProfitSell orderId: " + takeProfitSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 						show(new Date() + "Send takeProfitSell orderId: " + takeProfitSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
-
 						
 						
-						 //Let's wait for 1 second.
-						/*
-						try {
-								Thread.sleep(1000);
-							} catch (InterruptedException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							*/	
+						
 					
 				}
 
@@ -1514,7 +1377,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				}	
 			}
 			
-			
+			//Always submit an request for NZDUSD and AUDUSD for market data validation.
 			if(currentMarketDataList.contains("NZDUSD") == false)
 			{
 				contractDetail = contractMap.get("NZDUSD");
@@ -1550,172 +1413,17 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				
 				}
 			}	
-			
-			
-			
-			if(true){
-				tickCounter = 0;
-				return;
-				}
-	//		forexListenerHashMap.put("USDCNH", m_stockListener_USDCNH);
-			
-			//Cancel all request.			
-			for(Entry<String, ForexListner> entry : currentListeningMap.entrySet()){
-				ApiDemo.INSTANCE.controller().cancelTopMktData((entry.getValue()));
-				currentListeningMap.remove(entry.getKey());
-				if(currentListeningMap.isEmpty())
-					break;
-			}
-			
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			/**/	
-			
-			//Request only necessary 
-			for(Entry<Long, forex> entry : orderHashMap2.entrySet()){
-			contractDetail = contractMap.get(entry.getValue().Symbol);
-				forexListenerDetail = forexListenerHashMap.get(entry.getValue().Symbol);
-				if(contractDetail != null && forexListenerDetail != null){
-				controller().reqTopMktData( contractDetail, "", false, forexListenerDetail);
-				currentListeningMap.put(entry.getValue().Symbol, forexListenerDetail);
-				}
-				else{
-					System.out.println("null pointer here " + entry.getValue().Symbol);
-				}
-		//		currentListeningMap.containsKey(entry.getValue().Symbol)
-				
-			}
 		
-		
-			tickCounter = 0;
+		//Use tickCounter to check whether tick price is available
+		tickCounter = 0;
 	}
 	
 	
-	class histortyDataHandler implements IHistoricalDataHandler{
-		Contract m_currencyContract;
 
-		public histortyDataHandler(Contract currencyContract) {
-			// TODO Auto-generated constructor stub
-			m_currencyContract = currencyContract;
-		}
-
-		@Override
-		public void historicalData(Bar bar, boolean hasGaps) {
-			// TODO Auto-generated method stub
-			m_currencyContract.putHistoricalBar(bar.formattedTime(), bar);
-			
-			contractMap.put(m_currencyContract.symbol() + m_currencyContract.currency(), m_currencyContract);
-			
-			
-		}
-
-		@Override
-		public void historicalDataEnd() {
-			// TODO Auto-generated method stub
-//			System.out.println(new Date() + " end of bar high: ");
-			TreeSet<String> keys = new TreeSet<String>(m_currencyContract.historicalBarMap.keySet());
-			TreeSet<String> treereverse = (TreeSet) keys.descendingSet();
-			for (String key : treereverse){
-			Bar bar = m_currencyContract.historicalBarMap.get(key);
-//			System.out.println(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
-//			show(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
-
-			}
-		}
-	};
-	
-	
-	public void requestHistoricalBar(String endTime, Contract currencyContract){
-		//forex orderDetail;
-		
-		//Only request it once.
-		/*
-		historicalDataReq.clear();
-		SortedSet<Long> keys = new TreeSet<Long>(orderHashMap.keySet());
-		for (Long key : keys)
-		{
-			orderDetail = orderHashMap.get(key);
-		    if(orderDetail.ValidDuration.equals("60"))
-		    	continue;
-		    if(historicalDataReq.contains(orderDetail.Symbol))
-		    	continue;
-		    historicalDataReq.add(orderDetail.Symbol);
-		    currencyContract = contractMap.get(orderDetail.Symbol);
-		  */  
-			histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract);
-			if(forexHistoricalHandler != null && currencyContract != null)
-				controller().reqHistoricalData(currencyContract, endTime, 3600 * 2, DurationUnit.SECOND, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
-			else
-			{
-				System.out.println("Null pointer here" + currencyContract.toString() + forexHistoricalHandler.toString());
-				
-			}
-			//Let's wait 1 second her
-			/*
-			try {
-				Thread.sleep(60000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			
-			
-		}
-		*/
-	}
-	
-	private void requestRealtimeBar(){
-		
-		
-
-		
-		/*
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_NZDUSD, WhatToShow.MIDPOINT, false, m_stockListener_NZDUSD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_AUDUSD, WhatToShow.MIDPOINT, false, m_stockListener_AUDUSD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_GBPUSD, WhatToShow.MIDPOINT, false, m_stockListener_GBPUSD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_EURUSD, WhatToShow.MIDPOINT, false, m_stockListener_EURUSD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_EURCHF, WhatToShow.MIDPOINT, false, m_stockListener_EURCHF);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_EURGBP, WhatToShow.MIDPOINT, false, m_stockListener_EURGBP);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_EURJPY, WhatToShow.MIDPOINT, false, m_stockListener_EURJPY);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_USDCAD, WhatToShow.MIDPOINT, false, m_stockListener_USDCAD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_USDCHF, WhatToShow.MIDPOINT, false, m_stockListener_USDCHF);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_USDJPY, WhatToShow.MIDPOINT, false, m_stockListener_USDJPY);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_CADJPY, WhatToShow.MIDPOINT, false, m_stockListener_CADJPY);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_CADCHF, WhatToShow.MIDPOINT, false, m_stockListener_CADCHF);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_CHFJPY, WhatToShow.MIDPOINT, false, m_stockListener_CHFJPY);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_EURCAD, WhatToShow.MIDPOINT, false, m_stockListener_EURCAD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_EURSGD, WhatToShow.MIDPOINT, false, m_stockListener_EURSGD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_GBPCAD, WhatToShow.MIDPOINT, false, m_stockListener_GBPCAD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_GBPJPY, WhatToShow.MIDPOINT, false, m_stockListener_GBPJPY);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_GBPSGD, WhatToShow.MIDPOINT, false, m_stockListener_GBPSGD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_USDSGD, WhatToShow.MIDPOINT, false, m_stockListener_USDSGD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_AUDCAD, WhatToShow.MIDPOINT, false, m_stockListener_AUDCAD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_EURAUD, WhatToShow.MIDPOINT, false, m_stockListener_EURAUD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_CHFAUD, WhatToShow.MIDPOINT, false, m_stockListener_CHFAUD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_AUDJPY, WhatToShow.MIDPOINT, false, m_stockListener_AUDJPY);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_AUDSGD, WhatToShow.MIDPOINT, false, m_stockListener_AUDSGD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_EURNZD, WhatToShow.MIDPOINT, false, m_stockListener_EURNZD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_AUDNZD, WhatToShow.MIDPOINT, false, m_stockListener_AUDNZD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_GBPAUD, WhatToShow.MIDPOINT, false, m_stockListener_GBPAUD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_GBPNZD, WhatToShow.MIDPOINT, false, m_stockListener_GBPNZD);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_NZDJPY, WhatToShow.MIDPOINT, false, m_stockListener_NZDJPY);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_AUDCNH, WhatToShow.MIDPOINT, false, m_stockListener_AUDCNH);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_CNHJPY, WhatToShow.MIDPOINT, false, m_stockListener_CNHJPY);
-	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_USDCNH, WhatToShow.MIDPOINT, false, m_stockListener_USDCNH);
-		*/
-		
-		
-		
-	}
 	
 	
 	// TODO Auto-generated catch block	
-	//TODO Auto-generated catch block
+
 	 class OrderSubmittingThread extends Thread {
 //		 ForexPositionHandler positionHandler = new ForexPositionHandler();
 		 double lmtPrice = 0.0;
@@ -1727,153 +1435,21 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	    	
 	        System.out.println("Hello from a Order submission thread!");
 //	        Thread.currentThread().setPriority(Thread.MAX_PRIORITY - 1);
-	        
-	        
-	     // creating reverse set
-			TreeSet<Long> treeadd = new TreeSet<Long>(orderHashMap.keySet());
-			TreeSet<Long> treereverse=(TreeSet<Long>)treeadd.descendingSet();
-			     
-			   // create descending set
-			   Iterator<Long> iterator;
-			   iterator = treeadd.iterator();
-			   orderDetail =   orderHashMap.get(iterator);
-			  
-	        
-	        
+	       
 	        while(true){
-						try {
+				try {
 					Thread.sleep(1000);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
+				
+	 			m_connectionPanel.m_orderSubmission.setText(new Date() + " order submission task is running.");    		
+
+				
 				Date systemTimePlus1M = new Date(), systemTimePlus2M = new Date(), orderTime= new Date();
 					
-		
-				//Check connection with server every second.
-				//Check whether current connection is disconnected. If yes, connect it
-	    		if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED"))
-	    		{
-	    			m_connectionPanel.onConnect();
-	    		}
-				
-			//Request order Id.	
-			fileReadingCounter++;	 
-			ApiDemo.INSTANCE.controller().client().reqIds(-1);
-			nextOrderId = ApiDemo.INSTANCE.controller().availableId();
-			
-			//Read back all order information first.
-			try 			    	    
-		     {	
-		    	if(fileReadingCounter > 300){
-		 			m_connectionPanel.m_orderSubmission.setText(new Date() + " Order submission task is running.");    		
-		    			String[] fileNameStrs = inputFileName.split("\\.");
-		    		
-		    			
-		    	   		 excelInput.setInputFile(inputFileName);
-		    	   		 orderHashMap = excelInput.read(orderHashMap);	
-		    	 		 show(new Date() + " File " + inputFileName + " is read back. Total size in HashMap: " + orderHashMap.size() + " orders.");
-
-		    	   		/**/ 
-	
-				   
-   	      
-					   	 formatter = new SimpleDateFormat("yyyyMMdd");
-
-				    	// Get the date today using Calendar object.
-				    	// Using DateFormat format method we can create a string 
-				    	// representation of a date with the defined format.
-				    	
-	  		   	        orderDateStr = formatter.format(new Date());
-		    	   		 
-		    	   		excelOutput.setOutputFile(fileNameStrs[0] + "_" + "Report_" + orderDateStr + "." + fileNameStrs[1]);
-		    	   		excelOutput.write(orderHashMap);
-		    	   		fileReadingCounter = 0;
-		    	   		show(new Date() + " File " + fileNameStrs[0] + "_" + orderDateStr + "." + fileNameStrs[1] + " write back.");
-		    			
-		    	   		
-		    //	   		requestTickData(orderHashMap);  	   		
-	    	   	 }
-		    	
-		    } 
-			catch (Exception e){
-				
-				e.printStackTrace();
-			}	
-			
-			
-			//Request real time tick price data if it isn't available.
-			if(m_connectionPanel.m_status.getText().toUpperCase().equals("CONNECTED") && ((m_contract_NZDUSD.getAskPrice() == 0 || m_contract_NZDUSD.getBidPrice() == 0 || m_contract_AUDUSD.getAskPrice() == 0 || m_contract_AUDUSD.getBidPrice() == 0)))
-			{
-				requestTickData(orderHashMap);  	
-			}
-  	
-
-			//Request historical data every 5 seconds.
-			if(m_connectionPanel.m_status.getText().toUpperCase().equals("CONNECTED") && (fileReadingCounter % 5 == 0 || (orderDetail != null && contractMap.get(orderDetail.Symbol).historicalBarMap.isEmpty()) )){
-	    					    	      
-			   	 formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
-
-		    	// Get the date today using Calendar object.
-		    	// Using DateFormat format method we can create a string 
-		    	// representation of a date with the defined format.
-		    	
-			   	 
-			   	 
-		   	        orderDateStr = formatter.format(new Date());
-		   	        
-		   	        
-		   	        
-		   	        
-		   	        
-		   	        
-		   	    // displaying the Tree set data
-//				   System.out.println("Tree set data in reverse order: ");     
-				   if (iterator.hasNext()){
-//					   System.out.println(iterator.next() + " ");
-					  do {
-						  Long key = (Long) iterator.next();
-						  orderDetail = orderHashMap.get(key);
-						  
-						  formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
-
-					    	// Get the date today using Calendar object.
-					    	// Using DateFormat format method we can create a string 
-					    	// representation of a date with the defined format.
-					    	try{
-				   	         orderDateStr= orderDetail.Date + " " + orderDetail.Time;		   	      
-					   	     orderTime  = (Date)formatter.parse(orderDateStr); 
-					   	     
-					    	}catch (Exception e){} 
-					    	
-					    	//Compare system time and order to make sure that we submit the order on time
-						  
-						  
-						 if(historicalDataReq.contains(orderDetail.Symbol))
-					    	continue;
-					  }while((/*orderDetail.ValidDuration.equals("60") || */orderTime.before(new Date())) && iterator.hasNext() );
-					  if(orderDetail != null ){
-						  historicalDataReq.add(orderDetail.Symbol);
-						  orderDateStr = formatter.format(new Date());
-						  requestHistoricalBar(orderDateStr, contractMap.get(orderDetail.Symbol));
-					  }
-				   }else{
-					  //If it is end of list, let's start it again. 
-					  treeadd = new TreeSet<Long>(orderHashMap.keySet());
-					  treereverse=(TreeSet<Long>)treeadd.descendingSet();
-					  iterator = treereverse.iterator(); 		
-					  
-					  historicalDataReq.clear();				     
-					  
-				   }
-		   	        
-				
-			}
-			
-			
-
-			
-			//loop thru all orders in HashMap;
+				//loop thru all orders in HashMap;
 		//	System.out.println("Looping thru all orders: " + new Date());
 			SortedSet<Long> keys = new TreeSet<Long>(orderHashMap.keySet());
 			for (Long key : keys) {
@@ -1882,21 +1458,10 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				
 				orderDetail = orderHashMap.get(key);
 				if(orderDetail == null) continue;
-			   // do something
-		/*
-			}
-			
-			
-					//loop thru all orders in HashMap;
-					for (HashMap.Entry<Long, forex> entry : orderHashMap.entrySet()) {
-					    Long key = entry.getKey();
-					    forex orderDetail = entry.getValue();	    
-			*/    		    
-//			    System.out.println(new Date() + "Looping thru all orders: " + orderDetail.orderSeqNo + " " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
 			    		
 			    	if(orderDetail!=null && orderDetail.OrderStatus !=null && !orderDetail.OrderStatus.isEmpty()){
 			    	  if(fileReadingCounter % 1000 == 0){
-			    		System.out.println(" Already submitted orders: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol + orderDetail.orderIdList.toString() + "Submit status: " + orderDetail.OrderStatus + " Fill @" + orderDetail.ActualPrice + " Comment: " + orderDetail.comment);
+//			    		System.out.println(" Already submitted orders: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol + orderDetail.orderIdList.toString() + "Submit status: " + orderDetail.OrderStatus + " Fill @" + orderDetail.ActualPrice + " Comment: " + orderDetail.comment);
 //			    		show(new Date() + " Already submitted orders: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol + orderDetail.orderIdList.toString() + "Submit status: " + orderDetail.OrderStatus + " Fill @" + orderDetail.ActualPrice + " Comment: " + orderDetail.comment);
 			    	  }
 			    	  	continue;
@@ -1942,36 +1507,41 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				 				keys1 = null;
 			    		}
 			    		//To be confirmed later.
-			    		/*
+			    		
 			    		//Make sure that we would NOT submit an duplicate order with current open order;
-						for (HashMap.Entry<Integer, Order> entry : liveOrderMap.entrySet()) {
-							Order order2Loop = entry.getValue();
-						    forex tmpOrder = orderHashMap.get(order2Loop.seqOrderNo());
-						    if(tmpOrder != null && tmpOrder.Symbol.equals(orderDetail.Symbol) && order2Loop.parentId() != 0){
+						for (Entry<Integer, forex> entry : liveForexOrderMap.entrySet()) {
+							forex order2Loop = entry.getValue();
+//						    forex tmpOrder = orderHashMap.get(order2Loop.seqOrderNo());
+						    
+					
+						    
+						    if(orderDetail.Symbol.equals(order2Loop.Symbol)){
 						    	{
-						    		needToSubmit = false;
-						    		orderDetail.OrderStatus = "Cancelled";
-						    		orderDetail.comment = "Cancelled due to duplicated order in open order";						    		
-						    		orderHashMap.put(orderDetail.orderSeqNo, orderDetail);
-						    		System.out.println(new Date() + " canceld Order:  " + order2Loop.orderId());				    		
+						    		//duplicated parent order is OK. All parent order has time in force as "GTD" good to date.
+						    		if(liveOrderMap.get(entry.getKey()).tif().equals("GTD"))
+						    			continue;
+
+						    		//If order's parent order has been executed. Then skip current order to avoid duplicate
+//						    		if(executedOrderMap.contains(liveOrderMap.get(entry.getKey()).parentId()))
+						    		{						    		
+							    		needToSubmit = false;
+							    		orderDetail.OrderStatus = "Cancelled";
+							    		orderDetail.comment = "Cancelled due to duplicated order in open order";						    		
+							    		orderHashMap.put(orderDetail.orderSeqNo, orderDetail);
+							    		System.out.println(new Date() + " No need to submit Order:  " + liveOrderMap.get(entry.getKey()).parentId());	
+						    		}			    		
 						    	}
 						    }    
 						}
 			    		
-*/
+
 			    		if(needToSubmit == false)
 			    			continue;
 			    		
 			    		System.out.println(new Date().toString() + " " + submittedOrderHashMap.size() + " Already submitted orders in submittedOrderHashMap");
 			    		System.out.println(new Date().toString() + " " + liveOrderMap.size() + " live orders in hashmap liveOrderMap");
 			    		
-						//Wait 1 seconds bewtween each order submission.
-						try {
-							Thread.sleep(1000);
-						} catch (InterruptedException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+						
 			    		
 	//				    System.out.println("Try to submit: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
 	//				    show(new Date() + " Try to submit: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
@@ -2026,9 +1596,19 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			    		 else if(orderDetail.TradeMethod.equals("ANY")){			    			 
 			    			 OcaOrder(orderDetail);    					
 			    		 }
+			    		 
+			    		//Wait 1 seconds after each order submission.
+							try {
+								Thread.sleep(1000);
+							} catch (InterruptedException e) {
+								// TODO Auto-generated catch block
+								e.printStackTrace();
+							}
+			    		 
 						 System.out.println("Submiited: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
-						 System.out.println("Order status: after submision" + orderHashMap.get(orderDetail.Symbol));		
-	//		    		 excelOutput.setOutputFile("Forex.xls");
+						 System.out.println("Order status: after submision" + orderHashMap.get(orderDetail.Symbol));	
+	
+
 			    		
 			    	}else if(systemTimePlus2M.before(orderTime)){
 			    		break;
@@ -2039,6 +1619,148 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	    }
 	 }
 	
+
+	
+
+
+//TODO Auto-generated catch block
+ class OrderManagingThread extends Thread {
+	 double lmtPrice = 0.0;
+	 int counter = 0;
+	 ExecutionFilter exeFilterReport = new ExecutionFilter();
+	 
+    public void run() {
+        System.out.println("Hello from a Order managing thread!");
+ //       Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+
+        
+        
+    while(true){
+        	//Guy, let's rest 1000ms here
+   		 try {
+   				Thread.sleep(1000);
+   			} catch (InterruptedException e) {
+   				// TODO Auto-generated catch block
+   				e.printStackTrace();
+   			}   		 
+
+   		 
+ 		//Looping thru all live orders. If an order has been filled, looking for its orderId. Then try to modify profitaking order. And stop order.;
+		forex orderDetail = null;	
+
+ 		for(Entry<Integer, Order> entry : liveOrderMap.entrySet()){
+ 			
+ 			//Adjust STop price according to actual open price and current market price.
+ 			adjustStopPrice(entry.getKey(), entry.getValue());
+ 			
+ 			Order order = entry.getValue();
+ 			orderDetail = null;
+ 			if(order != null)
+ 				orderDetail = orderHashMap.get(order.seqOrderNo()); 			
+ 			if(orderDetail != null){
+ 				Contract currencyContract = contractMap.get(orderDetail.Symbol);
+
+ 				if(orderDetail.PeakGain == null || orderDetail.PeakGain.isEmpty() || Double.parseDouble(orderDetail.PeakGain) < currencyContract.getBidPrice())
+ 					orderDetail.PeakGain = new Double(currencyContract.getBidPrice()).toString();
+ 				else if(orderDetail.MaxDrawdown == null || orderDetail.MaxDrawdown.isEmpty() || Double.parseDouble(orderDetail.MaxDrawdown) > currencyContract.getAskPrice())
+ 					orderDetail.MaxDrawdown = new Double(currencyContract.getAskPrice()).toString();
+ 				orderHashMap.put(order.seqOrderNo(), orderDetail);
+ 	
+ 			}
+		}
+ 		} 		
+        }    
+        
+    
+
+
+private void adjustStopPrice(Integer orderId, Order order){
+	forex orderDetail;
+	
+	//If current order is parent order, just return
+	if(order.parentId() == 0)
+		return;
+	
+	order = submittedOrderHashMap.get(orderId);
+	
+	if(order == null)
+		return;
+	
+	//If current order is profit taking order, just return
+	if(order.orderType().equals("LMT"))
+		return;
+	
+	orderDetail = executedOrderMap.get(order.parentId());
+	if(orderDetail == null)
+		return;
+	Double openPrice = 0.0;
+	if(orderDetail.ActualPrice != null && !orderDetail.ActualPrice.isEmpty())
+		openPrice = Double.parseDouble(orderDetail.ActualPrice);
+	
+	Double currentBidPrice, currentAskPrice, newStopPrice;
+	Contract currencyContract = contractMap.get(orderDetail.Symbol);
+
+	if(currencyContract == null)
+		return;
+	
+	currentBidPrice = currencyContract.getBidPrice();
+	currentAskPrice = currencyContract.getAskPrice();
+	Action action = order.action();
+	
+	//This is a short position, we need to buy it at a price higher than current ask price 
+	if(action.equals(Action.BUY)){
+		//If current ask price 0.3 % is bigger than actual price, adjust STOP price to current price + 0.1% 
+		if(currentAskPrice > (openPrice * (1 + 0.3/100))){
+			newStopPrice = currentAskPrice * (1 + 0.1/100);
+		}
+		//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
+		else if(currentAskPrice > (openPrice * (1 + 0.2/100))){
+			newStopPrice = openPrice;
+		}else{//defaul set stop price as 0.1 loss
+			newStopPrice = openPrice * (1 + 0.1/100);
+		}
+		newStopPrice = fixDoubleDigi(newStopPrice);
+
+		if(order.auxPrice() == 0.0)
+			return;
+		
+		if (order.auxPrice() <= newStopPrice)
+			return;
+	}else{//This is a long position, we need to sell it at a price higher than current bid price 
+
+		//If current bid price 0.3 % is less than actual price, adjust STOP price to current price - 0.1% 
+				if(currentBidPrice < (openPrice * (1 - 0.3/100))){
+					newStopPrice = currentBidPrice * (1 - 0.1/100);
+				}
+				//If current bid price 0.2 % is less than actual price, adjust STOP price to actual open price 
+				else if(currentAskPrice < (openPrice * (1 - 0.2/100))){
+					newStopPrice = openPrice;
+				}else{//defaul set stop price as 0.1 loss
+					newStopPrice = openPrice * (1 - 0.1/100);
+				}
+				newStopPrice = fixDoubleDigi(newStopPrice);
+
+				if(order.auxPrice() == 0.0)
+					return;
+				
+				if (order.auxPrice() >= newStopPrice)
+					return;
+	}	
+			
+			System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + newStopPrice);
+			show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + newStopPrice);
+			order.auxPrice(newStopPrice);
+			ForexOrderHandler stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
+			controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
+			submittedOrderHashMap.put(order.orderId(), order);
+	
+}
+ 
+    
+    
+    }
+
+
 	class ForexOrderHandler implements IOrderHandler{
 		Order order2Send;		
 		long m_orderSeqNo;
@@ -2107,7 +1829,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			});
 		}
 	}
-	
+ 
+ 
 
 	class reportListener implements ITradeReportHandler{
 		@Override
@@ -2115,6 +1838,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			// TODO Auto-generated method stub
 			
 			liveOrderMap.remove(execution.orderId());
+    	    liveForexOrderMap.remove(execution.orderId());
+
 			
 			//Put all executed order into map for later tracking.
 			forex orderDetail = new forex();			
@@ -2220,7 +1945,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		@Override
 		public void openOrder(Contract contract, Order order, OrderState orderState) {
 			// TODO Auto-generated method stub
-  //  		System.out.println(new Date() + " Live order Current size: " + liveOrderMap.size());
+//  		System.out.println(new Date() + " Live order Current size: " + liveOrderMap.size());
 			
 			
 			Order originalOrder = submittedOrderHashMap.get(order.orderId());
@@ -2232,17 +1957,25 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			else
 				liveOrderMap.put(new Integer(order.orderId()), order);
 			
+			forex orderDetail = new forex();
+			orderDetail.Symbol = contract.symbol() + contract.currency();
+			orderDetail.TradeMethod = order.action().toString();
+			liveForexOrderMap.put(order.orderId(), orderDetail);
+			
+			
 			if(orderState.status().equals("Cancelled")){
 				System.out.print(contract.symbol() + contract.currency() + " " + order.orderId() +  " " +orderState.getStatus());
 				System.out.println("Hey, get cancelled here");
 				liveOrderMap.remove(order.orderId());
+				liveForexOrderMap.remove(order.orderId());
 			}
 			
 			Long groupId = null;
 			if(orderState.status().equals("Filled"))
 			{
 				System.out.println(contract.symbol() + contract.currency() + " " + order.orderId() +  " " +orderState.getStatus());
-				liveOrderMap.remove(order.orderId());		
+				liveOrderMap.remove(order.orderId());	
+				liveForexOrderMap.remove(order.orderId());
 				
 				//Cancel remain order in same group and maybe remove all oca orders.
 				groupId = submittedOrderHashMap.get(order.orderId()).groupId();
@@ -2265,7 +1998,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			
 			for (HashMap.Entry<Long, forex> entry : orderHashMap.entrySet()) {
 			    Long key = entry.getKey();
-			    forex orderDetail = entry.getValue();
+			    orderDetail = entry.getValue();
 			    
 			    if(orderDetail.orderIdList.contains(order.orderId())){
 			    	if(orderDetail.OrderStatus.equals("Filled")){
@@ -2292,6 +2025,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			
 			if(status.equals(OrderStatus.Cancelled)){
 				liveOrderMap.remove(orderId);
+				liveForexOrderMap.remove(orderId);
 			}
 			
 			
@@ -2338,173 +2072,293 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	ForexLiveOrderHandler liveOrderListener = new ForexLiveOrderHandler();
 	reportListener tradeReportListener = new reportListener();	
 
+	class histortyDataHandler implements IHistoricalDataHandler{
+		Contract m_currencyContract;
+
+		public histortyDataHandler(Contract currencyContract) {
+			// TODO Auto-generated constructor stub
+			m_currencyContract = currencyContract;
+		}
+
+		@Override
+		public void historicalData(Bar bar, boolean hasGaps) {
+			// TODO Auto-generated method stub
+			m_currencyContract.putHistoricalBar(bar.formattedTime(), bar);
+			
+			contractMap.put(m_currencyContract.symbol() + m_currencyContract.currency(), m_currencyContract);
+			
+			
+		}
+
+		@Override
+		public void historicalDataEnd() {
+			// TODO Auto-generated method stub
+//			System.out.println(new Date() + " end of bar high: ");
+			TreeSet<String> keys = new TreeSet<String>(m_currencyContract.historicalBarMap.keySet());
+			TreeSet<String> treereverse = (TreeSet) keys.descendingSet();
+			for (String key : treereverse){
+			Bar bar = m_currencyContract.historicalBarMap.get(key);
+//			System.out.println(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
+//			show(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
+
+			}
+		}
+	};
+	
+	
+	public void requestHistoricalBar(String endTime, Contract currencyContract){
+		//forex orderDetail;
+		
+		//Only request it once.
+		/*
+		historicalDataReq.clear();
+		SortedSet<Long> keys = new TreeSet<Long>(orderHashMap.keySet());
+		for (Long key : keys)
+		{
+			orderDetail = orderHashMap.get(key);
+		    if(orderDetail.ValidDuration.equals("60"))
+		    	continue;
+		    if(historicalDataReq.contains(orderDetail.Symbol))
+		    	continue;
+		    historicalDataReq.add(orderDetail.Symbol);
+		    currencyContract = contractMap.get(orderDetail.Symbol);
+		  */  
+			histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract);
+			if(forexHistoricalHandler != null && currencyContract != null)
+				controller().reqHistoricalData(currencyContract, endTime, 3600 * 2, DurationUnit.SECOND, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+			else
+			{
+				System.out.println("Null pointer here" + currencyContract.toString() + forexHistoricalHandler.toString());
+				
+			}
+			//Let's wait 1 second her
+			/*
+			try {
+				Thread.sleep(60000);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+			
+		}
+		*/
+	}
+	
+	private void requestRealtimeBar(){		
+		
+		/*
+	    ApiDemo.INSTANCE.controller().reqRealTimeBars(m_contract_USDCNH, WhatToShow.MIDPOINT, false, m_stockListener_USDCNH);
+		*/
+	
+	}
+
+
 //TODO Auto-generated catch block
- class OrderManagingThread extends Thread {
+class MarketDataManagingThread extends Thread {
 	 double lmtPrice = 0.0;
 	 int counter = 0;
 	 ExecutionFilter exeFilterReport = new ExecutionFilter();
 	 
-    public void run() {
-        System.out.println("Hello from a Order managing thread!");
- //       Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+  public void run() {
+      	System.out.println("Hello from a market data managing thread!");
+//       Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
 
-        
-        
-    while(true){
-        	//Guy, let's rest 1000ms here
-   		 try {
-   				Thread.sleep(1000);
-   			} catch (InterruptedException e) {
-   				// TODO Auto-generated catch block
-   				e.printStackTrace();
-   			}
-   		 
-        //Register for trade report
- 		controller().reqExecutions( exeFilterReport, tradeReportListener);
- 		
- 		//Register for live order report;
- 		controller().reqLiveOrders(liveOrderListener);
- 		
- 		//Every 60 seconds, try to clear dead orders (filled/cancelled) in submitted order hashmap.
- 		if(counter++ > 60)
- 		{
- 		//	show(new Date() + " Order management task is running.");
- 			m_connectionPanel.m_orderManaging.setText(new Date() + " Live Order: " + liveOrderMap.size() + " Submitted order: " + submittedOrderHashMap.size()  + " orders in excel: " + orderHashMap.size());
- 			counter = 0;
- 		
- 			//Let's loop thru and remove dead submitted orders.
- 			//loop thru all orders in HashMap;
- 			//	System.out.println("Looping thru all orders: " + new Date());
- 				SortedSet<Integer> keys = new TreeSet<Integer>(submittedOrderHashMap.keySet());
- 				for (Integer key : keys) { 					
- 					
- 					Order submittedOrder = submittedOrderHashMap.get(key);
- 					if(submittedOrder == null) 
- 						submittedOrderHashMap.remove(key);
- 					if(liveOrderMap.containsKey(key)) 
- 						continue;
- 					else	
- 						submittedOrderHashMap.remove(key);
- 					
- 				}
- 				keys = null;
- 		}
- 		
-   		 
- 		//Looping thru all live orders. If an order has been filled, looking for its orderId. Then try to modify profitaking order. And stop order.;
-		forex orderDetail = null;	
-
- 		for(Entry<Integer, Order> entry : liveOrderMap.entrySet()){
- 			
- 			adjustStopPrice(entry.getKey(), entry.getValue());
- 			
- 			Order order = entry.getValue();
- 			orderDetail = null;
- 			if(order != null)
- 				orderDetail = orderHashMap.get(order.seqOrderNo()); 			
- 			if(orderDetail != null){
- 				Contract currencyContract = contractMap.get(orderDetail.Symbol);
-
- 				if(orderDetail.PeakGain == null || orderDetail.PeakGain.isEmpty() || Double.parseDouble(orderDetail.PeakGain) < currencyContract.getBidPrice())
- 					orderDetail.PeakGain = new Double(currencyContract.getBidPrice()).toString();
- 				else if(orderDetail.MaxDrawdown == null || orderDetail.MaxDrawdown.isEmpty() || Double.parseDouble(orderDetail.MaxDrawdown) > currencyContract.getAskPrice())
- 					orderDetail.MaxDrawdown = new Double(currencyContract.getAskPrice()).toString();
- 				orderHashMap.put(order.seqOrderNo(), orderDetail);
- 	
+      	Date orderTime = new Date();	
+      	forex orderDetail;
+      	DateFormat formatter; 
+  		String orderDateStr;
+  	
+ //     System.out.println("Hello from a Order submission thread!");
+//      Thread.currentThread().setPriority(Thread.MAX_PRIORITY - 1);
+      
+      
+   // creating reverse set
+		TreeSet<Long> treeadd = new TreeSet<Long>(orderHashMap.keySet());
+		TreeSet<Long> treereverse=(TreeSet<Long>)treeadd.descendingSet();
+		     
+		   // create descending set
+		   Iterator<Long> iterator;
+		   iterator = treeadd.iterator();
+		   orderDetail =   orderHashMap.get(iterator);
+      
+      
+      
+  while(true){
+      	//Guy, let's rest 1000ms here
+ 		 try {
+ 				Thread.sleep(1000);
+ 			} catch (InterruptedException e) {
+ 				// TODO Auto-generated catch block
+ 				e.printStackTrace();
  			}
-		}
- 		} 		
-        }    
-        
-        
-    }
 
+ 		 //Update time counter
+ 		fileReadingCounter++;	
 
-
-
-private void adjustStopPrice(Integer orderId, Order order){
-	forex orderDetail;
-	
-	//If current order is parent order, just return
-	if(order.parentId() == 0)
-		return;
-	
-	order = submittedOrderHashMap.get(orderId);
-	
-	if(order == null)
-		return;
-	
-	//If current order is profit taking order, just return
-	if(order.orderType().equals("LMT"))
-		return;
-	
-	orderDetail = executedOrderMap.get(order.parentId());
-	if(orderDetail == null)
-		return;
-	Double openPrice = 0.0;
-	if(orderDetail.ActualPrice != null && !orderDetail.ActualPrice.isEmpty())
-		openPrice = Double.parseDouble(orderDetail.ActualPrice);
-	
-	Double currentBidPrice, currentAskPrice, newStopPrice;
-	Contract currencyContract = contractMap.get(orderDetail.Symbol);
-
-	if(currencyContract == null)
-		return;
-	
-	currentBidPrice = currencyContract.getBidPrice();
-	currentAskPrice = currencyContract.getAskPrice();
-	Action action = order.action();
-	
-	//This is a short position, we need to buy it at a price higher than current ask price 
-	if(action.equals(Action.BUY)){
-		//If current ask price 0.3 % is bigger than actual price, adjust STOP price to current price + 0.1% 
-		if(currentAskPrice > (openPrice * (1 + 0.3/100))){
-			newStopPrice = currentAskPrice * (1 + 0.1/100);
-		}
-		//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
-		else if(currentAskPrice > (openPrice * (1 + 0.2/100))){
-			newStopPrice = openPrice;
-		}else{//defaul set stop price as 0.1 loss
-			newStopPrice = openPrice * (1 + 0.1/100);
-		}
-		newStopPrice = fixDoubleDigi(newStopPrice);
-
-		if(order.auxPrice() == 0.0)
-			return;
+ 		 
+ 		//Check connection with server every second.
+			//Check whether current connection is disconnected. If yes, connect it
+ 		if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED"))
+ 		{
+ 			m_connectionPanel.onConnect();
+ 			continue;
+ 		}
 		
-		if (order.auxPrice() <= newStopPrice)
-			return;
-	}else{//This is a long position, we need to sell it at a price higher than current bid price 
+ 		m_connectionPanel.m_marketDataManaging.setText(new Date() + " market Data Managing task is running.");    	
+ 		
+		//Request order Id.		
+		ApiDemo.INSTANCE.controller().client().reqIds(-1);
+		nextOrderId = ApiDemo.INSTANCE.controller().availableId();
+		
+		//Read back all order information first.
+		try 			    	    
+	     {	
+	    	if(fileReadingCounter > 300){
+	 				
+	    			String[] fileNameStrs = inputFileName.split("\\.");
+	    		
+	    			
+	    	   		 excelInput.setInputFile(inputFileName);
+	    	   		 orderHashMap = excelInput.read(orderHashMap);	
+	    	 		 show(new Date() + " File " + inputFileName + " is read back. Total size in HashMap: " + orderHashMap.size() + " orders.");
 
-		//If current bid price 0.3 % is less than actual price, adjust STOP price to current price - 0.1% 
-				if(currentBidPrice < (openPrice * (1 - 0.3/100))){
-					newStopPrice = currentBidPrice * (1 - 0.1/100);
-				}
-				//If current bid price 0.2 % is less than actual price, adjust STOP price to actual open price 
-				else if(currentAskPrice < (openPrice * (1 - 0.2/100))){
-					newStopPrice = openPrice;
-				}else{//defaul set stop price as 0.1 loss
-					newStopPrice = openPrice * (1 - 0.1/100);
-				}
-				newStopPrice = fixDoubleDigi(newStopPrice);
+	    	   		/**/ 
 
-				if(order.auxPrice() == 0.0)
-					return;
-				
-				if (order.auxPrice() >= newStopPrice)
-					return;
-	}	
+			   
+      
+				   	 formatter = new SimpleDateFormat("yyyyMMdd");
+
+			    	// Get the date today using Calendar object.
+			    	// Using DateFormat format method we can create a string 
+			    	// representation of a date with the defined format.
+			    	
+		   	        orderDateStr = formatter.format(new Date());
+	    	   		 
+	    	   		excelOutput.setOutputFile(fileNameStrs[0] + "_" + "Report_" + orderDateStr + "." + fileNameStrs[1]);
+	    	   		excelOutput.write(orderHashMap);
+	    	   		fileReadingCounter = 0;
+	    	   		show(new Date() + " File " + fileNameStrs[0] + "_" + orderDateStr + "." + fileNameStrs[1] + " write back.");
+	    			
+	    	   		
+ 	   	 }
+	    	
+	    } 
+		catch (Exception e){
 			
-			System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + newStopPrice);
-			show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + newStopPrice);
-			order.auxPrice(newStopPrice);
-			ForexOrderHandler stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
-			controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
-			submittedOrderHashMap.put(order.orderId(), order);
-	
-}
- 
+			e.printStackTrace();
+		}	
+		
+		
+		//Request real time tick price data if it isn't available.
+		if(((m_contract_NZDUSD.getAskPrice() == 0 || m_contract_NZDUSD.getBidPrice() == 0 || m_contract_AUDUSD.getAskPrice() == 0 || m_contract_AUDUSD.getBidPrice() == 0)))
+		{
+			requestTickData(orderHashMap);  	
+		}
 
+
+		//Request historical data every 5 seconds.
+		if((fileReadingCounter % 5 == 0 || (orderDetail != null && contractMap.get(orderDetail.Symbol).historicalBarMap.isEmpty()) )){
+ 					    	      
+		   	 formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+
+	    	// Get the date today using Calendar object.
+	    	// Using DateFormat format method we can create a string 
+	    	// representation of a date with the defined format.
+	    	
+		   	 
+		   	 
+	   	        orderDateStr = formatter.format(new Date());
+	   	        
+	   	        
+	   	        
+	   	    // displaying the Tree set data
+//			   System.out.println("Tree set data in reverse order: ");     
+			   if (iterator.hasNext()){
+
+				//				   System.out.println(iterator.next() + " ");
+				  do {
+					  Long key = (Long) iterator.next();
+					  orderDetail = orderHashMap.get(key);
+					  
+					  formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+
+				    	// Get the date today using Calendar object.
+				    	// Using DateFormat format method we can create a string 
+				    	// representation of a date with the defined format.
+				    	try{
+			   	         orderDateStr= orderDetail.Date + " " + orderDetail.Time;		   	      
+				   	     orderTime  = (Date)formatter.parse(orderDateStr); 
+				   	     
+				    	}catch (Exception e){} 
+				    	
+				    	//Compare system time and order to make sure that we submit the order on time
+					  
+					  
+					 if(historicalDataReq.contains(orderDetail.Symbol))
+				    	continue;
+				  }while((/*orderDetail.ValidDuration.equals("60") || */orderTime.before(new Date())) && iterator.hasNext() );
+				  if(orderDetail != null ){
+					  historicalDataReq.add(orderDetail.Symbol);
+					  orderDateStr = formatter.format(new Date());
+					  requestHistoricalBar(orderDateStr, contractMap.get(orderDetail.Symbol));
+				  }
+			   }else{
+				  //If it is end of list, let's start it again. 
+				  treeadd = new TreeSet<Long>(orderHashMap.keySet());
+				  treereverse=(TreeSet<Long>)treeadd.descendingSet();
+				  iterator = treereverse.iterator(); 		
+				  
+				  historicalDataReq.clear();				     
+				  
+			   }
+	   	        
+			
+		}
+		
+			 
+ 		 
+ 		 
+ 		 
+ 		 
+ 		 
+      //Register for trade report
+		controller().reqExecutions( exeFilterReport, tradeReportListener);
+		
+		//Register for live order report;
+		controller().reqLiveOrders(liveOrderListener);
+		
+		//Every 60 seconds, try to clear dead orders (filled/cancelled) in submitted order hashmap.
+		if(counter++ > 60)
+		{
+		//	show(new Date() + " Order management task is running.");
+			m_connectionPanel.m_orderManaging.setText(new Date() + " Live Order: " + liveOrderMap.size() + " Submitted order: " + submittedOrderHashMap.size()  + " orders in excel: " + orderHashMap.size());
+			counter = 0;
+		
+			//Let's loop thru and remove dead submitted orders.
+			//loop thru all orders in HashMap;
+			//	System.out.println("Looping thru all orders: " + new Date());
+				SortedSet<Integer> keys = new TreeSet<Integer>(submittedOrderHashMap.keySet());
+				for (Integer key : keys) { 					
+					
+					Order submittedOrder = submittedOrderHashMap.get(key);
+					if(submittedOrder == null) 
+						submittedOrderHashMap.remove(key);
+					if(liveOrderMap.containsKey(key)) 
+						continue;
+					else	
+						submittedOrderHashMap.remove(key);
+					
+				}
+				keys = null;
+		}
+		
+ 		 
+	
+		} 		
+      }    
+      
+}     
 }
 
 
