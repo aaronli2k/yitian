@@ -205,13 +205,16 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 	ConcurrentHashMap<Long, forex> orderHashMap = new ConcurrentHashMap<Long, forex>();
 	
+
+	
 	//All live order in system.
 	ConcurrentHashMap<Integer, Order> liveOrderMap = new ConcurrentHashMap<Integer, Order>();
 	
 	//Execution report map
 	ConcurrentHashMap<Integer, forex> executedOrderMap = new ConcurrentHashMap<Integer, forex>();
 	ConcurrentHashMap<Integer, forex> liveForexOrderMap = new ConcurrentHashMap<Integer, forex>();
-
+	Double totalCommissionPaid = 0.0, bufferCommissionPaid = 0.0, totalProfitNLoss = 0.0, bufferProfitNLoss = 0.0;
+	String baseCurrency;
 	
 	int fileReadingCounter = 301;
 
@@ -820,7 +823,15 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	}
 	
 	
-	private double calTriggerPrice(forex orderDetail, Contract currentContract){
+	class ForexPrices{
+		double triggerPrice = 0.0;
+		double profitPrice = 0.0;
+		double stoprPrice = 0.0;
+		
+	};
+	
+	
+	private ForexPrices calTriggerPrice(forex orderDetail, Contract currentContract){
 		Integer duration = Integer.parseInt(orderDetail.ValidDuration);
 		double triggerPrice;
 		
@@ -922,13 +933,18 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		
 		}
 			
+		ForexPrices orderPrices = new ForexPrices(); 
+		
 		//Make sure that trigger price is 0.1 away from current bid/ask price.
 		if(orderDetail.TradeMethod.equals("SELL")){
 			Double currentLowPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - 0.1 / 100); 
 			if(triggerPrice > currentLowPrice)
 				triggerPrice = currentLowPrice;
 				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-						  
+			orderPrices.triggerPrice = triggerPrice;	
+			orderPrices.profitPrice = triggerPrice * (1 -  1.0 / 100);
+			 // profitTakingPrice = triggerPrice * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100);
+			orderPrices.stoprPrice = triggerPrice * (1 + (Double.parseDouble(orderDetail.LossPct)) / 100);
 			}
 		else 
 			{
@@ -936,10 +952,16 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			if(triggerPrice < currentHighPrice)
 				 triggerPrice = currentHighPrice;
 				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
+			
+			orderPrices.triggerPrice = triggerPrice;	
+			orderPrices.profitPrice = triggerPrice * (1 + 1.0 / 100);
+				// profitTakingPrice = triggerPrice * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100);
+			orderPrices.stoprPrice = triggerPrice * (1 - (Double.parseDouble(orderDetail.LossPct))  / 100);	
+			
 			}
 		
 		
-		return triggerPrice;
+		return orderPrices;
 		
 	}
 	
@@ -960,24 +982,14 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			 Double triggerPrice;
 			 Double profitTakingPrice;
 			 Double stopLossPrice;
-			 Double quantity = Double.parseDouble(orderDetail.Quantity);
 			 
-			 triggerPrice = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));	
-			if(orderDetail.TradeMethod.equals("SELL")){
-	//		  triggerPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
-				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-				 profitTakingPrice = triggerPrice * (1 -  1.0 / 100);
-			 // profitTakingPrice = triggerPrice * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100);
-			  stopLossPrice = triggerPrice * (1 + (Double.parseDouble(orderDetail.LossPct)) / 100);
-			  
-			}else 
-			{
-	//			 triggerPrice = contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
-				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-				 profitTakingPrice = triggerPrice * (1 + 1.0 / 100);
-				// profitTakingPrice = triggerPrice * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100);
-				 stopLossPrice = triggerPrice * (1 - (Double.parseDouble(orderDetail.LossPct))  / 100);				
-			}
+			 Double quantity = Double.parseDouble(orderDetail.Quantity);
+			
+			 ForexPrices orderPrices;
+		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));	
+			 triggerPrice = orderPrices.triggerPrice;
+			 profitTakingPrice = orderPrices.profitPrice;
+			 stopLossPrice = orderPrices.stoprPrice;				
 			 
 //			 nextOrderId = 0;
 			 int parentOrderId = nextOrderId;
@@ -1092,22 +1104,12 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 //		 nextOrderId = 0;
 		 orderDetail.TradeMethod = "BUY";
 		 
-		 triggerPrice = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));		 
-			if(orderDetail.TradeMethod.equals("SELL")){
-//				  triggerPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
-					 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-					 profitTakingPrice = triggerPrice * (1 - 1.0 / 100);
-				//  profitTakingPrice = triggerPrice * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100);
-				  stopLossPrice = triggerPrice * (1 + (Double.parseDouble(orderDetail.LossPct))  / 100);
-				  
-				}else 
-				{
-	//				 triggerPrice = contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
-					 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-					 profitTakingPrice = triggerPrice * (1 + 1.0 / 100);
-					// profitTakingPrice = triggerPrice * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100);
-					 stopLossPrice = triggerPrice * (1 - (Double.parseDouble(orderDetail.LossPct))  / 100);				
-				}
+			 ForexPrices orderPrices;
+		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));	
+			 triggerPrice = orderPrices.triggerPrice;
+			 profitTakingPrice = orderPrices.profitPrice;
+			 stopLossPrice = orderPrices.stoprPrice;		 
+
 		 
 			int parentOrderId = nextOrderId;
 			String action = orderDetail.TradeMethod;
@@ -1192,25 +1194,11 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 //			 nextOrderId = 0;
 			 orderDetail.TradeMethod = "SELL";
 			 
-			 triggerPrice = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));		 
-	 
-				if(orderDetail.TradeMethod.equals("SELL")){
-	//				  triggerPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
-					  
-						 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-						profitTakingPrice = triggerPrice * (1 - 1.0 / 100);
-					//  profitTakingPrice = triggerPrice * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100);
-					  stopLossPrice = triggerPrice * (1 + (Double.parseDouble(orderDetail.LossPct))  / 100);
-					  
-					}else 
-					{
-		//				 triggerPrice = contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
-						 
-						 //Let's set profit taking to 0.6% and adjust it later in order managing task.
-						 profitTakingPrice = triggerPrice * (1 + 1.0 / 100);
-						//  profitTakingPrice = triggerPrice * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100);
-						 stopLossPrice = triggerPrice * (1 - (Double.parseDouble(orderDetail.LossPct))  / 100);				
-					}
+		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));	
+			 triggerPrice = orderPrices.triggerPrice;
+			 profitTakingPrice = orderPrices.profitPrice;
+			 stopLossPrice = orderPrices.stoprPrice;			 
+
 				nextOrderId++;
 			  parentOrderId = nextOrderId;
 			  action = orderDetail.TradeMethod;
@@ -1432,6 +1420,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	    	forex orderDetail;
 	    	DateFormat formatter; 
 	    	String orderDateStr;
+	    	String OrderSubmittedStr = "";
 	    	
 	        System.out.println("Hello from a Order submission thread!");
 //	        Thread.currentThread().setPriority(Thread.MAX_PRIORITY - 1);
@@ -1444,8 +1433,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					e.printStackTrace();
 				}
 				
-	 			m_connectionPanel.m_orderSubmission.setText(new Date() + " order submission task is running.");    		
-
+	 			m_connectionPanel.m_orderSubmission.setText(new Date() + " order submission task is running. OrderJust submitted: " + OrderSubmittedStr);    		
 				
 				Date systemTimePlus1M = new Date(), systemTimePlus2M = new Date(), orderTime= new Date();
 					
@@ -1537,7 +1525,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 			    		if(needToSubmit == false)
 			    			continue;
-			    		
+			 			OrderSubmittedStr = orderDetail.Symbol;
+
 			    		System.out.println(new Date().toString() + " " + submittedOrderHashMap.size() + " Already submitted orders in submittedOrderHashMap");
 			    		System.out.println(new Date().toString() + " " + liveOrderMap.size() + " live orders in hashmap liveOrderMap");
 			    		
@@ -1643,6 +1632,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
    				// TODO Auto-generated catch block
    				e.printStackTrace();
    			}   		 
+
+			m_connectionPanel.m_orderManaging.setText(new Date() + " Live Order: " + liveOrderMap.size() + " Submitted order: " + submittedOrderHashMap.size()  + " orders in excel: " + orderHashMap.size());
 
    		 
  		//Looping thru all live orders. If an order has been filled, looking for its orderId. Then try to modify profitaking order. And stop order.;
@@ -1917,11 +1908,11 @@ private void adjustStopPrice(Integer orderId, Order order){
 			    	orderHashMap.put(seqNo, orderDetail);			
 			    }    
 			}
-			System.out.println(execution.time() + " " +  execution.side() + " " + contract.symbol() + contract.currency() + " " + execution.cumQty() + " Filled @ " + execution.avgPrice() + " OrderId: " + execution.orderId());
+	//		System.out.println(execution.time() + " " +  execution.side() + " " + contract.symbol() + contract.currency() + " " + execution.cumQty() + " Filled @ " + execution.avgPrice() + " OrderId: " + execution.orderId());
 
 			//Order status after trade report.
-			if(orderHashMap.get(order.seqOrderNo()) != null)
-				System.out.println(new Date() + " Trade Report sequence No.: " + order.seqOrderNo() + " in orderHashMap" + orderHashMap.get(order.seqOrderNo()).OrderStatus + " executed @ " + execution.time());
+//			if(orderHashMap.get(order.seqOrderNo()) != null)
+//				System.out.println(new Date() + " Trade Report sequence No.: " + order.seqOrderNo() + " in orderHashMap" + orderHashMap.get(order.seqOrderNo()).OrderStatus + " executed @ " + execution.time());
 
 			
 			
@@ -1930,12 +1921,20 @@ private void adjustStopPrice(Integer orderId, Order order){
 		@Override
 		public void tradeReportEnd() {
 			// TODO Auto-generated method stub
-			
+			totalCommissionPaid = bufferCommissionPaid;
+			totalProfitNLoss = bufferProfitNLoss;
+			bufferCommissionPaid = 0.0;
+			bufferProfitNLoss = 0.0;
 		}
 		@Override
 		public void commissionReport(String tradeKey, CommissionReport commissionReport) {
 			// TODO Auto-generated method stub
-//			System.out.println("Commission: " + commissionReport.m_commission);
+//			System.out.println("CommissionReport. ["+commissionReport.m_execId+"] - ["+commissionReport.m_commission+"] ["+commissionReport.m_currency+"] RPNL ["+commissionReport.m_realizedPNL+"]");
+			 bufferCommissionPaid += commissionReport.m_commission;
+			 
+			 bufferProfitNLoss += commissionReport.m_realizedPNL;
+			 
+			 baseCurrency = commissionReport.m_currency;
 		}
 	}
 	
@@ -2002,7 +2001,7 @@ private void adjustStopPrice(Integer orderId, Order order){
 			    
 			    if(orderDetail.orderIdList.contains(order.orderId())){
 			    	if(orderDetail.OrderStatus.equals("Filled")){
-			    		System.out.print(" cost@ " + orderDetail.ActualPrice);				    		
+	//		    		System.out.print(" cost@ " + orderDetail.ActualPrice);				    		
 			    	}
 			    }
 			    
@@ -2128,21 +2127,10 @@ private void adjustStopPrice(Integer orderId, Order order){
 				controller().reqHistoricalData(currencyContract, endTime, 3600 * 2, DurationUnit.SECOND, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
 			else
 			{
-				System.out.println("Null pointer here" + currencyContract.toString() + forexHistoricalHandler.toString());
-				
-			}
-			//Let's wait 1 second her
-			/*
-			try {
-				Thread.sleep(60000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+				show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
 			}
 			
-			
-		}
-		*/
 	}
 	
 	private void requestRealtimeBar(){		
@@ -2184,11 +2172,11 @@ class MarketDataManagingThread extends Thread {
       
       
       
-  while(true){
-      	//Guy, let's rest 1000ms here
- 		 try {
- 				Thread.sleep(1000);
- 			} catch (InterruptedException e) {
+		   while(true){
+			  //Guy, let's rest 1000ms here
+			   try {
+				   	Thread.sleep(1000);
+			   } catch (InterruptedException e) {
  				// TODO Auto-generated catch block
  				e.printStackTrace();
  			}
@@ -2198,14 +2186,14 @@ class MarketDataManagingThread extends Thread {
 
  		 
  		//Check connection with server every second.
-			//Check whether current connection is disconnected. If yes, connect it
+			//Check whether current connection is disconnected. If yes, connect it and skip below action
  		if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED"))
  		{
  			m_connectionPanel.onConnect();
  			continue;
  		}
 		
- 		m_connectionPanel.m_marketDataManaging.setText(new Date() + " market Data Managing task is running.");    	
+ 		m_connectionPanel.m_marketDataManaging.setText(new Date() + " orders executed today: " + executedOrderMap.size() + " Commission@: " + totalCommissionPaid + " " + baseCurrency);    	
  		
 		//Request order Id.		
 		ApiDemo.INSTANCE.controller().client().reqIds(-1);
@@ -2216,23 +2204,18 @@ class MarketDataManagingThread extends Thread {
 	     {	
 	    	if(fileReadingCounter > 300){
 	 				
-	    			String[] fileNameStrs = inputFileName.split("\\.");
-	    		
-	    			
-	    	   		 excelInput.setInputFile(inputFileName);
-	    	   		 orderHashMap = excelInput.read(orderHashMap);	
-	    	 		 show(new Date() + " File " + inputFileName + " is read back. Total size in HashMap: " + orderHashMap.size() + " orders.");
+	    		String[] fileNameStrs = inputFileName.split("\\.");	    		
+	    		excelInput.setInputFile(inputFileName);
+	    	   	orderHashMap = excelInput.read(orderHashMap);	
+	    	 	show(new Date() + " File " + inputFileName + " is read back. Total size in HashMap: " + orderHashMap.size() + " orders.");
 
 	    	   		/**/ 
+			 	 formatter = new SimpleDateFormat("yyyyMMdd");
 
-			   
-      
-				   	 formatter = new SimpleDateFormat("yyyyMMdd");
-
-			    	// Get the date today using Calendar object.
-			    	// Using DateFormat format method we can create a string 
-			    	// representation of a date with the defined format.
-			    	
+		    	// Get the date today using Calendar object.
+		    	// Using DateFormat format method we can create a string 
+		    	// representation of a date with the defined format.
+   	
 		   	        orderDateStr = formatter.format(new Date());
 	    	   		 
 	    	   		excelOutput.setOutputFile(fileNameStrs[0] + "_" + "Report_" + orderDateStr + "." + fileNameStrs[1]);
@@ -2318,10 +2301,6 @@ class MarketDataManagingThread extends Thread {
 		
 			 
  		 
- 		 
- 		 
- 		 
- 		 
       //Register for trade report
 		controller().reqExecutions( exeFilterReport, tradeReportListener);
 		
@@ -2331,8 +2310,10 @@ class MarketDataManagingThread extends Thread {
 		//Every 60 seconds, try to clear dead orders (filled/cancelled) in submitted order hashmap.
 		if(counter++ > 60)
 		{
-		//	show(new Date() + " Order management task is running.");
-			m_connectionPanel.m_orderManaging.setText(new Date() + " Live Order: " + liveOrderMap.size() + " Submitted order: " + submittedOrderHashMap.size()  + " orders in excel: " + orderHashMap.size());
+		
+		
+			
+			
 			counter = 0;
 		
 			//Let's loop thru and remove dead submitted orders.
