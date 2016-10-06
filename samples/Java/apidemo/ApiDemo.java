@@ -11,6 +11,7 @@ import java.awt.Frame;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
@@ -533,10 +534,25 @@ public class ApiDemo implements IConnectionHandler, Runnable {
         m_frame.setTitle("Built @ " + new Date()); 
         
         // make initial connection to local host, port 4001, client id 0, no connection options
-		controller().connect( "127.0.0.1", 4001, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
+		controller().connect( "127.0.0.1", 7496, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
     
 		 Thread me = Thread.currentThread();
 		 
+		 
+		 SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+
+	    	// Get the date today using Calendar object.
+	    	// Using DateFormat format method we can create a string 
+	    	// representation of a date with the defined format.
+
+	   	        String orderDateStr = formatter.format(new Date());
+ 	   		 
+	   	        //Chceck whether a data-specific file exist or not. If exist, use it instead.
+	   	        File f = new File("Forex" + orderDateStr + ".xls");
+	    		if(f.isFile()) { 
+	    		    // do something
+	    			inputFileName = "Forex" + orderDateStr + ".xls";
+	    		}
 		 
 		 //Read back file only once.
 		 excelInput.setInputFile(inputFileName);
@@ -882,7 +898,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					triggerPrice = high * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
 				}
 		}else if(duration <= 15 * 60){//If duration is 15 minutes, let's use last 30 minutes's high and low.
-			while(iterator.hasNext() && counter < 6){
+			while(iterator.hasNext() && counter < 2){
 				Bar bar = currentContract.historicalBarMap.get(iterator.next());
 				if(high < bar.high())
 					high = bar.high();
@@ -899,7 +915,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		}
 		else if(duration <= 30 * 60){//If duration is 30 minutes, let's use last 60 minutes's high and low.
 
-			while(iterator.hasNext() && counter < 12){
+			while(iterator.hasNext() && counter < 2){
 				Bar bar = currentContract.historicalBarMap.get(iterator.next());
 				if(high < bar.high())
 					high = bar.high();
@@ -915,7 +931,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				}
 			
 		}else{//If duration is longer than 30 minutes, let's use last 90 minutes's high and low.
-			while(iterator.hasNext() && counter < 18){
+			while(iterator.hasNext() && counter < 2){
 				Bar bar = currentContract.historicalBarMap.get(iterator.next());
 				if(high < bar.high())
 					high = bar.high();
@@ -1420,8 +1436,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	    public void run() {
 	    	forex orderDetail;
 	    	DateFormat formatter; 
-	    	String orderDateStr;
-	    	String OrderSubmittedStr = "";
+	    	String orderDateStr = "";
+	    	String OrderSubmittedStr = null;
 	    	
 	        System.out.println("Hello from a Order submission thread!");
 //	        Thread.currentThread().setPriority(Thread.MAX_PRIORITY - 1);
@@ -1434,7 +1450,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					e.printStackTrace();
 				}
 				
-	 			m_connectionPanel.m_orderSubmission.setText(new Date() + " order submission task is running. OrderJust submitted: " + OrderSubmittedStr);    		
+	 			m_connectionPanel.m_orderSubmission.setText(new Date() + " order submission task is running. Next order: " + OrderSubmittedStr);
+	 			OrderSubmittedStr = null;
 				
 				Date systemTimePlus1M = new Date(), systemTimePlus2M = new Date(), orderTime= new Date();
 					
@@ -1472,6 +1489,12 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			   	     orderTime  = (Date)formatter.parse(orderDateStr); 
 			   	     
 			    	}catch (Exception e){} 
+			    	
+			    	if(orderTime.after(new Date()) && OrderSubmittedStr == null){
+			 			OrderSubmittedStr = orderDetail.Symbol + "@" + orderDateStr;
+
+			    	}
+			    	
 			    	
 			    	//Compare system time and order to make sure that we submit the order on time
 			    	if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime)){
@@ -1526,7 +1549,6 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 			    		if(needToSubmit == false)
 			    			continue;
-			 			OrderSubmittedStr = orderDetail.Symbol;
 
 			    		System.out.println(new Date().toString() + " " + submittedOrderHashMap.size() + " Already submitted orders in submittedOrderHashMap");
 			    		System.out.println(new Date().toString() + " " + liveOrderMap.size() + " live orders in hashmap liveOrderMap");
@@ -1634,7 +1656,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
    				e.printStackTrace();
    			}   		 
 
-			m_connectionPanel.m_orderManaging.setText(new Date() + " Live Order: " + liveOrderMap.size() + " Submitted order: " + submittedOrderHashMap.size()  + " orders in excel: " + orderHashMap.size());
+			m_connectionPanel.m_orderManaging.setText(new Date() + " Live Order: " + liveOrderMap.size() + " Submitted order: " + submittedOrderHashMap.size()  + " orders in " + inputFileName + orderHashMap.size());
 
    		 
  		//Looping thru all live orders. If an order has been filled, looking for its orderId. Then try to modify profitaking order. And stop order.;
@@ -1699,15 +1721,15 @@ private void adjustStopPrice(Integer orderId, Order order){
 	currentAskPrice = currencyContract.getAskPrice();
 	Action action = order.action();
 	
-	//This is a short position, we need to buy it at a price higher than current ask price 
+	//This is a short position, we need to buy it at a price higher than current ask price to stop loss and lower price to make profit
 	if(action.equals(Action.BUY)){
 		//If current ask price 0.3 % is bigger than actual price, adjust STOP price to current price + 0.1% 
-		if(currentAskPrice > (openPrice * (1 + 0.3/100))){
-			newStopPrice = currentAskPrice * (1 + 0.1/100);
+		if(currentAskPrice < (openPrice * (1 - 0.3/100))){
+			newStopPrice = currentAskPrice * (1 - 0.1/100);
 		}
 		//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
-		else if(currentAskPrice > (openPrice * (1 + 0.2/100))){
-			newStopPrice = openPrice;
+		else if(currentAskPrice < (openPrice * (1 - 0.2/100))){
+			newStopPrice = openPrice * (1 - 0.05/100);
 		}else{//defaul set stop price as 0.1 loss
 			newStopPrice = openPrice * (1 + 0.1/100);
 		}
@@ -1718,15 +1740,15 @@ private void adjustStopPrice(Integer orderId, Order order){
 		
 		if (order.auxPrice() <= newStopPrice)
 			return;
-	}else{//This is a long position, we need to sell it at a price higher than current bid price 
+	}else{//This is a long position, we need to sell it at a price higher than current bid price to make profit and stop at lower price to stop loss
 
-		//If current bid price 0.3 % is less than actual price, adjust STOP price to current price - 0.1% 
-				if(currentBidPrice < (openPrice * (1 - 0.3/100))){
-					newStopPrice = currentBidPrice * (1 - 0.1/100);
+		//If current bid price 0.3 % is higher than actual price, adjust STOP price to current price - 0.1% 
+				if(currentBidPrice > (openPrice * (1 + 0.3/100))){
+					newStopPrice = currentBidPrice * (1 + 0.1/100);
 				}
-				//If current bid price 0.2 % is less than actual price, adjust STOP price to actual open price 
-				else if(currentAskPrice < (openPrice * (1 - 0.2/100))){
-					newStopPrice = openPrice;
+				//If current bid price 0.2 % is higher than actual price, adjust STOP price to actual open price 
+				else if(currentAskPrice > (openPrice * (1 + 0.2/100))){
+					newStopPrice = openPrice * (1 + 0.05/100);
 				}else{//defaul set stop price as 0.1 loss
 					newStopPrice = openPrice * (1 - 0.1/100);
 				}
@@ -2205,11 +2227,9 @@ class MarketDataManagingThread extends Thread {
 	     {	
 	    	if(fileReadingCounter > 300){
 	 				
-	    		String[] fileNameStrs = inputFileName.split("\\.");	    		
-	    		excelInput.setInputFile(inputFileName);
-	    	   	orderHashMap = excelInput.read(orderHashMap);	
-	    	 	show(new Date() + " File " + inputFileName + " is read back. Total size in HashMap: " + orderHashMap.size() + " orders.");
-
+	    		String[] fileNameStrs = inputFileName.split("\\.");	    
+	    		
+	    		
 	    	   		/**/ 
 			 	 formatter = new SimpleDateFormat("yyyyMMdd");
 
@@ -2219,6 +2239,19 @@ class MarketDataManagingThread extends Thread {
    	
 		   	        orderDateStr = formatter.format(new Date());
 	    	   		 
+		   	        //Chceck whether a data-specific file exist or not. If exist, use it instead.
+		   	        File f = new File("Forex" + orderDateStr + ".xls");
+		    		if(f.exists() && !f.isDirectory()) { 
+		    		    // do something
+		    			inputFileName = "Forex" + orderDateStr + ".xls";
+		    		}
+		    		
+		    		excelInput.setInputFile(inputFileName);
+		    	   	orderHashMap = excelInput.read(orderHashMap);	
+		    	 	show(new Date() + " File " + inputFileName + " is read back. Total size in HashMap: " + orderHashMap.size() + " orders.");
+
+		   	        
+		   	        
 	    	   		excelOutput.setOutputFile(fileNameStrs[0] + "_" + "Report_" + orderDateStr + "." + fileNameStrs[1]);
 	    	   		excelOutput.write(orderHashMap);
 	    	   		fileReadingCounter = 0;
@@ -2264,7 +2297,8 @@ class MarketDataManagingThread extends Thread {
 				  do {
 					  Long key = (Long) iterator.next();
 					  orderDetail = orderHashMap.get(key);
-					  
+					  if(orderDetail == null )
+						  continue;
 					  formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 
 				    	// Get the date today using Calendar object.
