@@ -18,6 +18,7 @@ import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -599,6 +600,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 		}
 	};
+
+	private int secondBeforeActualOrderTime = -5;
 	 
 	@Override public void connected() {
 		
@@ -859,28 +862,32 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		TreeSet<String> treereverse = (TreeSet<String>) keys.descendingSet();
 		Iterator<String> iterator =  treereverse.iterator();
 		Integer counter = 0;
-		Double high = 0.0, low = Double.MAX_VALUE;
+		Double high = 0.0, low = Double.MAX_VALUE, TriggerPct = 0.02, TriggerPctAskBid = 0.05, stopLosspct;
 		
+		
+		stopLosspct = Double.parseDouble(orderDetail.LossPct);
+		TriggerPctAskBid = Double.parseDouble(orderDetail.TriggerPct);
+		TriggerPct = TriggerPctAskBid / 2;
 		
 		//If historical data not available yet, use real time tick price.
 		if((!iterator.hasNext())){
 			
 			if(orderDetail.TradeMethod.equals("SELL")){
-				  triggerPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
+				  triggerPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - TriggerPctAskBid / 100);
 					 //Let's set profit taking to 0.6% and adjust it later in order managing task.
 							  
 				}else 
 				{
-					 triggerPrice = contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
+					 triggerPrice = contractMap.get(orderDetail.Symbol).getAskPrice() * (1 +TriggerPctAskBid / 100);
 					 //Let's set profit taking to 0.6% and adjust it later in order managing task.
 				}
 			
 			
 		}else if(duration <= 60){ //If duration is less or euqual to 60 seconds. use 5 minutes bar high and low.
 			if(orderDetail.TradeMethod.equals("SELL")){
-				triggerPrice = currentContract.historicalBarMap.get(treereverse.first()).low() * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
+				triggerPrice = currentContract.historicalBarMap.get(treereverse.first()).low() * (1 - TriggerPct / 100);
 				}else {
-					triggerPrice = currentContract.historicalBarMap.get(treereverse.first()).high() * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
+					triggerPrice = currentContract.historicalBarMap.get(treereverse.first()).high() * (1 + TriggerPct / 100);
 				}			
 		}else if(duration <= 5 * 60){//If duration is 5 minutes, let's use last 10 minutes's high and low.
 			while(iterator.hasNext() && counter < 2){
@@ -892,10 +899,10 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			}
 			
 			if(orderDetail.TradeMethod.equals("SELL")){
-				triggerPrice = low * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
+				triggerPrice = low * (1 - TriggerPct  / 100);
 				}else 
 				{
-					triggerPrice = high * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
+					triggerPrice = high * (1 + TriggerPct  / 100);
 				}
 		}else if(duration <= 15 * 60){//If duration is 15 minutes, let's use last 30 minutes's high and low.
 			while(iterator.hasNext() && counter < 2){
@@ -907,10 +914,10 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			}
 			
 			if(orderDetail.TradeMethod.equals("SELL")){
-				triggerPrice = low * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
+				triggerPrice = low * (1 - TriggerPct  / 100);
 				}else 
 				{
-					triggerPrice = high * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
+					triggerPrice = high * (1 + TriggerPct  / 100);
 				}
 		}
 		else if(duration <= 30 * 60){//If duration is 30 minutes, let's use last 60 minutes's high and low.
@@ -924,10 +931,10 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			}
 			
 			if(orderDetail.TradeMethod.equals("SELL")){
-				triggerPrice = low * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);
+				triggerPrice = low * (1 - TriggerPct  / 100);
 				}else 
 				{
-					triggerPrice = high * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
+					triggerPrice = high * (1 + TriggerPct  / 100);
 				}
 			
 		}else{//If duration is longer than 30 minutes, let's use last 90 minutes's high and low.
@@ -940,10 +947,10 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			}
 			
 			if(orderDetail.TradeMethod.equals("SELL")){
-				triggerPrice = low * (1 - Double.parseDouble(orderDetail.TriggerPct) / 100);	
+				triggerPrice = low * (1 - TriggerPct  / 100);	
 				}else 
 				{
-					triggerPrice = high * (1 + Double.parseDouble(orderDetail.TriggerPct) / 100);
+					triggerPrice = high * (1 + TriggerPct / 100);
 				}
 			
 			
@@ -952,28 +959,28 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			
 		ForexPrices orderPrices = new ForexPrices(); 
 		
-		//Make sure that trigger price is 0.1 away from current bid/ask price.
+		//Make sure that trigger price is 0.1 max away from current bid/ask price.
 		if(orderDetail.TradeMethod.equals("SELL")){
-			Double currentLowPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - 0.1 / 100); 
-			if(triggerPrice > currentLowPrice)
+			Double currentLowPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - TriggerPctAskBid / 100); 
+			if(triggerPrice < currentLowPrice)
 				triggerPrice = currentLowPrice;
 				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
 			orderPrices.triggerPrice = triggerPrice;	
 			orderPrices.profitPrice = triggerPrice * (1 -  1.0 / 100);
 			 // profitTakingPrice = triggerPrice * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100);
-			orderPrices.stoprPrice = triggerPrice * (1 + (Double.parseDouble(orderDetail.LossPct)) / 100);
+			orderPrices.stoprPrice = triggerPrice * (1 + stopLosspct / 100);
 			}
 		else 
 			{
-			Double currentHighPrice = contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + 0.1 / 100); 
-			if(triggerPrice < currentHighPrice)
+			Double currentHighPrice = contractMap.get(orderDetail.Symbol).getAskPrice() * (1 + TriggerPctAskBid / 100); 
+			if(triggerPrice > currentHighPrice)
 				 triggerPrice = currentHighPrice;
 				 //Let's set profit taking to 0.6% and adjust it later in order managing task.
 			
 			orderPrices.triggerPrice = triggerPrice;	
 			orderPrices.profitPrice = triggerPrice * (1 + 1.0 / 100);
 				// profitTakingPrice = triggerPrice * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100);
-			orderPrices.stoprPrice = triggerPrice * (1 - (Double.parseDouble(orderDetail.LossPct))  / 100);	
+			orderPrices.stoprPrice = triggerPrice * (1 - stopLosspct  / 100);	
 			
 			}
 		
@@ -1032,10 +1039,28 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		   	  
 		   	     
 		   	     
-		   	    //Aaron only valid after specified time
+		   	   //Aaron only valid after specified time	   	    
+					try {
+						Date orderTime = (Date)formatter.parse(orderDateStr);
+						//Try to activate the order a few seconds before actual order time. Need to test
+						Calendar cal = Calendar.getInstance();
+						cal.setTime(orderTime);
+						cal.add(Calendar.SECOND, secondBeforeActualOrderTime);
+						orderTime = cal.getTime();
+						orderDateStr = formatter.format(orderTime); 
+					} catch (ParseException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}    
+		   	        
 			   	parent.goodAfterTime(orderDateStr);  
 		   	    try {
 					Date  orderTime  = (Date)formatter.parse(orderDateStr);
+					
+					//Try to activate the order a few seconds before actual order time. Need to test
+					Calendar cal = Calendar.getInstance();
+					cal.add(Calendar.SECOND, secondBeforeActualOrderTime);
+
 					Date orderPlusDuration = new Date(orderTime.getTime() + Integer.parseInt(orderDetail.ValidDuration) * 1000);
 					orderDateStr = formatter.format(orderPlusDuration);
 		   	    } catch (ParseException e1) {
@@ -1155,10 +1180,28 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	    	
 	   	    String orderDateStr= orderDetail.Date + " " + orderDetail.Time;		   	      
 	   	  
-	   	     //Aaron only valid after specified time
+	   	    Date orderTime;
+			Calendar cal;
+			//Aaron only valid after specified time	   	    
+			try {
+				orderTime  = (Date)formatter.parse(orderDateStr);
+				//Try to activate the order a few seconds before actual order time. Need to test
+				cal=Calendar.getInstance();
+				cal.setTime(orderTime);
+				cal.add(Calendar.SECOND, secondBeforeActualOrderTime);
+				orderTime = cal.getTime();
+				orderDateStr = formatter.format(orderTime); 
+			} catch (ParseException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+	   	    
+	   	    
 	   	     parent.goodAfterTime(orderDateStr);	   	     
 	   	    try {
-				Date  orderTime  = (Date)formatter.parse(orderDateStr);
+				orderTime  = (Date)formatter.parse(orderDateStr);
+	
+				
 				Date orderPlusDuration = new Date(orderTime.getTime() + Integer.parseInt(orderDetail.ValidDuration) * 1000);
 				orderDateStr = formatter.format(orderPlusDuration);
 	   	    } catch (ParseException e1) {
@@ -1235,12 +1278,39 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		    	
 		   	    orderDateStr= orderDetail.Date + " " + orderDetail.Time;		   	      
 		   	  
-		   	     
-		   	     
-		   	     //Aaron only valid after specified time
+		   	     //Aaron only valid after specified time	   	    
+				try {
+					orderTime  = (Date)formatter.parse(orderDateStr);
+					//Try to activate the order a few seconds before actual order time. Need to test
+					cal=Calendar.getInstance();
+					cal.setTime(orderTime);
+					cal.add(Calendar.SECOND, secondBeforeActualOrderTime);
+					orderTime = cal.getTime();
+					orderDateStr = formatter.format(orderTime); 
+				} catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}			
+
+		   	    
+		  
+				//Aaron only valid after specified time	   	    
+				try {
+					orderTime  = (Date)formatter.parse(orderDateStr);
+					//Try to activate the order a few seconds before actual order time. Need to test
+					cal=Calendar.getInstance();
+					cal.setTime(orderTime);
+					cal.add(Calendar.SECOND, secondBeforeActualOrderTime);
+					orderTime = cal.getTime();
+					orderDateStr = formatter.format(orderTime); 
+				} catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
 		   	     parentSell.goodAfterTime(orderDateStr); 
 		   	    try {
-					Date  orderTime  = (Date)formatter.parse(orderDateStr);
+					orderTime  = (Date)formatter.parse(orderDateStr);
 					Date orderPlusDuration = new Date(orderTime.getTime() + Integer.parseInt(orderDetail.ValidDuration) * 1000);
 					orderDateStr = formatter.format(orderPlusDuration);
 		   	    } catch (ParseException e1) {
@@ -1474,9 +1544,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			    	}
 			    		
 			    	try{
-			    	 long time = System.currentTimeMillis();
-			    	 systemTimePlus1M = new Date(time + 30 * 1000);	
-			    	 systemTimePlus2M = new Date(time + 120 * 1000);	
+			    	
 			   
 		    	      
 				   	 formatter = new SimpleDateFormat("yyyyMMdd HH:mm");
@@ -1495,6 +1563,9 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 			    	}
 			    	
+			    	 long time = System.currentTimeMillis();
+			    	 systemTimePlus1M = new Date();	
+			    	 systemTimePlus2M = new Date(time + 60 * 1000);	
 			    	
 			    	//Compare system time and order to make sure that we submit the order on time
 			    	if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime)){
@@ -1593,7 +1664,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			    				 
 			    				 //Let's wait for 1 second.
 			    				 try {
-			    						Thread.sleep(1000);
+			    						Thread.sleep(100);
 			    					} catch (InterruptedException e) {
 			    						
 			    						e.printStackTrace();
@@ -1611,7 +1682,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			    		 
 			    		//Wait 1 seconds after each order submission.
 							try {
-								Thread.sleep(1000);
+								Thread.sleep(200);
 							} catch (InterruptedException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
@@ -2354,7 +2425,7 @@ class MarketDataManagingThread extends Thread {
 			//Let's loop thru and remove dead submitted orders.
 			//loop thru all orders in HashMap;
 			//	System.out.println("Looping thru all orders: " + new Date());
-				SortedSet<Integer> keys = new TreeSet<Integer>(submittedOrderHashMap.keySet());
+			/*	SortedSet<Integer> keys = new TreeSet<Integer>(submittedOrderHashMap.keySet());
 				for (Integer key : keys) { 					
 					
 					Order submittedOrder = submittedOrderHashMap.get(key);
@@ -2366,7 +2437,8 @@ class MarketDataManagingThread extends Thread {
 						submittedOrderHashMap.remove(key);
 					
 				}
-				keys = null;
+				
+				keys = null;*/
 		}
 		
  		 
