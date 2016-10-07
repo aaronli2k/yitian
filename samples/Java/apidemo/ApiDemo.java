@@ -195,6 +195,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	ConcurrentHashMap<String, ForexListner> historyListeningMap = new ConcurrentHashMap<String, ForexListner>();
 
 	long tickCounter = 100;
+	Calendar serverTimeCalendar = Calendar.getInstance();
 	
 	
 //	Timer m_timer = new Timer( 5000, this); //1 seconds timer
@@ -257,6 +258,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
         			  
         			 
        // 			 m_contract_listener.setClosePrice(price);
+        			 
+        			 
                 	
                 	m_contract_listener.setBidPrice(price);
          //           System.out.println("BID price: " + price);
@@ -583,8 +586,10 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 
 		@Override public void currentTime(long time) {
-		//	show( "Server date/time is " + Formats.fmtDate(time * 1000) );
-			
+//			show( "Server date/time is " + Formats.fmtDate(time * 1000) );
+		
+			serverTimeCalendar.setTime(new Date(time * 1000));
+//			System.out.println("Currrent server time: " + serverTimeCalendar.getTime() + " Current PC sysem time: " + new Date());
 //    	DateFormat formatterDate, formatterTime; 			    	      
 //		
 //    	formatterDate = new SimpleDateFormat("yy-mm-dd");
@@ -1563,9 +1568,9 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 			    	}
 			    	
-			    	 long time = System.currentTimeMillis();
-			    	 systemTimePlus1M = new Date();	
-			    	 systemTimePlus2M = new Date(time + 60 * 1000);	
+//			    	 long time = System.currentTimeMillis();
+			    	 systemTimePlus1M = serverTimeCalendar.getTime();	
+			    	 systemTimePlus2M = new Date(serverTimeCalendar.getTimeInMillis() + 15 * 1000);	
 			    	
 			    	//Compare system time and order to make sure that we submit the order on time
 			    	if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime)){
@@ -1595,24 +1600,49 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 						for (Entry<Integer, forex> entry : liveForexOrderMap.entrySet()) {
 							forex order2Loop = entry.getValue();
 //						    forex tmpOrder = orderHashMap.get(order2Loop.seqOrderNo());
-						    
+						    Order entryOrder = submittedOrderHashMap.get(entry.getKey());
+						    if(entryOrder == null)
+						    	entryOrder = liveOrderMap.get(entry.getKey());
 					
-						    
+						    if(entryOrder == null)
+						    	continue;
 						    if(orderDetail.Symbol.equals(order2Loop.Symbol)){
 						    	{
 						    		//duplicated parent order is OK. All parent order has time in force as "GTD" good to date.
 						    		if(liveOrderMap.get(entry.getKey()).tif().equals("GTD"))
 						    			continue;
-
-						    		//If order's parent order has been executed. Then skip current order to avoid duplicate
-//						    		if(executedOrderMap.contains(liveOrderMap.get(entry.getKey()).parentId()))
-						    		{						    		
+						    		
+						    		if(entryOrder.parentId() == 0 && entryOrder.tif().equals("GTC"))
+						    		{	
 							    		needToSubmit = false;
 							    		orderDetail.OrderStatus = "Cancelled";
 							    		orderDetail.comment = "Cancelled due to duplicated order in open order";						    		
 							    		orderHashMap.put(orderDetail.orderSeqNo, orderDetail);
 							    		System.out.println(new Date() + " No need to submit Order:  " + liveOrderMap.get(entry.getKey()).parentId());	
-						    		}			    		
+							    		break;
+						    		}
+
+						    		if(entryOrder.parentId() != 0 && liveOrderMap.containsKey(entryOrder.parentId()))
+						    			continue;
+						    		
+						    		//If order's parent order has been executed. Then skip current order to avoid duplicate
+						    			
+						    		if(executedOrderMap.containsKey(entryOrder.parentId()))
+						    		{						    		
+							    		needToSubmit = false;
+							    		orderDetail.OrderStatus = "Cancelled";
+							    		orderDetail.comment = "Cancelled due to duplicated order in open order";						    		
+							    		orderHashMap.put(orderDetail.orderSeqNo, orderDetail);
+							    		System.out.println(new Date() + " No need to submit because of executed parent OrderId:  " + liveOrderMap.get(entry.getKey()).parentId());
+							    		break;
+						    		}	
+						    		
+//						    		System.out.println(" I escpe hee: " + entryOrder.orderId() + entryOrder.orderType() + entryOrder.parentId());
+//						    		System.out.println("Is its parent Id in executedOrderMap ? " + executedOrderMap.containsKey(entryOrder.parentId()));
+//						    		System.out.println("Is its in submittedOrderHashMap ? " + submittedOrderHashMap.containsKey(entryOrder.orderId()));
+//						    		System.out.println("Is its in liveOrderMap ? " + liveOrderMap.containsKey(entryOrder.orderId()));
+						    		
+	
 						    	}
 						    }    
 						}
@@ -1766,14 +1796,33 @@ private void adjustStopPrice(Integer orderId, Order order){
 	if(order.parentId() == 0)
 		return;
 	
-	order = submittedOrderHashMap.get(orderId);
-	
+
+//	System.out.println("STH happens" + orderAnother.volatility() + orderAnother.volatilityType()  + order.getVolatilityType());
 	if(order == null)
 		return;
 	
 	//If current order is profit taking order, just return
 	if(order.orderType().equals("LMT"))
 		return;
+	
+	order = liveOrderMap.get(orderId);
+	
+    Order stopLoss = new Order();
+	stopLoss.orderId(order.orderId());
+	stopLoss.action(order.action());
+	stopLoss.orderType(order.orderType());
+	//Stop trigger price
+	stopLoss.auxPrice(order.auxPrice());
+	stopLoss.totalQuantity(order.totalQuantity());
+	stopLoss.parentId(order.parentId());
+	//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
+    //to activate all its predecessors
+	stopLoss.transmit(true);				    				 
+	stopLoss.account(m_acctList.get(0));
+	stopLoss.tif("GTC");
+	
+	order = stopLoss;
+	
 	
 	orderDetail = executedOrderMap.get(order.parentId());
 	if(orderDetail == null)
@@ -1790,16 +1839,17 @@ private void adjustStopPrice(Integer orderId, Order order){
 	
 	currentBidPrice = currencyContract.getBidPrice();
 	currentAskPrice = currencyContract.getAskPrice();
+	double maPrice = currencyContract.ma();
 	Action action = order.action();
 	
 	//This is a short position, we need to buy it at a price higher than current ask price to stop loss and lower price to make profit
 	if(action.equals(Action.BUY)){
 		//If current ask price 0.3 % is bigger than actual price, adjust STOP price to current price + 0.1% 
-		if(currentAskPrice < (openPrice * (1 - 0.3/100))){
-			newStopPrice = currentAskPrice * (1 - 0.1/100);
+		if(maPrice < (openPrice * (1 - 0.2/100))){
+			newStopPrice = maPrice * (1 - 0.1/100);
 		}
 		//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
-		else if(currentAskPrice < (openPrice * (1 - 0.2/100))){
+		else if(maPrice < (openPrice * (1 - 0.15/100))){
 			newStopPrice = openPrice * (1 - 0.05/100);
 		}else{//defaul set stop price as 0.1 loss
 			newStopPrice = openPrice * (1 + 0.1/100);
@@ -1811,14 +1861,19 @@ private void adjustStopPrice(Integer orderId, Order order){
 		
 		if (order.auxPrice() <= newStopPrice)
 			return;
+		
+		//If current ask price is higher than stop price, we shouldn't set it, otherwise, it will stop out immediately.
+		if(currentAskPrice > newStopPrice)
+			return;
+			
 	}else{//This is a long position, we need to sell it at a price higher than current bid price to make profit and stop at lower price to stop loss
 
 		//If current bid price 0.3 % is higher than actual price, adjust STOP price to current price - 0.1% 
-				if(currentBidPrice > (openPrice * (1 + 0.3/100))){
-					newStopPrice = currentBidPrice * (1 + 0.1/100);
+				if(maPrice > (openPrice * (1 + 0.2/100))){
+					newStopPrice = maPrice * (1 + 0.1/100);
 				}
 				//If current bid price 0.2 % is higher than actual price, adjust STOP price to actual open price 
-				else if(currentAskPrice > (openPrice * (1 + 0.2/100))){
+				else if(maPrice > (openPrice * (1 + 0.15/100))){
 					newStopPrice = openPrice * (1 + 0.05/100);
 				}else{//defaul set stop price as 0.1 loss
 					newStopPrice = openPrice * (1 - 0.1/100);
@@ -1830,14 +1885,18 @@ private void adjustStopPrice(Integer orderId, Order order){
 				
 				if (order.auxPrice() >= newStopPrice)
 					return;
+				
+				//If current ask price is lower than stop price, we shouldn't set it, otherwise, it will stop out immediately.
+				if(currentBidPrice < newStopPrice)
+					return;
 	}	
 			
-			System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + newStopPrice);
-			show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + "Current: " + newStopPrice);
+			System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + newStopPrice + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+			show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + newStopPrice  + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
 			order.auxPrice(newStopPrice);
 			ForexOrderHandler stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
 			controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
-			submittedOrderHashMap.put(order.orderId(), order);
+//			submittedOrderHashMap.put(order.orderId(), order);
 	
 }
  
@@ -1879,7 +1938,23 @@ private void adjustStopPrice(Integer orderId, Order order){
 		@Override public void orderStatus(OrderStatus status, double filled, double remaining, double avgFillPrice, long permId, int parentId, double lastFillPrice, int clientId, String whyHeld) {
 //			System.out.println("Order: " + order2Send.orderId() + status + new Double(filled) + new Double(remaining) + avgFillPrice + permId, + parentId + lastFillPrice, + clientId +  whyHeld);
 			//Put actual OrderId into order ArrayList
+			
+			
+			
 			forex orderDetail = orderHashMap.get(m_orderSeqNo);
+			
+			
+			if(status.equals(OrderStatus.Filled)){
+				//Put all executed order into map for later tracking.
+				if(orderDetail == null)
+					orderDetail = new forex();			
+				orderDetail.ActualPrice = new Double(avgFillPrice).toString();
+	//			orderDetail.Symbol = contract.symbol() + contract.currency();
+				orderDetail.OrderID = new Integer(order2Send.orderId()).toString();
+				//Put executed order into map;
+				executedOrderMap.put(order2Send.orderId(), orderDetail);
+			}
+			
 			
 			if (orderDetail == null) return;
 			if(orderDetail.OrderStatus == null || orderDetail.OrderStatus.isEmpty() || !orderDetail.OrderStatus.equals("Filled"))
@@ -1970,7 +2045,7 @@ private void adjustStopPrice(Integer orderId, Order order){
 				    
 				    if(orderDetail.orderIdList.contains(order.orderId())){
 				    	if(orderDetail.OrderStatus.equals("Filled")){
-				    		System.out.print(" cost@ " + orderDetail.ActualPrice);				    		
+				//    		System.out.print(" cost@ " + orderDetail.ActualPrice);				    		
 				    	}
 				    }
 				    
