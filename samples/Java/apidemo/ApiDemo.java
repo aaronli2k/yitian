@@ -606,7 +606,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		}
 	};
 
-	private int secondBeforeActualOrderTime = -5;
+	private int secondBeforeActualOrderTime = -1;
 	 
 	@Override public void connected() {
 		
@@ -1085,6 +1085,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				orderTransmit(contractMap.get(orderDetail.Symbol), parent, orderDetail.orderSeqNo);
 				
 
+				//Profit taking order isn't necessar
+				/*
 				//This is profit taking order. Its order is is parent Id plus one. And its parent ID is above parent Id;
 				nextOrderId++;
 				Order takeProfit = new Order();
@@ -1099,7 +1101,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				takeProfit.tif("GTC");
 				
 				orderTransmit(contractMap.get(orderDetail.Symbol), takeProfit, orderDetail.orderSeqNo);
-				
+				*/
 				
 
 				
@@ -1234,8 +1236,9 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			stopLoss.tif("GTC");
 			
 			
-					
 			
+		//Profit taking order isn't necessar	
+		/*
 			
 			nextOrderId++;	    									
 			
@@ -1250,7 +1253,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			takeProfit.transmit(true);				    					
 			takeProfit.account(m_acctList.get(0));
 			takeProfit.tif("GTC");
-			
+		*/	
 
 			
 			
@@ -1345,7 +1348,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		
 			
 				
-				
+				//Profit taking order isn't necessar
+				/*
 				nextOrderId++;	    									
 				
 				//This is profit taking order. Its order is is parent Id plus one. And its parent ID is above parent Id;
@@ -1359,7 +1363,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				takeProfitSell.transmit(true);				    					
 				takeProfitSell.account(m_acctList.get(0));
 				takeProfitSell.tif("GTC");
-				
+				*/
 	
 			//OCA order
 			//! [ocasubmit]
@@ -1383,11 +1387,12 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					System.out.println(new Date() + "Send StopLossBuy orderId: " + stopLoss.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 					show(new Date() + "Send StopLossBuy orderId: " + stopLoss.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 
-	
+					//Profit taking order isn't necessar
+					/*
 					orderTransmit(contractMap.get(orderDetail.Symbol), takeProfit, orderDetail.orderSeqNo);
 					System.out.println(new Date() + "Send takeProfitBuy orderId: " + takeProfit.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 					show(new Date() + "Send takeProfitBuy orderId: " + takeProfit.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
-
+					*/
 							 
 				}
 				
@@ -1410,12 +1415,13 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					show(new Date() + "Send stopLossSell orderId: " + stopLossSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 
 					
-
+					//Profit taking order isn't necessar
+					/*
 						orderTransmit(contractMap.get(orderDetail.Symbol), takeProfitSell, orderDetail.orderSeqNo);
 						
 						System.out.println(new Date() + "Send takeProfitSell orderId: " + takeProfitSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
 						show(new Date() + "Send takeProfitSell orderId: " + takeProfitSell.orderId() + " SeqNo: " + orderDetail.orderSeqNo);
-						
+					*/	
 						
 						
 					
@@ -1570,7 +1576,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			    	
 //			    	 long time = System.currentTimeMillis();
 			    	 systemTimePlus1M = serverTimeCalendar.getTime();	
-			    	 systemTimePlus2M = new Date(serverTimeCalendar.getTimeInMillis() + 15 * 1000);	
+			    	 systemTimePlus2M = new Date(serverTimeCalendar.getTimeInMillis() + 120 * 1000);	
 			    	
 			    	//Compare system time and order to make sure that we submit the order on time
 			    	if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime)){
@@ -1764,6 +1770,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		forex orderDetail = null;	
 
  		for(Entry<Integer, Order> entry : liveOrderMap.entrySet()){
+ 	
+ 			
  			
  			//Adjust STop price according to actual open price and current market price.
  			adjustStopPrice(entry.getKey(), entry.getValue());
@@ -1773,6 +1781,10 @@ public class ApiDemo implements IConnectionHandler, Runnable {
  			if(order != null)
  				orderDetail = orderHashMap.get(order.seqOrderNo()); 			
  			if(orderDetail != null){
+ 				
+ 				//Adjust triggere price
+ 	 			adjustTriggeredPrice(entry.getKey(), entry.getValue(), orderDetail);
+ 				
  				Contract currencyContract = contractMap.get(orderDetail.Symbol);
 
  				if(orderDetail.PeakGain == null || orderDetail.PeakGain.isEmpty() || Double.parseDouble(orderDetail.PeakGain) < currencyContract.getBidPrice())
@@ -1850,9 +1862,9 @@ private void adjustStopPrice(Integer orderId, Order order){
 		}
 		//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
 		else if(maPrice < (openPrice * (1 - 0.15/100))){
-			newStopPrice = openPrice * (1 - 0.05/100);
-		}else{//defaul set stop price as 0.1 loss
-			newStopPrice = openPrice * (1 + 0.1/100);
+			newStopPrice = openPrice * (1 - 0.01/100);
+		}else{//defaul set stop price as 0.15 loss from current price
+			newStopPrice = maPrice * (1 + 0.15/100);
 		}
 		newStopPrice = fixDoubleDigi(newStopPrice);
 
@@ -1874,9 +1886,9 @@ private void adjustStopPrice(Integer orderId, Order order){
 				}
 				//If current bid price 0.2 % is higher than actual price, adjust STOP price to actual open price 
 				else if(maPrice > (openPrice * (1 + 0.15/100))){
-					newStopPrice = openPrice * (1 + 0.05/100);
-				}else{//defaul set stop price as 0.1 loss
-					newStopPrice = openPrice * (1 - 0.1/100);
+					newStopPrice = openPrice * (1 + 0.01/100);
+				}else{//defaul set stop price as  0.15 loss from current price
+					newStopPrice = maPrice * (1 - 0.15/100);
 				}
 				newStopPrice = fixDoubleDigi(newStopPrice);
 
@@ -1904,6 +1916,110 @@ private void adjustStopPrice(Integer orderId, Order order){
     
     }
 
+ 
+ 
+	 
+ private void adjustTriggeredPrice(Integer orderId, Order order, forex orderDetail){
+	//	forex orderDetail;
+		
+//		System.out.println("STH happens" + orderAnother.volatility() + orderAnother.volatilityType()  + order.getVolatilityType());
+		if(order == null)
+			return;
+	 
+	 //If current order isnot parent order, just return
+		if(order.parentId() != 0)
+			return;
+		
+
+
+		
+		//If current order is profit taking order, just return
+		if(order.orderType().equals("LMT"))
+			return;
+		
+		
+		String orderDateStr;
+		Date orderTime = null;
+		try{
+	    	
+			   
+  	      
+		   	 SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
+
+	    	// Get the date today using Calendar object.
+	    	// Using DateFormat format method we can create a string 
+	    	// representation of a date with the defined format.
+	    	
+	   	     orderDateStr= order.goodAfterTime();		   	      
+	   	     orderTime  = (Date)formatter.parse(orderDateStr); 
+	   	     
+	    	}catch (Exception e){} 
+	    	
+	    	
+	    	
+	    	 Date serverTimePlus1Second = new Date(serverTimeCalendar.getTimeInMillis() + 1 * 1000);	
+	    	
+	    	//Compare system time and order to make sure that we submit the order on time
+	    	if(serverTimePlus1Second.after(orderTime))
+	    		return;
+		
+		
+		order = liveOrderMap.get(orderId);
+		
+		if(order == null)
+			return;
+		
+		 Double triggerPrice;
+		 Double stopLossPrice;
+
+//This is the buy side.		 
+//		 nextOrderId = 0;
+		 orderDetail.TradeMethod = order.action().toString();
+		 
+			 ForexPrices orderPrices;
+		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));	
+			 triggerPrice = orderPrices.triggerPrice;
+			 stopLossPrice = orderPrices.stoprPrice;		 
+
+			 double currentBidPrice = contractMap.get(orderDetail.Symbol).getBidPrice();
+			 double currentAskPrice = contractMap.get(orderDetail.Symbol).getAskPrice();
+			 double maPrice = contractMap.get(orderDetail.Symbol).ma();
+			 
+			 if(triggerPrice == order.auxPrice())
+			    	return;
+			 order.auxPrice(fixDoubleDigi(triggerPrice));	 
+		
+			Contract currencyContract= contractMap.get(orderDetail.Symbol);
+			System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending upated parent Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+			show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending updated parent Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice  + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+  			ForexOrderHandler stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
+			controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
+			submittedOrderHashMap.put(order.orderId(), order);
+			 
+			 
+		
+	    order = liveOrderMap.get(orderId + 1);
+	    if(order == null)
+			return;
+	    
+		//Stop trigger price
+	    if(stopLossPrice == order.auxPrice())
+	    	return;
+	    order.auxPrice(fixDoubleDigi(stopLossPrice));
+		System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending upated parent Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+		show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending updated parent Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice  + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+		stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
+		controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
+		submittedOrderHashMap.put(order.orderId(), order);
+		
+				
+		
+	}	    
+	    
+	    
+
+ 
+ 
 
 	class ForexOrderHandler implements IOrderHandler{
 		Order order2Send;		
