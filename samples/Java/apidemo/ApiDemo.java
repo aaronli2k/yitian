@@ -1551,15 +1551,21 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			
  	   	    
  	   	    //Don't do it if it is Sat morning after 6 or on Sunday.
-			if(!(((serverTimeCalendar.get(Calendar.DAY_OF_WEEK) == 6) && (serverTimeCalendar.get(Calendar.HOUR_OF_DAY) >= 6)) || (serverTimeCalendar.get(Calendar.DAY_OF_WEEK) != 7)))
- 	   	    {				
+			if(((serverTimeCalendar.get(Calendar.DAY_OF_WEEK) == 1) && (serverTimeCalendar.get(Calendar.HOUR_OF_DAY) <= 7)))
+					continue;	
+			if(((serverTimeCalendar.get(Calendar.DAY_OF_WEEK) == 6) && (serverTimeCalendar.get(Calendar.HOUR_OF_DAY) >= 6)))
+					continue;
+			if((serverTimeCalendar.get(Calendar.DAY_OF_WEEK) == 7))
+				continue;
+
+			{				
 				forex GBPJPYorder, EURCNHorder;
 				GBPJPYorder = new forex();	
 				EURCNHorder = new forex();
 				
 							
 				formatter = new SimpleDateFormat("yyyyMMdd");	
-	 	   	    Date orderDate = new Date(serverTimeCalendar.getTimeInMillis() + 120 * 1000);
+	 	   	    Date orderDate = new Date(serverTimeCalendar.getTimeInMillis() + 60 * 1000);
 	 	   	    
 	
 				GBPJPYorder.Date = formatter.format(orderDate);
@@ -1598,10 +1604,11 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				GBPJPYorder.ValidDuration = "60";	
 				GBPJPYorder.Importance = "Low";	
 				GBPJPYorder.ExitMethod = "STOP";
+				GBPJPYorder.groupId = (long) 0;
 	
 				
 				EURCNHorder.Date = GBPJPYorder.Date;
-				EURCNHorder.Symbol = "GBPJPY";
+				EURCNHorder.Symbol = "EURCNH";
 				EURCNHorder.Quantity = "25000";
 				EURCNHorder.TradeMethod = "ANY";
 				EURCNHorder.EntryMethod = "STOP";
@@ -1612,6 +1619,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				EURCNHorder.Importance = "Low";	
 				EURCNHorder.ExitMethod = "STOP";
 				EURCNHorder.Time = GBPJPYorder.Time;
+				EURCNHorder.groupId = (long) 0;
 				
 				if(noNeedGBPJY == false && noNeedCNH == false){
 					GBPJPYorder.orderSeqNo = dateCode;
@@ -1625,7 +1633,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					EURCNHorder.orderSeqNo = dateCode;
 					orderHashMap.put(EURCNHorder.orderSeqNo, EURCNHorder);
 				}
-			
+				System.out.println("Size of orderHashMap: " + orderHashMap.size());
 	        }		
 			SortedSet<Long> keys = new TreeSet<Long>(orderHashMap.keySet());
 			for (Long key : keys) {
@@ -1822,7 +1830,6 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			    		break;
 			    	}
 			    }
-			keys = null;	
 	        }
 	    }
 	 }
@@ -1869,7 +1876,12 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		forex orderDetail = null;	
 
  		for(Entry<Integer, Order> entry : liveOrderMap.entrySet()){
- 	
+ 			Order order = entry.getValue();
+ 			orderDetail = null;
+ 			if(order != null)
+ 				orderDetail = orderHashMap.get(order.seqOrderNo()); 		
+ 			if(orderDetail == null)
+ 				continue;
 			Contract currencyContract = contractMap.get(orderDetail.Symbol);
 
 			//If price information isn't available, just skip current order.
@@ -1879,10 +1891,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
  			//Adjust STop price according to actual open price and current market price.
  			adjustStopPrice(entry.getKey(), entry.getValue());
  			
- 			Order order = entry.getValue();
- 			orderDetail = null;
- 			if(order != null)
- 				orderDetail = orderHashMap.get(order.seqOrderNo()); 			
+ 			
  			if(orderDetail != null){
  				
  				//Adjust triggere price
