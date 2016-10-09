@@ -242,8 +242,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
                 	if(price > m_contract_listener.getMinPrice() && price < m_contract_listener.getMaxPrice() )
                 		m_contract_listener.add(price);	
                 if(counter % 1000 == 0){	
-                	System.out.println(m_contract_listener.symbol() + "." + m_contract_listener.currency() + " BID: " + price);
-                	show(m_contract_listener.symbol() + "." + m_contract_listener.currency() + " BID: " + price);                    
+                	System.out.println(m_contract_listener.symbol() + "." + m_contract_listener.currency() + " BID: " + price + " SMA: " + m_contract_listener.ma());
+                	show(m_contract_listener.symbol() + "." + m_contract_listener.currency() + " BID: " + price + " SMA: " + m_contract_listener.ma());                    
                 }
            //     	 m_contract_listener.add(price);
         			 
@@ -272,8 +272,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
                 	if(price > m_contract_listener.getMinPrice() && price < m_contract_listener.getMaxPrice() )
                 		m_contract_listener.add(price);
                 	if(counter % 1000 == 0){	
-                	System.out.println(m_contract_listener.symbol() + "." + m_contract_listener.currency() + " ASK: " + price);
-                	show(m_contract_listener.symbol() + "." + m_contract_listener.currency() + " ASK: " + price);       
+                	System.out.println(m_contract_listener.symbol() + "." + m_contract_listener.currency() + " ASK: " + price  + " SMA: " + m_contract_listener.ma());
+                	show(m_contract_listener.symbol() + "." + m_contract_listener.currency() + " ASK: " + price  + " SMA: " + m_contract_listener.ma());       
                 	}
            //     	m_contract_listener.add(price);
         			 
@@ -606,7 +606,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		}
 	};
 
-	private int secondBeforeActualOrderTime = -1;
+	//order be valid before actual trading time. - is before actual time, + is after actual time.
+	private int secondBeforeActualOrderTime = 0;
 	 
 	@Override public void connected() {
 		
@@ -856,7 +857,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	};
 	
 	
-	private ForexPrices calTriggerPrice(forex orderDetail, Contract currentContract){
+	private ForexPrices calTriggerPrice(forex orderDetail, Contract currentContract, boolean realTime){
 		Integer duration = Integer.parseInt(orderDetail.ValidDuration);
 		double triggerPrice;
 		
@@ -875,7 +876,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		TriggerPct = TriggerPctAskBid / 2;
 		
 		//If historical data not available yet, use real time tick price.
-		if((!iterator.hasNext())){
+		if((!iterator.hasNext()) || realTime){
 			
 			if(orderDetail.TradeMethod.equals("SELL")){
 				  triggerPrice = contractMap.get(orderDetail.Symbol).getBidPrice() * (1 - TriggerPctAskBid / 100);
@@ -1015,7 +1016,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			 Double quantity = Double.parseDouble(orderDetail.Quantity);
 			
 			 ForexPrices orderPrices;
-		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));	
+		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol), false);	
 			 triggerPrice = orderPrices.triggerPrice;
 			 profitTakingPrice = orderPrices.profitPrice;
 			 stopLossPrice = orderPrices.stoprPrice;				
@@ -1154,7 +1155,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		 orderDetail.TradeMethod = "BUY";
 		 
 			 ForexPrices orderPrices;
-		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));	
+		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol), false);	
 			 triggerPrice = orderPrices.triggerPrice;
 			 profitTakingPrice = orderPrices.profitPrice;
 			 stopLossPrice = orderPrices.stoprPrice;		 
@@ -1262,7 +1263,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 //			 nextOrderId = 0;
 			 orderDetail.TradeMethod = "SELL";
 			 
-		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));	
+		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol), false);	
 			 triggerPrice = orderPrices.triggerPrice;
 			 profitTakingPrice = orderPrices.profitPrice;
 			 stopLossPrice = orderPrices.stoprPrice;			 
@@ -1531,6 +1532,15 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					e.printStackTrace();
 				}
 				
+				//Check connection with server every second.
+				//Check whether current connection is disconnected. If yes, connect it and skip below action
+	 		if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED"))
+	 		{
+	// 			m_connectionPanel.onConnect();
+	 			continue;
+	 		}
+			
+				
 	 			m_connectionPanel.m_orderSubmission.setText(new Date() + " order submission task is running. Next order: " + OrderSubmittedStr);
 	 			OrderSubmittedStr = null;
 				
@@ -1538,6 +1548,85 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					
 				//loop thru all orders in HashMap;
 		//	System.out.println("Looping thru all orders: " + new Date());
+			
+ 	   	    
+ 	   	    //Don't do it if it is Sat morning after 6 or on Sunday.
+			if(!(((serverTimeCalendar.get(Calendar.DAY_OF_WEEK) == 6) && (serverTimeCalendar.get(Calendar.HOUR_OF_DAY) >= 6)) || (serverTimeCalendar.get(Calendar.DAY_OF_WEEK) != 7)))
+ 	   	    {				
+				forex GBPJPYorder, EURCNHorder;
+				GBPJPYorder = new forex();	
+				EURCNHorder = new forex();
+				
+							
+				formatter = new SimpleDateFormat("yyyyMMdd");	
+	 	   	    Date orderDate = new Date(serverTimeCalendar.getTimeInMillis() + 120 * 1000);
+	 	   	    
+	
+				GBPJPYorder.Date = formatter.format(orderDate);
+	 	   	    formatter = new SimpleDateFormat("HH:mm");				
+	 	   	    GBPJPYorder.Time = formatter.format(orderDate) + ":00";
+				
+					
+	 	   	    formatter = new SimpleDateFormat("yyyyMMddHHmm");
+	 	   	    String currentDateStr = formatter.format(orderDate);
+	 	   	    currentDateStr += "0001";
+				Long dateCode = Long.parseLong(currentDateStr);
+				
+			
+				boolean noNeedCNH = false;
+				boolean noNeedGBPJY = false;
+	
+				while (orderHashMap.containsKey(dateCode))
+				{	
+					if(orderHashMap.get(dateCode).Symbol.equals("GBPJPY"))
+							noNeedGBPJY = true;
+					if(orderHashMap.get(dateCode).Symbol.equals("EURCNH"))
+							noNeedCNH= true;
+					dateCode++;
+					if(noNeedGBPJY || noNeedCNH)
+						break;
+				
+				}
+				
+				GBPJPYorder.Symbol = "GBPJPY";
+				GBPJPYorder.Quantity = "25000";
+				GBPJPYorder.TradeMethod = "ANY";
+				GBPJPYorder.EntryMethod = "STOP";
+				GBPJPYorder.TriggerPct = "0.2";
+				GBPJPYorder.LossPct = "0.2";
+				GBPJPYorder.ProfitPct = "0.5";
+				GBPJPYorder.ValidDuration = "60";	
+				GBPJPYorder.Importance = "Low";	
+				GBPJPYorder.ExitMethod = "STOP";
+	
+				
+				EURCNHorder.Date = GBPJPYorder.Date;
+				EURCNHorder.Symbol = "GBPJPY";
+				EURCNHorder.Quantity = "25000";
+				EURCNHorder.TradeMethod = "ANY";
+				EURCNHorder.EntryMethod = "STOP";
+				EURCNHorder.TriggerPct = "0.2";
+				EURCNHorder.LossPct = "0.2";
+				EURCNHorder.ProfitPct = "0.5";
+				EURCNHorder.ValidDuration = "60";	
+				EURCNHorder.Importance = "Low";	
+				EURCNHorder.ExitMethod = "STOP";
+				EURCNHorder.Time = GBPJPYorder.Time;
+				
+				if(noNeedGBPJY == false && noNeedCNH == false){
+					GBPJPYorder.orderSeqNo = dateCode;
+					orderHashMap.put(GBPJPYorder.orderSeqNo, GBPJPYorder);
+					EURCNHorder.orderSeqNo = GBPJPYorder.orderSeqNo + 1;
+					orderHashMap.put(EURCNHorder.orderSeqNo, EURCNHorder);
+				}else if(noNeedGBPJY == false){
+					GBPJPYorder.orderSeqNo = dateCode;
+					orderHashMap.put(GBPJPYorder.orderSeqNo, GBPJPYorder);
+				}else if(noNeedCNH == false){
+					EURCNHorder.orderSeqNo = dateCode;
+					orderHashMap.put(EURCNHorder.orderSeqNo, EURCNHorder);
+				}
+			
+	        }		
 			SortedSet<Long> keys = new TreeSet<Long>(orderHashMap.keySet());
 			for (Long key : keys) {
 				
@@ -1576,7 +1665,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			    	
 //			    	 long time = System.currentTimeMillis();
 			    	 systemTimePlus1M = serverTimeCalendar.getTime();	
-			    	 systemTimePlus2M = new Date(serverTimeCalendar.getTimeInMillis() + 120 * 1000);	
+			    	 systemTimePlus2M = new Date(serverTimeCalendar.getTimeInMillis() + 50 * 1000);	
 			    	
 			    	//Compare system time and order to make sure that we submit the order on time
 			    	if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime)){
@@ -1755,15 +1844,25 @@ public class ApiDemo implements IConnectionHandler, Runnable {
         
         
     while(true){
-        	//Guy, let's rest 1000ms here
+        	//Guy, let's rest 500ms here
    		 try {
-   				Thread.sleep(1000);
+   				Thread.sleep(500);
    			} catch (InterruptedException e) {
    				// TODO Auto-generated catch block
    				e.printStackTrace();
    			}   		 
 
-			m_connectionPanel.m_orderManaging.setText(new Date() + " Live Order: " + liveOrderMap.size() + " Submitted order: " + submittedOrderHashMap.size()  + " orders in " + inputFileName + orderHashMap.size());
+   	//Check connection with server every second.
+			//Check whether current connection is disconnected. If yes, connect it and skip below action
+		if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED"))
+		{
+		//	m_connectionPanel.onConnect();
+			continue;
+		}
+		
+   		 
+   		 
+		m_connectionPanel.m_orderManaging.setText(new Date() + " Live Order: " + liveOrderMap.size() + " Submitted order: " + submittedOrderHashMap.size()  + " orders in " + inputFileName + orderHashMap.size());
 
    		 
  		//Looping thru all live orders. If an order has been filled, looking for its orderId. Then try to modify profitaking order. And stop order.;
@@ -1771,8 +1870,12 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
  		for(Entry<Integer, Order> entry : liveOrderMap.entrySet()){
  	
- 			
- 			
+			Contract currencyContract = contractMap.get(orderDetail.Symbol);
+
+			//If price information isn't available, just skip current order.
+			if(currencyContract.historicalBarMap.isEmpty() || currencyContract.getAskPrice() == 0.0 || currencyContract.getBidPrice() == 0.0)
+				continue;
+			
  			//Adjust STop price according to actual open price and current market price.
  			adjustStopPrice(entry.getKey(), entry.getValue());
  			
@@ -1785,7 +1888,6 @@ public class ApiDemo implements IConnectionHandler, Runnable {
  				//Adjust triggere price
  	 			adjustTriggeredPrice(entry.getKey(), entry.getValue(), orderDetail);
  				
- 				Contract currencyContract = contractMap.get(orderDetail.Symbol);
 
  				if(orderDetail.PeakGain == null || orderDetail.PeakGain.isEmpty() || Double.parseDouble(orderDetail.PeakGain) < currencyContract.getBidPrice())
  					orderDetail.PeakGain = new Double(currencyContract.getBidPrice()).toString();
@@ -1805,7 +1907,7 @@ private void adjustStopPrice(Integer orderId, Order order){
 	forex orderDetail;
 	
 	//If current order is parent order, just return
-	if(order.parentId() == 0)
+	if(order.tif().equals("GTD"))
 		return;
 	
 
@@ -1817,7 +1919,14 @@ private void adjustStopPrice(Integer orderId, Order order){
 	if(order.orderType().equals("LMT"))
 		return;
 	
-	order = liveOrderMap.get(orderId);
+	
+	
+	order = submittedOrderHashMap.get(orderId);
+	if(order == null){
+		order = liveOrderMap.get(orderId);
+		if(order == null)
+			return;
+	}
 	
     Order stopLoss = new Order();
 	stopLoss.orderId(order.orderId());
@@ -1837,13 +1946,17 @@ private void adjustStopPrice(Integer orderId, Order order){
 	
 	
 	orderDetail = executedOrderMap.get(order.parentId());
-	if(orderDetail == null)
-		return;
+	if(orderDetail == null){
+		
+		orderDetail = liveForexOrderMap.get(order.orderId());
+		if(orderDetail == null)
+			return;	
+	}
 	Double openPrice = 0.0;
 	if(orderDetail.ActualPrice != null && !orderDetail.ActualPrice.isEmpty())
 		openPrice = Double.parseDouble(orderDetail.ActualPrice);
 	
-	Double currentBidPrice, currentAskPrice, newStopPrice;
+	Double currentBidPrice, currentAskPrice, newStopPrice = 0.0;
 	Contract currencyContract = contractMap.get(orderDetail.Symbol);
 
 	if(currencyContract == null)
@@ -1857,14 +1970,17 @@ private void adjustStopPrice(Integer orderId, Order order){
 	//This is a short position, we need to buy it at a price higher than current ask price to stop loss and lower price to make profit
 	if(action.equals(Action.BUY)){
 		//If current ask price 0.3 % is bigger than actual price, adjust STOP price to current price + 0.1% 
-		if(maPrice < (openPrice * (1 - 0.2/100))){
-			newStopPrice = maPrice * (1 - 0.1/100);
+		if(openPrice == 0.0){
+			newStopPrice = maPrice * (1 + 0.15/100);
+		}
+		else if(maPrice < (openPrice * (1 - 0.2/100))){
+			newStopPrice = maPrice * (1 + 0.1/100);
 		}
 		//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
 		else if(maPrice < (openPrice * (1 - 0.15/100))){
 			newStopPrice = openPrice * (1 - 0.01/100);
 		}else{//defaul set stop price as 0.15 loss from current price
-			newStopPrice = maPrice * (1 + 0.15/100);
+			newStopPrice = openPrice * (1 + 0.15/100);
 		}
 		newStopPrice = fixDoubleDigi(newStopPrice);
 
@@ -1881,14 +1997,17 @@ private void adjustStopPrice(Integer orderId, Order order){
 	}else{//This is a long position, we need to sell it at a price higher than current bid price to make profit and stop at lower price to stop loss
 
 		//If current bid price 0.3 % is higher than actual price, adjust STOP price to current price - 0.1% 
-				if(maPrice > (openPrice * (1 + 0.2/100))){
-					newStopPrice = maPrice * (1 + 0.1/100);
+				if(openPrice == 0.0){
+					newStopPrice = maPrice * (1 - 0.15/100);
+				}
+				else if(maPrice > (openPrice * (1 + 0.2/100))){
+					newStopPrice = maPrice * (1 - 0.1/100);
 				}
 				//If current bid price 0.2 % is higher than actual price, adjust STOP price to actual open price 
 				else if(maPrice > (openPrice * (1 + 0.15/100))){
 					newStopPrice = openPrice * (1 + 0.01/100);
 				}else{//defaul set stop price as  0.15 loss from current price
-					newStopPrice = maPrice * (1 - 0.15/100);
+					newStopPrice = openPrice * (1 - 0.15/100);
 				}
 				newStopPrice = fixDoubleDigi(newStopPrice);
 
@@ -1977,7 +2096,7 @@ private void adjustStopPrice(Integer orderId, Order order){
 		 orderDetail.TradeMethod = order.action().toString();
 		 
 			 ForexPrices orderPrices;
-		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol));	
+		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol), true);	
 			 triggerPrice = orderPrices.triggerPrice;
 			 stopLossPrice = orderPrices.stoprPrice;		 
 
@@ -2058,12 +2177,27 @@ private void adjustStopPrice(Integer orderId, Order order){
 			
 			
 			forex orderDetail = orderHashMap.get(m_orderSeqNo);
-			
+			if(orderDetail == null) 
+				return;
 			
 			if(status.equals(OrderStatus.Filled)){
-				//Put all executed order into map for later tracking.
-				if(orderDetail == null)
-					orderDetail = new forex();			
+				
+				//Cancel remain order with same symbol but not STOP order.
+				
+				//Loop thru all live order and cancel it if in same groupId;
+				for (Entry<Integer, forex> entry : liveForexOrderMap.entrySet()) {
+					forex order2Loop = entry.getValue();
+				    
+				    if(order2Loop.Symbol.equals(orderDetail.Symbol) && order2Send.tif().equals("GTD")){
+				    	{
+				    		controller().cancelOrder(order2Send.orderId());
+				    		System.out.println(new Date() + "No need double order so cancel Order:  " + order2Send.orderId());				    		
+				    	}
+				    }    
+				}
+				
+				
+				
 				orderDetail.ActualPrice = new Double(avgFillPrice).toString();
 	//			orderDetail.Symbol = contract.symbol() + contract.currency();
 				orderDetail.OrderID = new Integer(order2Send.orderId()).toString();
@@ -2072,7 +2206,6 @@ private void adjustStopPrice(Integer orderId, Order order){
 			}
 			
 			
-			if (orderDetail == null) return;
 			if(orderDetail.OrderStatus == null || orderDetail.OrderStatus.isEmpty() || !orderDetail.OrderStatus.equals("Filled"))
 				orderDetail.OrderStatus = status.toString();
 			
