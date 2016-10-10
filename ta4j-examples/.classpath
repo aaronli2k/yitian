@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="lib" path="C:/Users/aaron li/Documents/YiTian/jfreechart-1.0.19/lib/jcommon-1.0.23.jar"/>
+	<classpathentry kind="lib" path="C:/Users/aaron li/Documents/YiTian/jfreechart-1.0.19/lib/jfreechart-1.0.19.jar"/>
+	<classpathentry kind="lib" path="C:/Users/aaron li/Documents/YiTian/joda-time-2.9.4/joda-time-2.9.4.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/ta4j"/>
+	<classpathentry kind="lib" path="C:/Users/aaron li/Documents/YiTian/opencsv/opencsv-3.8.jar"/>
+	<classpathentry kind="lib" path="C:/Users/aaron li/Documents/YiTian/ch.qos.logback.classic-0.9.28.jar/ch.qos.logback.classic-0.9.28.jar"/>
+	<classpathentry kind="lib" path="C:/Users/aaron li/Documents/YiTian/slf4j-1.7.21/slf4j-api-1.7.21.jar"/>
+	<classpathentry kind="lib" path="C:/Users/aaron li/Documents/YiTian/ch.qos.logback.core-0.9.28.jar/ch.qos.logback.core-0.9.28.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
