@@ -1623,15 +1623,15 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				
 				if(noNeedGBPJY == false && noNeedCNH == false){
 					GBPJPYorder.orderSeqNo = dateCode;
-					orderHashMap.put(GBPJPYorder.orderSeqNo, GBPJPYorder);
+					orderHashMap.putIfAbsent(GBPJPYorder.orderSeqNo, GBPJPYorder);
 					EURCNHorder.orderSeqNo = GBPJPYorder.orderSeqNo + 1;
-					orderHashMap.put(EURCNHorder.orderSeqNo, EURCNHorder);
+					orderHashMap.putIfAbsent(EURCNHorder.orderSeqNo, EURCNHorder);
 				}else if(noNeedGBPJY == false){
 					GBPJPYorder.orderSeqNo = dateCode;
-					orderHashMap.put(GBPJPYorder.orderSeqNo, GBPJPYorder);
+					orderHashMap.putIfAbsent(GBPJPYorder.orderSeqNo, GBPJPYorder);
 				}else if(noNeedCNH == false){
 					EURCNHorder.orderSeqNo = dateCode;
-					orderHashMap.put(EURCNHorder.orderSeqNo, EURCNHorder);
+					orderHashMap.putIfAbsent(EURCNHorder.orderSeqNo, EURCNHorder);
 				}
 				System.out.println("Size of orderHashMap: " + orderHashMap.size());
 	        }		
@@ -1851,13 +1851,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
         
         
     while(true){
-        	//Guy, let's rest 500ms here
-   		 try {
-   				Thread.sleep(500);
-   			} catch (InterruptedException e) {
-   				// TODO Auto-generated catch block
-   				e.printStackTrace();
-   			}   		 
+        			 
 
    	//Check connection with server every second.
 			//Check whether current connection is disconnected. If yes, connect it and skip below action
@@ -1876,6 +1870,16 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		forex orderDetail = null;	
 
  		for(Entry<Integer, Order> entry : liveOrderMap.entrySet()){
+ 			
+ 			//Guy, let's rest 500ms here
+ 	   		 try {
+ 	   				Thread.sleep(500);
+ 	   			} catch (InterruptedException e) {
+ 	   				// TODO Auto-generated catch block
+ 	   				e.printStackTrace();
+ 	   			}   
+ 			
+ 			
  			Order order = entry.getValue();
  			orderDetail = null;
  			if(order != null)
@@ -1936,6 +1940,14 @@ private void adjustStopPrice(Integer orderId, Order order){
 		if(order == null)
 			return;
 	}
+	
+	//If its parent Order isn't executed, don't change stop Price.
+	if(!executedOrderMap.containsKey(order.parentId()))
+		return;
+
+	//If its parent Order isn't executed, don't change stop Price.
+	if(liveOrderMap.containsKey(order.parentId()))
+		return;
 	
     Order stopLoss = new Order();
 	stopLoss.orderId(order.orderId());
@@ -2124,18 +2136,20 @@ private void adjustStopPrice(Integer orderId, Order order){
 			controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
 			submittedOrderHashMap.put(order.orderId(), order);
 			 
-			 
 		
 	    order = liveOrderMap.get(orderId + 1);
 	    if(order == null)
 			return;
 	    
+	    //Current order's parent Id isn't previous OrderId, something is wrong.
+	   if (order.parentId() != orderId)
+	    return;
 		//Stop trigger price
 	    if(stopLossPrice == order.auxPrice())
 	    	return;
 	    order.auxPrice(fixDoubleDigi(stopLossPrice));
-		System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending upated parent Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
-		show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending updated parent Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice  + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+		System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending upated son STOP Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+		show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending updated son STOP Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice  + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
 		stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
 		controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
 		submittedOrderHashMap.put(order.orderId(), order);
