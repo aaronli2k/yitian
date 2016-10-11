@@ -577,6 +577,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		 (new OrderSubmittingThread()).start();
 		 (new MarketDataManagingThread()).start();
 
+		 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, m_contract_GBPJPY, serverTimeCalendar);
+		 Ta4J_backtest.start();
 		 
 		 
     }
@@ -1598,9 +1600,9 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				GBPJPYorder.Quantity = "25000";
 				GBPJPYorder.TradeMethod = "ANY";
 				GBPJPYorder.EntryMethod = "STOP";
-				GBPJPYorder.TriggerPct = "0.2";
-				GBPJPYorder.LossPct = "0.2";
-				GBPJPYorder.ProfitPct = "0.5";
+				GBPJPYorder.TriggerPct = "0.1";
+				GBPJPYorder.LossPct = "0.1";
+				GBPJPYorder.ProfitPct = "0.2";
 				GBPJPYorder.ValidDuration = "60";	
 				GBPJPYorder.Importance = "Low";	
 				GBPJPYorder.ExitMethod = "STOP";
@@ -1612,8 +1614,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				EURCNHorder.Quantity = "25000";
 				EURCNHorder.TradeMethod = "ANY";
 				EURCNHorder.EntryMethod = "STOP";
-				EURCNHorder.TriggerPct = "0.2";
-				EURCNHorder.LossPct = "0.2";
+				EURCNHorder.TriggerPct = "0.1";
+				EURCNHorder.LossPct = "0.1";
 				EURCNHorder.ProfitPct = "0.5";
 				EURCNHorder.ValidDuration = "60";	
 				EURCNHorder.Importance = "Low";	
@@ -1633,7 +1635,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					EURCNHorder.orderSeqNo = dateCode;
 					orderHashMap.putIfAbsent(EURCNHorder.orderSeqNo, EURCNHorder);
 				}
-				System.out.println("Size of orderHashMap: " + orderHashMap.size());
+	//			System.out.println("Size of orderHashMap: " + orderHashMap.size());
 	        }		
 			SortedSet<Long> keys = new TreeSet<Long>(orderHashMap.keySet());
 			for (Long key : keys) {
