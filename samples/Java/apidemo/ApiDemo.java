@@ -1823,8 +1823,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 								e.printStackTrace();
 							}
 			    		 
-						 System.out.println("Submiited: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
-						 System.out.println("Order status: after submision" + orderHashMap.get(orderDetail.Symbol));	
+//						 System.out.println("Submiited: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
+//						 System.out.println("Order status: after submision" + orderHashMap.get(orderDetail.Symbol));	
 	
 
 			    		
@@ -2132,8 +2132,8 @@ private void adjustStopPrice(Integer orderId, Order order){
 			 order.auxPrice(fixDoubleDigi(triggerPrice));	 
 		
 			Contract currencyContract= contractMap.get(orderDetail.Symbol);
-			System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending upated parent Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
-			show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending updated parent Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice  + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+//			System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending upated parent Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+//			show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending updated parent Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice  + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
   			ForexOrderHandler stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
 			controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
 			submittedOrderHashMap.put(order.orderId(), order);
@@ -2150,8 +2150,8 @@ private void adjustStopPrice(Integer orderId, Order order){
 	    if(stopLossPrice == order.auxPrice())
 	    	return;
 	    order.auxPrice(fixDoubleDigi(stopLossPrice));
-		System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending upated son STOP Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
-		show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending updated son STOP Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice  + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+//		System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending upated son STOP Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+//		show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending updated son STOP Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + triggerPrice  + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
 		stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
 		controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
 		submittedOrderHashMap.put(order.orderId(), order);

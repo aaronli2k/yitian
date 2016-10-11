@@ -294,6 +294,14 @@ public class Tick {
     }
 
     /**
+     * @return a even more human-friendly string of the end timestamp
+     */
+    public String getSimpleFileDateName() {
+        return endTime.toString("yyyyMMdd");
+    }
+    
+    
+    /**
      * @param timePeriod the time period
      * @param endTime the end time of the tick
      * @throws IllegalArgumentException if one of the arguments is null
