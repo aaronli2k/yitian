@@ -538,7 +538,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
         m_frame.setTitle("Built @ " + new Date()); 
         
         // make initial connection to local host, port 4001, client id 0, no connection options
-		controller().connect( "127.0.0.1", 7496, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
+		controller().connect( "127.0.0.1", 4001, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
     
 		 Thread me = Thread.currentThread();
 		 
@@ -573,20 +573,20 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			e.printStackTrace();
 		}	
 		 
-		 (new OrderManagingThread()).start();
-		 (new OrderSubmittingThread()).start();
-		 (new MarketDataManagingThread()).start();
+//		 (new OrderManagingThread()).start();
+//		 (new OrderSubmittingThread()).start();
+//		 (new MarketDataManagingThread()).start();
 
 //		 (new TechinicalAnalyzer(this, m_contract_GBPJPY,contractMap, orderHashMap)).start();
 //		 (new TechinicalAnalyzer(this, m_contract_EURCNH, contractMap, orderHashMap)).start();
-		 (new TechinicalAnalyzer(this, m_contract_NZDUSD, contractMap, orderHashMap)).start();
+//		 (new TechinicalAnalyzer(this, m_contract_NZDUSD, contractMap, orderHashMap)).start();
 //		 (new TechinicalAnalyzer(this, m_contract_AUDUSD, contractMap, orderHashMap)).start();
 
 		 
 	//	 for(Entry<String, Contract> currentContract : contractMap.entrySet())
 		 {
-//			 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, contractMap, serverTimeCalendar);		 
-//			 Ta4J_backtest.start();
+			 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, contractMap, serverTimeCalendar, orderHashMap);		 
+			 Ta4J_backtest.start();
 //			 try {
 ////				Ta4J_backtest.join();
 //			} 
@@ -1639,18 +1639,18 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				EURCNHorder.Time = GBPJPYorder.Time;
 				EURCNHorder.groupId = (long) 0;
 				
-				if(noNeedGBPJY == false && noNeedCNH == false){
-					GBPJPYorder.orderSeqNo = dateCode;
-					orderHashMap.putIfAbsent(GBPJPYorder.orderSeqNo, GBPJPYorder);
-					EURCNHorder.orderSeqNo = GBPJPYorder.orderSeqNo + 1;
-					orderHashMap.putIfAbsent(EURCNHorder.orderSeqNo, EURCNHorder);
-				}else if(noNeedGBPJY == false){
-					GBPJPYorder.orderSeqNo = dateCode;
-					orderHashMap.putIfAbsent(GBPJPYorder.orderSeqNo, GBPJPYorder);
-				}else if(noNeedCNH == false){
-					EURCNHorder.orderSeqNo = dateCode;
-					orderHashMap.putIfAbsent(EURCNHorder.orderSeqNo, EURCNHorder);
-				}
+//				if(noNeedGBPJY == false && noNeedCNH == false){
+//					GBPJPYorder.orderSeqNo = dateCode;
+//					orderHashMap.putIfAbsent(GBPJPYorder.orderSeqNo, GBPJPYorder);
+//					EURCNHorder.orderSeqNo = GBPJPYorder.orderSeqNo + 1;
+//					orderHashMap.putIfAbsent(EURCNHorder.orderSeqNo, EURCNHorder);
+//				}else if(noNeedGBPJY == false){
+//					GBPJPYorder.orderSeqNo = dateCode;
+//					orderHashMap.putIfAbsent(GBPJPYorder.orderSeqNo, GBPJPYorder);
+//				}else if(noNeedCNH == false){
+//					EURCNHorder.orderSeqNo = dateCode;
+//					orderHashMap.putIfAbsent(EURCNHorder.orderSeqNo, EURCNHorder);
+//				}
 	//			System.out.println("Size of orderHashMap: " + orderHashMap.size());
 	        }		
 			SortedSet<Long> keys = new TreeSet<Long>(orderHashMap.keySet());
@@ -2586,7 +2586,7 @@ private void adjustStopPrice(Integer orderId, Order order){
 		  */  
 			histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract);
 			if(forexHistoricalHandler != null && currencyContract != null)
-				controller().reqHistoricalData(currencyContract, endTime, 1, DurationUnit.WEEK, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+				controller().reqHistoricalData(currencyContract, endTime, 1, DurationUnit.MONTH, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
 			else
 			{
 				System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
@@ -2806,7 +2806,7 @@ class MarketDataManagingThread extends Thread {
 
 
 		//Request historical data every 5 seconds.
-		if((fileReadingCounter % 10 == 0 || (orderDetail != null && contractMap.get(orderDetail.Symbol).historicalBarMap.isEmpty()) )){
+		if(fileReadingCounter % 10 == 0){
  					
 			//Guy, let's rest 1000ms here
 			   try {

@@ -108,14 +108,15 @@ public class TechinicalAnalyzer extends Thread{
             System.out.println("********************** Initialization **********************");
             // Getting the time series
             
-            TicksAccesser ticksAccess = new TicksAccesser(null);
-            currencyContractHost.historicalBarMap = ticksAccess.readFromCsv("NZDUSD_ticks_history_2007_to_2016.csv");
-			ticksAccess.start();
+//            //Simulated testing for different dataset.
+//            TicksAccesser ticksAccess = new TicksAccesser(null);
+//            currencyContractHost.historicalBarMap = ticksAccess.readFromCsv("NZDUSD_ticks_history_2007_to_2016.csv");
+//			ticksAccess.start();
             
             while(currencyContractHost.historicalBarMap.size() < 6000){
             	double randomWait = Math.random() * ( 60 - 30 );
                 try {
-					Thread.sleep((long) (100));
+					Thread.sleep((long) (1000));
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
@@ -142,7 +143,7 @@ public class TechinicalAnalyzer extends Thread{
             while (true) {
 
                 // New tick
-            	while(currencyContractHost.historicalBarMap.size() == 0){
+            	while(currencyContractHost.historicalBarMap.size() == 0 && !newTickAvailable){
             	 try {
 						Thread.sleep(1000);
 					} catch (InterruptedException e) {
@@ -288,52 +289,52 @@ public class TechinicalAnalyzer extends Thread{
                     
                 }
                 
-              SimpleDateFormat formatter = new SimpleDateFormat("yyyy");
-            	try {
-					if((formatter.parse("2015")).compareTo(new Date(bar.time() * 1000)) <= 0){
-						break;
-						}
-				} catch (ParseException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-                
+//              SimpleDateFormat formatter = new SimpleDateFormat("yyyy");
+//            	try {
+//					if((formatter.parse("2015")).compareTo(new Date(bar.time() * 1000)) <= 0){
+//						break;
+//						}
+//				} catch (ParseException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+//                
             }
             // Analysis
-
-            // Getting the cash flow of the resulting trades
-            CashFlow cashFlow = new CashFlow(series, longtradingRecord);
-
-            // Getting the profitable trades ratio
-            AnalysisCriterion profitTradesRatio = new AverageProfitableTradesCriterion();
-            System.out.println("Profitable trades ratio: " + profitTradesRatio.calculate(series, longtradingRecord));
-            // Getting the reward-risk ratio
-            AnalysisCriterion rewardRiskRatio = new RewardRiskRatioCriterion();
-            System.out.println("Reward-risk ratio: " + rewardRiskRatio.calculate(series, longtradingRecord));
-
-            // Total profit of our strategy
-            // vs total profit of a buy-and-hold strategy
-            AnalysisCriterion vsBuyAndHold = new VersusBuyAndHoldCriterion(new TotalProfitCriterion());
-            System.out.println("Our profit vs buy-and-hold profit: " + vsBuyAndHold.calculate(series, longtradingRecord));
-            
-            
-            // Analysis
-
-            // Getting the cash flow of the resulting trades
-             cashFlow = new CashFlow(series, shorttradingRecord);
-
-            // Getting the profitable trades ratio
-            profitTradesRatio = new AverageProfitableTradesCriterion();
-            System.out.println("Profitable trades ratio: " + profitTradesRatio.calculate(series, shorttradingRecord));
-            // Getting the reward-risk ratio
-            rewardRiskRatio = new RewardRiskRatioCriterion();
-            System.out.println("Reward-risk ratio: " + rewardRiskRatio.calculate(series, shorttradingRecord));
-
-            // Total profit of our strategy
-            // vs total profit of a buy-and-hold strategy
-            vsBuyAndHold = new VersusBuyAndHoldCriterion(new TotalProfitCriterion());
-            System.out.println("Our profit vs buy-and-hold profit: " + vsBuyAndHold.calculate(series, shorttradingRecord));
-            
+//
+//            // Getting the cash flow of the resulting trades
+//            CashFlow cashFlow = new CashFlow(series, longtradingRecord);
+//
+//            // Getting the profitable trades ratio
+//            AnalysisCriterion profitTradesRatio = new AverageProfitableTradesCriterion();
+//            System.out.println("Profitable trades ratio: " + profitTradesRatio.calculate(series, longtradingRecord));
+//            // Getting the reward-risk ratio
+//            AnalysisCriterion rewardRiskRatio = new RewardRiskRatioCriterion();
+//            System.out.println("Reward-risk ratio: " + rewardRiskRatio.calculate(series, longtradingRecord));
+//
+//            // Total profit of our strategy
+//            // vs total profit of a buy-and-hold strategy
+//            AnalysisCriterion vsBuyAndHold = new VersusBuyAndHoldCriterion(new TotalProfitCriterion());
+//            System.out.println("Our profit vs buy-and-hold profit: " + vsBuyAndHold.calculate(series, longtradingRecord));
+//            
+//            
+//            // Analysis
+//
+//            // Getting the cash flow of the resulting trades
+//             cashFlow = new CashFlow(series, shorttradingRecord);
+//
+//            // Getting the profitable trades ratio
+//            profitTradesRatio = new AverageProfitableTradesCriterion();
+//            System.out.println("Profitable trades ratio: " + profitTradesRatio.calculate(series, shorttradingRecord));
+//            // Getting the reward-risk ratio
+//            rewardRiskRatio = new RewardRiskRatioCriterion();
+//            System.out.println("Reward-risk ratio: " + rewardRiskRatio.calculate(series, shorttradingRecord));
+//
+//            // Total profit of our strategy
+//            // vs total profit of a buy-and-hold strategy
+//            vsBuyAndHold = new VersusBuyAndHoldCriterion(new TotalProfitCriterion());
+//            System.out.println("Our profit vs buy-and-hold profit: " + vsBuyAndHold.calculate(series, shorttradingRecord));
+//            
             
     	}
     }
@@ -565,7 +566,7 @@ public class TechinicalAnalyzer extends Thread{
     }
 
    private void placeTestMarketOrder(String action){
-	   /*
+	   
 	   
 	   forex orderDetail = new forex();
        orderDetail.Symbol = currencyContractHost.symbol() + currencyContractHost.currency();
@@ -589,7 +590,7 @@ public class TechinicalAnalyzer extends Thread{
       orderHashMapHost.put(orderDetail.orderSeqNo, orderDetail);
        
        apiDemoHost.placeMarketOrder(orderDetail);
-   */
+   
 	   }
     
 }

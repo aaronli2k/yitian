@@ -62,6 +62,7 @@ public class Ta4J_backtest  extends Thread{
 	private backtestingHistortyDataHandler forexHistoricalHandler;
 	private int INIT_TIMEOUT = 60;
 	private ConcurrentHashMap<String, Contract> contractMapHost;
+	private ConcurrentHashMap<Long, forex> forexOrderMapHost;
 
 	public Ta4J_backtest(ApiDemo apiDemo, Contract currencyContract, Calendar cal){
 		apiDemoHost = apiDemo;
@@ -71,11 +72,11 @@ public class Ta4J_backtest  extends Thread{
 	}
 	
 	
-	public Ta4J_backtest(ApiDemo apiDemo, ConcurrentHashMap<String, Contract> contractMap,
-			Calendar cal) {
+	public Ta4J_backtest(ApiDemo apiDemo, ConcurrentHashMap<String, Contract> contractMap, Calendar cal, ConcurrentHashMap<Long,forex> orderHashMap ) {
 		apiDemoHost = apiDemo;
 		contractMapHost = contractMap;
 		serverTimeCalendar = cal;
+		forexOrderMapHost = orderHashMap;
 		// TODO Auto-generated constructor stub
 		
 	}
@@ -84,16 +85,20 @@ public class Ta4J_backtest  extends Thread{
 		
 		 for(Entry<String, Contract> currentContract : contractMapHost.entrySet())
 			 {
-			 	
+			 	boolean need2Collect = false;
 			 	currencyContractHost = currentContract.getValue();
 
-			 	//NZDUSD already done.
-			    if(currencyContractHost.symbol().equals("NZD") && currencyContractHost.currency().equals("USD"))
-			    	continue;
-			  //EURCNH already done.
-			    if(currencyContractHost.symbol().equals("EUR") && currencyContractHost.currency().equals("CNH"))
-			    	continue;
-//				serverTimeCalendar = cal;
+			 	//Only collect data for symbols in Excel file.
+			 	for(Entry<Long, forex> currentForexOrder : forexOrderMapHost.entrySet()){			 	
+			 		if(currentForexOrder.getValue().Symbol.equals(currencyContractHost.symbol() + currencyContractHost.currency()) == true){
+			 			need2Collect = true;
+			 			break;
+			 			}
+			 	}
+			 	
+			 	if(need2Collect == false)
+			 		continue;
+			 	
 				forexHistoricalHandler = new backtestingHistortyDataHandler(currencyContractHost);
 //				 try {
 ////					Ta4J_backtest.join();
