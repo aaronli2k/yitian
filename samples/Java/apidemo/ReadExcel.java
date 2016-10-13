@@ -204,9 +204,9 @@ public class ReadExcel {
     	  {	  
     		  System.out.println(new Date() + " SeqNo: " + orderDetail.orderSeqNo + " " +  orderDetail.Symbol + " " + orderDetail.ValidDuration + orderDetail.OCA); 
     		  orderDetail.groupId = new Long(0); //This is a single order. so group ID = 0;
-    		  orderHashMap.put(orderDetail.orderSeqNo, orderDetail);
+   // Aaron remove temperoarly		  orderHashMap.put(orderDetail.orderSeqNo, orderDetail);
     	      		  //create a new instance
-    		  orderDetail = new forex();
+   // Aaron remove temperoarly			  orderDetail = new forex();
     	  }
     	 }
       }

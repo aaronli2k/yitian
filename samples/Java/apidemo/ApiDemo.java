@@ -131,11 +131,11 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	public final Contract m_contract_EURSGD = new Contract("EUR", "CASH", "IDEALPRO", "SGD", 3.0, 0.3);
 	public final Contract m_contract_GBPCAD = new Contract("GBP", "CASH", "IDEALPRO", "CAD", 3.0, 0.3);
 	public final Contract m_contract_GBPJPY = new Contract("GBP", "CASH", "IDEALPRO", "JPY", 300.0, 30.0);
-	public final Contract m_contract_GBPSGD = new Contract("GBP", "CASH", "IDEALPRO", "SGD", 3.0, 0.3);
+//	public final Contract m_contract_GBPSGD = new Contract("GBP", "CASH", "IDEALPRO", "SGD", 3.0, 0.3);
 	public final Contract m_contract_USDSGD = new Contract("USD", "CASH", "IDEALPRO", "SGD", 3.0, 0.3);
 	public final Contract m_contract_AUDCAD = new Contract("AUD", "CASH", "IDEALPRO", "CAD", 3.0, 0.3);	
 	public final Contract m_contract_EURAUD = new Contract("EUR", "CASH", "IDEALPRO", "AUD", 3.0, 0.3);
-	public final Contract m_contract_CHFAUD = new Contract("CHF", "CASH", "IDEALPRO", "AUD", 3.0, 0.3);
+//	public final Contract m_contract_CHFAUD = new Contract("CHF", "CASH", "IDEALPRO", "AUD", 3.0, 0.3);
 	public final Contract m_contract_AUDJPY = new Contract("AUD", "CASH", "IDEALPRO", "JPY", 300.0, 20.0);
 	public final Contract m_contract_AUDSGD = new Contract("AUD", "CASH", "IDEALPRO", "SGD", 3.0, 0.3);
 	public final Contract m_contract_EURNZD = new Contract("EUR", "CASH", "IDEALPRO", "NZD", 3.0, 0.3);
@@ -168,11 +168,11 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	ForexListner m_stockListener_EURSGD = new ForexListner(m_contract_EURSGD);	
 	ForexListner m_stockListener_GBPCAD = new ForexListner(m_contract_GBPCAD);		
 	ForexListner m_stockListener_GBPJPY = new ForexListner(m_contract_GBPJPY);	
-	ForexListner m_stockListener_GBPSGD = new ForexListner(m_contract_GBPSGD);	
+//	ForexListner m_stockListener_GBPSGD = new ForexListner(m_contract_GBPSGD);	
 	ForexListner m_stockListener_USDSGD = new ForexListner(m_contract_USDSGD);		
 	ForexListner m_stockListener_AUDCAD = new ForexListner(m_contract_AUDCAD);			
 	ForexListner m_stockListener_EURAUD = new ForexListner(m_contract_EURAUD);	
-	ForexListner m_stockListener_CHFAUD = new ForexListner(m_contract_CHFAUD);		
+//	ForexListner m_stockListener_CHFAUD = new ForexListner(m_contract_CHFAUD);		
 	ForexListner m_stockListener_AUDJPY = new ForexListner(m_contract_AUDJPY);	
 	ForexListner m_stockListener_AUDSGD = new ForexListner(m_contract_AUDSGD);	
 	ForexListner m_stockListener_EURNZD = new ForexListner(m_contract_EURNZD);		
@@ -437,11 +437,11 @@ public class ApiDemo implements IConnectionHandler, Runnable {
     	contractMap.put("EURSGD", m_contract_EURSGD);
     	contractMap.put("GBPCAD", m_contract_GBPCAD);		
     	contractMap.put("GBPJPY", m_contract_GBPJPY);
-    	contractMap.put("GBPSGD", m_contract_GBPSGD);
+//    	contractMap.put("GBPSGD", m_contract_GBPSGD);
     	contractMap.put("USDSGD", m_contract_USDSGD);
     	contractMap.put("AUDCAD", m_contract_AUDCAD);
     	contractMap.put("EURAUD", m_contract_EURAUD);
-    	contractMap.put("CHFAUD", m_contract_CHFAUD);
+ //   	contractMap.put("CHFAUD", m_contract_CHFAUD);
     	contractMap.put("AUDJPY", m_contract_AUDJPY);
     	contractMap.put("AUDSGD", m_contract_AUDSGD);		
     	contractMap.put("EURNZD", m_contract_EURNZD);
@@ -476,11 +476,11 @@ public class ApiDemo implements IConnectionHandler, Runnable {
     	forexListenerHashMap.put("EURSGD", m_stockListener_EURSGD);
     	forexListenerHashMap.put("GBPCAD", m_stockListener_GBPCAD);		
     	forexListenerHashMap.put("GBPJPY", m_stockListener_GBPJPY);
-    	forexListenerHashMap.put("GBPSGD", m_stockListener_GBPSGD);
+//    	forexListenerHashMap.put("GBPSGD", m_stockListener_GBPSGD);
     	forexListenerHashMap.put("USDSGD", m_stockListener_USDSGD);
     	forexListenerHashMap.put("AUDCAD", m_stockListener_AUDCAD);
     	forexListenerHashMap.put("EURAUD", m_stockListener_EURAUD);
-    	forexListenerHashMap.put("CHFAUD", m_stockListener_CHFAUD);
+ //   	forexListenerHashMap.put("CHFAUD", m_stockListener_CHFAUD);
     	forexListenerHashMap.put("AUDJPY", m_stockListener_AUDJPY);
     	forexListenerHashMap.put("AUDSGD", m_stockListener_AUDSGD);		
     	forexListenerHashMap.put("EURNZD", m_stockListener_EURNZD);
@@ -538,7 +538,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
         m_frame.setTitle("Built @ " + new Date()); 
         
         // make initial connection to local host, port 4001, client id 0, no connection options
-		controller().connect( "127.0.0.1", 7496, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
+		controller().connect( "127.0.0.1", 4001, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
     
 		 Thread me = Thread.currentThread();
 		 
@@ -573,12 +573,22 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			e.printStackTrace();
 		}	
 		 
-		 (new OrderManagingThread()).start();
-		 (new OrderSubmittingThread()).start();
-		 (new MarketDataManagingThread()).start();
+//		 (new OrderManagingThread()).start();
+//		 (new OrderSubmittingThread()).start();
+//		 (new MarketDataManagingThread()).start();
 
-		 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, m_contract_GBPJPY, serverTimeCalendar);
-		 Ta4J_backtest.start();
+	//	 for(Entry<String, Contract> currentContract : contractMap.entrySet())
+		 {
+			 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, contractMap, serverTimeCalendar);		 
+			 Ta4J_backtest.start();
+//			 try {
+////				Ta4J_backtest.join();
+//			} 
+//			 catch (InterruptedException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+		 }
 		 
 		 
     }
@@ -616,7 +626,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		//show( "connected");
 	
 		m_connectionPanel.m_status.setText( "connected");
-		if(m_contract_NZDUSD.getAskPrice() > 0 && m_contract_NZDUSD.getBidPrice() > 0 && m_contract_AUDUSD.getAskPrice() > 0 && m_contract_AUDUSD.getBidPrice() > 0){
+		if(m_contract_EURCNH.getAskPrice() > 0 && m_contract_EURCNH.getBidPrice() > 0 && m_contract_GBPJPY.getAskPrice() > 0 && m_contract_GBPJPY.getBidPrice() > 0){
 			m_connectionPanel.m_dataLink.setText("Price information availble.");
 		}else{
 			m_connectionPanel.m_dataLink.setText("Price information NOT available. Please check connect and restart SW if needed.");
@@ -866,9 +876,9 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		//if duration is longer than 30 minutes, take 3 bars.
 		//if duration is beblow 5 minutes. take 1 bar.
 		//If duration is bewtween 5 and 30, takes 2 bars.
-		TreeSet<String> keys = new TreeSet<String>(currentContract.historicalBarMap.keySet());
-		TreeSet<String> treereverse = (TreeSet<String>) keys.descendingSet();
-		Iterator<String> iterator =  treereverse.iterator();
+		TreeSet<Long> keys = new TreeSet<Long>(currentContract.historicalBarMap.keySet());
+		TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
+		Iterator<Long> iterator =  treereverse.iterator();
 		Integer counter = 0;
 		Double high = 0.0, low = Double.MAX_VALUE, TriggerPct = 0.02, TriggerPctAskBid = 0.05, stopLosspct;
 		
@@ -1466,15 +1476,15 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				}	
 			}
 			
-			//Always submit an request for NZDUSD and AUDUSD for market data validation.
-			if(currentMarketDataList.contains("NZDUSD") == false)
+			//Always submit an request for GBPJPY and EURCNH for market data validation.
+			if(currentMarketDataList.contains("GBPJPY") == false)
 			{
-				contractDetail = contractMap.get("NZDUSD");
-				forexListenerDetail = forexListenerHashMap.get("NZDUSD");
+				contractDetail = contractMap.get("GBPJPY");
+				forexListenerDetail = forexListenerHashMap.get("GBPJPY");
 				if(forexListenerDetail != null && contractDetail != null){			
 					controller().reqTopMktData( contractDetail, "", false, forexListenerDetail);
-					currentListeningMap.put("NZDUSD", forexListenerDetail);
-					currentMarketDataList.add("NZDUSD");
+					currentListeningMap.put("GBPJPY", forexListenerDetail);
+					currentMarketDataList.add("GBPJPY");
 					try {
 						Thread.sleep(100);
 					} catch (InterruptedException e) {
@@ -1485,14 +1495,14 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				}
 			}	
 			
-			if(currentMarketDataList.contains("AUDUSD") == false)
+			if(currentMarketDataList.contains("EURCNH") == false)
 			{
-				contractDetail = contractMap.get("AUDUSD");
-				forexListenerDetail = forexListenerHashMap.get("AUDUSD");
+				contractDetail = contractMap.get("EURCNH");
+				forexListenerDetail = forexListenerHashMap.get("EURCNH");
 				if(forexListenerDetail != null && contractDetail != null){			
 					controller().reqTopMktData( contractDetail, "", false, forexListenerDetail);
-					currentListeningMap.put("AUDUSD", forexListenerDetail);
-					currentMarketDataList.add("AUDUSD");
+					currentListeningMap.put("EURCNH", forexListenerDetail);
+					currentMarketDataList.add("EURCNH");
 					try {
 						Thread.sleep(100);
 					} catch (InterruptedException e) {
@@ -2525,7 +2535,7 @@ private void adjustStopPrice(Integer orderId, Order order){
 		@Override
 		public void historicalData(Bar bar, boolean hasGaps) {
 			// TODO Auto-generated method stub
-			m_currencyContract.putHistoricalBar(bar.formattedTime(), bar);
+			m_currencyContract.putHistoricalBar(bar.time(), bar);
 			
 			contractMap.put(m_currencyContract.symbol() + m_currencyContract.currency(), m_currencyContract);
 			
@@ -2536,9 +2546,9 @@ private void adjustStopPrice(Integer orderId, Order order){
 		public void historicalDataEnd() {
 			// TODO Auto-generated method stub
 //			System.out.println(new Date() + " end of bar high: ");
-			TreeSet<String> keys = new TreeSet<String>(m_currencyContract.historicalBarMap.keySet());
-			TreeSet<String> treereverse = (TreeSet) keys.descendingSet();
-			for (String key : treereverse){
+			TreeSet<Long> keys = new TreeSet<Long>(m_currencyContract.historicalBarMap.keySet());
+			TreeSet<Long> treereverse = (TreeSet) keys.descendingSet();
+			for (Long key : treereverse){
 			Bar bar = m_currencyContract.historicalBarMap.get(key);
 //			System.out.println(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
 //			show(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
@@ -2688,7 +2698,7 @@ class MarketDataManagingThread extends Thread {
 		
 		
 		//Request real time tick price data if it isn't available.
-		if(((m_contract_NZDUSD.getAskPrice() == 0 || m_contract_NZDUSD.getBidPrice() == 0 || m_contract_AUDUSD.getAskPrice() == 0 || m_contract_AUDUSD.getBidPrice() == 0)))
+		if(((m_contract_GBPJPY.getAskPrice() == 0 || m_contract_GBPJPY.getBidPrice() == 0 || m_contract_EURCNH.getAskPrice() == 0 || m_contract_EURCNH.getBidPrice() == 0)))
 		{
 			requestTickData(orderHashMap);  	
 		}
@@ -2696,7 +2706,15 @@ class MarketDataManagingThread extends Thread {
 
 		//Request historical data every 5 seconds.
 		if((fileReadingCounter % 5 == 0 || (orderDetail != null && contractMap.get(orderDetail.Symbol).historicalBarMap.isEmpty()) )){
- 					    	      
+ 					
+			//Guy, let's rest 1000ms here
+			   try {
+				   	Thread.sleep(2000);
+			   } catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
 		   	 formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 
 	    	// Get the date today using Calendar object.
