@@ -37,6 +37,7 @@ import eu.verdelhan.ta4j.indicators.trackers.WilliamsRIndicator;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import ta4jexamples.loaders.CsvTradesLoader;
@@ -88,13 +89,21 @@ public class IndicatorsToCsv {
         /**
          * Building header
          */
+        BufferedWriter writer = null;
+
         StringBuilder sb = new StringBuilder("timestamp,date,time,close,typical,variation,sma8,sma20,ema8,ema20,ppo,roc,rsi,williamsr,atr,sd\n");
+        try {
+            writer = new BufferedWriter(new FileWriter(series.getName() +  "indicators.csv")); //Append it instead of orverwrite it.
+            writer.write(sb.toString());
 
         /**
          * Adding indicators values
          */
-        final int nbTicks = series.getTickCount();
-        for (int i = 0; i < nbTicks; i++) {
+
+            final int nbTicks = series.getTickCount();
+            for (int i = 0; i < nbTicks; i++) {
+      //      sb.setLength(0);
+	
             sb.append(series.getTick(i).getEndTime().getMillis() / 1000d).append(',')
             .append(series.getTick(i).getEndTime().toLocalDate()).append(',')
             .append(series.getTick(i).getEndTime().toLocalTime()).append(',')
@@ -111,15 +120,14 @@ public class IndicatorsToCsv {
             .append(williamsR.getValue(i)).append(',')
             .append(atr.getValue(i)).append(',')
             .append(sd.getValue(i)).append('\n');
+       //     gc(sb);
         }
 
         /**
          * Writing CSV file
          */
-        BufferedWriter writer = null;
-        try {
-            writer = new BufferedWriter(new FileWriter(series.getName() +  "indicators.csv"));
             writer.write(sb.toString());
+            sb.setLength(0);
         } catch (IOException ioe) {
             Logger.getLogger(IndicatorsToCsv.class.getName()).log(Level.SEVERE, "Unable to write CSV file", ioe);
         } finally {
@@ -133,6 +141,17 @@ public class IndicatorsToCsv {
 
     
 	}
+	
+	 public static void gc(Object obj) {
+	//     Object obj = new Object();
+	     WeakReference<Object> ref = new WeakReference<Object>(obj);
+	     obj = null;
+	     while(ref.get() != null) {
+	       System.gc();
+	     }
+	   }
+	
+	
     public static void main(String[] args) {
 
         /**

@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.ib.client.Types.Action;
 import com.ib.client.Types.Right;
 import com.ib.client.Types.SecIdType;
 import com.ib.client.Types.SecType;
@@ -43,16 +44,19 @@ public class Contract implements Cloneable {
     private double m_closePrice = 0.0;
     private double m_openPrice = 0.0;
     private double m_smaPrice = 0.0;
+    
+    public String m_currentTechnicalSignal = "None";
+    
     public double m_maxPrice = 0.0;
     public double m_minPrice = 0.0;
-    public ConcurrentHashMap<String, Bar> historicalBarMap = new ConcurrentHashMap<String, Bar>();
+    public ConcurrentHashMap<Long, Bar> historicalBarMap = new ConcurrentHashMap<Long, Bar>();
     
-public void    putHistoricalBar(String timeString, Bar historicalBar){
-	historicalBarMap.put(timeString, historicalBar);
+public void    putHistoricalBar(long time, Bar historicalBar){
+	historicalBarMap.put(time, historicalBar);
 }
 
-public Bar    getHistoricalBar(String timeString){
-	return historicalBarMap.get(timeString);
+public Bar    getHistoricalBar(long time){
+	return historicalBarMap.get(time);
 }
     private MovingAverage sma = new MovingAverage(20);
     

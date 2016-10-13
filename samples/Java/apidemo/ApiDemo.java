@@ -538,7 +538,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
         m_frame.setTitle("Built @ " + new Date()); 
         
         // make initial connection to local host, port 4001, client id 0, no connection options
-		controller().connect( "127.0.0.1", 4001, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
+		controller().connect( "127.0.0.1", 7496, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
     
 		 Thread me = Thread.currentThread();
 		 
@@ -573,14 +573,16 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			e.printStackTrace();
 		}	
 		 
-//		 (new OrderManagingThread()).start();
-//		 (new OrderSubmittingThread()).start();
-//		 (new MarketDataManagingThread()).start();
+		 (new OrderManagingThread()).start();
+		 (new OrderSubmittingThread()).start();
+		 (new MarketDataManagingThread()).start();
 
+		 (new TechinicalAnalyzer(this, m_contract_GBPJPY, orderHashMap)).start();
+		 
 	//	 for(Entry<String, Contract> currentContract : contractMap.entrySet())
 		 {
-			 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, contractMap, serverTimeCalendar);		 
-			 Ta4J_backtest.start();
+//			 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, contractMap, serverTimeCalendar);		 
+//			 Ta4J_backtest.start();
 //			 try {
 ////				Ta4J_backtest.join();
 //			} 
@@ -1008,7 +1010,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	}
 	
 	
-	private Order bracketStopOrder(forex orderDetail, int orderID){
+	public Order bracketStopOrder(forex orderDetail, int orderID){
 		{
 			ApiDemo.INSTANCE.controller().client().reqIds(-1);
 			
@@ -2577,7 +2579,7 @@ private void adjustStopPrice(Integer orderId, Order order){
 		  */  
 			histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract);
 			if(forexHistoricalHandler != null && currencyContract != null)
-				controller().reqHistoricalData(currencyContract, endTime, 3600 * 2, DurationUnit.SECOND, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+				controller().reqHistoricalData(currencyContract, endTime, 1, DurationUnit.WEEK, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
 			else
 			{
 				System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
@@ -2585,6 +2587,98 @@ private void adjustStopPrice(Integer orderId, Order order){
 			}
 			
 	}
+	
+	public void placeMarketOrder(forex orderDetail){		
+
+		{
+			ApiDemo.INSTANCE.controller().client().reqIds(-1);
+			
+			if(nextOrderId < ApiDemo.INSTANCE.controller().availableId())
+				nextOrderId = ApiDemo.INSTANCE.controller().availableId();
+			
+			if(currentMaxOrderId >= nextOrderId)
+				nextOrderId = currentMaxOrderId + 1;
+
+			
+			//BRACKET ORDER
+		        //! [bracketsubmit]
+			 Double triggerPrice;
+			 Double profitTakingPrice;
+			 Double stopLossPrice;
+			 
+			 Double quantity = Double.parseDouble(orderDetail.Quantity);
+			
+			 ForexPrices orderPrices;
+		 	 orderPrices = calTriggerPrice(orderDetail, contractMap.get(orderDetail.Symbol), false);	
+			 triggerPrice = orderPrices.triggerPrice;
+			 profitTakingPrice = orderPrices.profitPrice;
+			 stopLossPrice = orderPrices.stoprPrice;				
+			 
+//			 nextOrderId = 0;
+			 int parentOrderId = nextOrderId;
+			 String action = orderDetail.TradeMethod;
+			  //This will be our main or "parent" order
+				Order parent = new Order();
+				parent.orderId(parentOrderId);
+				parent.parentId(0);
+				parent.action(action);
+				parent.orderType("MKT");
+				parent.totalQuantity(quantity);
+				parent.tif("GTC");
+				//The parent and children orders will need this attribute set to false to prevent accidental executions.
+		        //The LAST CHILD will have it set to true.
+				parent.transmit(false);				    					
+				parent.account(m_acctList.get(0));				
+				
+					    									
+				orderTransmit(contractMap.get(orderDetail.Symbol), parent, orderDetail.orderSeqNo);
+				
+
+				//Profit taking order isn't necessar
+				/*
+				//This is profit taking order. Its order is is parent Id plus one. And its parent ID is above parent Id;
+				nextOrderId++;
+				Order takeProfit = new Order();
+				takeProfit.orderId(parent.orderId() + 1);
+				takeProfit.action(action.equals("BUY") ? "SELL" : "BUY");
+				takeProfit.orderType("LMT");
+				takeProfit.totalQuantity(quantity);
+				takeProfit.lmtPrice(fixDoubleDigi(profitTakingPrice));
+				takeProfit.parentId(parent.orderId());
+				takeProfit.transmit(false);				    					
+				takeProfit.account(m_acctList.get(0));
+				takeProfit.tif("GTC");
+				
+				orderTransmit(contractMap.get(orderDetail.Symbol), takeProfit, orderDetail.orderSeqNo);
+				*/
+				
+
+				
+				nextOrderId++;
+				//This is Loss STOPing  order. Its order is is parent Id plus two. And its parent ID is above parent Id;
+				Order stopLoss = new Order();
+				stopLoss.orderId(parent.orderId() + 2);
+				stopLoss.action(action.equals("BUY") ? "SELL" : "BUY");
+				stopLoss.orderType("STP");
+				//Stop trigger price
+				stopLoss.auxPrice(fixDoubleDigi(stopLossPrice));
+				stopLoss.totalQuantity(quantity);
+				stopLoss.parentId(parent.orderId());
+				//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
+		        //to activate all its predecessors
+				stopLoss.transmit(true);				    				 
+				stopLoss.account(m_acctList.get(0));
+				stopLoss.tif("GTC");
+				
+				orderTransmit(contractMap.get(orderDetail.Symbol), stopLoss, orderDetail.orderSeqNo);
+			 
+
+		
+		 }
+	
+		
+	}
+	
 	
 	private void requestRealtimeBar(){		
 		
@@ -2705,7 +2799,7 @@ class MarketDataManagingThread extends Thread {
 
 
 		//Request historical data every 5 seconds.
-		if((fileReadingCounter % 5 == 0 || (orderDetail != null && contractMap.get(orderDetail.Symbol).historicalBarMap.isEmpty()) )){
+		if((fileReadingCounter % 10 == 0 || (orderDetail != null && contractMap.get(orderDetail.Symbol).historicalBarMap.isEmpty()) )){
  					
 			//Guy, let's rest 1000ms here
 			   try {
