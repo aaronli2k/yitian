@@ -577,10 +577,10 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		 (new OrderSubmittingThread()).start();
 		 (new MarketDataManagingThread()).start();
 
-		 (new TechinicalAnalyzer(this, m_contract_GBPJPY,contractMap, orderHashMap)).start();
-		 (new TechinicalAnalyzer(this, m_contract_EURCNH, contractMap, orderHashMap)).start();
+//		 (new TechinicalAnalyzer(this, m_contract_GBPJPY,contractMap, orderHashMap)).start();
+//		 (new TechinicalAnalyzer(this, m_contract_EURCNH, contractMap, orderHashMap)).start();
 		 (new TechinicalAnalyzer(this, m_contract_NZDUSD, contractMap, orderHashMap)).start();
-		 (new TechinicalAnalyzer(this, m_contract_AUDUSD, contractMap, orderHashMap)).start();
+//		 (new TechinicalAnalyzer(this, m_contract_AUDUSD, contractMap, orderHashMap)).start();
 
 		 
 	//	 for(Entry<String, Contract> currentContract : contractMap.entrySet())
@@ -2457,9 +2457,12 @@ private void adjustStopPrice(Integer orderId, Order order){
 			for (HashMap.Entry<Long, forex> entry : orderHashMap.entrySet()) {
 			    Long key = entry.getKey();
 			    orderDetail = entry.getValue();
-			    
+			    if(orderDetail == null)
+			    	continue;
+	//		    if(orderDetail.OrderStatus)
 			    if(orderDetail.orderIdList.contains(order.orderId())){
-			    	if(orderDetail.OrderStatus.equals("Filled")){
+	//		    	if(orderDetail.OrderStatus.equals("Filled"))
+			    	{
 	//		    		System.out.print(" cost@ " + orderDetail.ActualPrice);				    		
 			    	}
 			    }
