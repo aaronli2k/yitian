@@ -577,7 +577,11 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		 (new OrderSubmittingThread()).start();
 		 (new MarketDataManagingThread()).start();
 
-		 (new TechinicalAnalyzer(this, m_contract_GBPJPY, orderHashMap)).start();
+		 (new TechinicalAnalyzer(this, m_contract_GBPJPY,contractMap, orderHashMap)).start();
+		 (new TechinicalAnalyzer(this, m_contract_EURCNH, contractMap, orderHashMap)).start();
+		 (new TechinicalAnalyzer(this, m_contract_NZDUSD, contractMap, orderHashMap)).start();
+		 (new TechinicalAnalyzer(this, m_contract_AUDUSD, contractMap, orderHashMap)).start();
+
 		 
 	//	 for(Entry<String, Contract> currentContract : contractMap.entrySet())
 		 {
@@ -1612,7 +1616,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				GBPJPYorder.Quantity = "25000";
 				GBPJPYorder.TradeMethod = "ANY";
 				GBPJPYorder.EntryMethod = "STOP";
-				GBPJPYorder.TriggerPct = "0.1";
+				GBPJPYorder.TriggerPct = "0.2";
 				GBPJPYorder.LossPct = "0.1";
 				GBPJPYorder.ProfitPct = "0.2";
 				GBPJPYorder.ValidDuration = "60";	
@@ -1626,7 +1630,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				EURCNHorder.Quantity = "25000";
 				EURCNHorder.TradeMethod = "ANY";
 				EURCNHorder.EntryMethod = "STOP";
-				EURCNHorder.TriggerPct = "0.1";
+				EURCNHorder.TriggerPct = "0.2";
 				EURCNHorder.LossPct = "0.1";
 				EURCNHorder.ProfitPct = "0.5";
 				EURCNHorder.ValidDuration = "60";	
