@@ -2094,7 +2094,7 @@ private void adjustStopPrice(Integer orderId, Order order){
 
 		
 		//If current order is profit taking order, just return
-		if(order.orderType().equals("LMT"))
+		if(order.orderType().equals("STP") == false)
 			return;
 		
 		
@@ -2566,7 +2566,8 @@ private void adjustStopPrice(Integer orderId, Order order){
 //			show(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
 
 			}
-			System.out.println(new Date() + " Historical Data end: "+ m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
+			if(bar != null)
+				System.out.println(new Date() + " Historical Data end: "+ m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
 
 		}
 	};
@@ -2878,6 +2879,7 @@ class MarketDataManagingThread extends Thread {
 					  //after we starts Historical bar request. Let's analyze it.
 					 if(contractTechAnalyzerMap.containsKey(orderDetail.Symbol) == false){
 						 TechinicalAnalyzer techAnalyzer = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap);
+						 contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer);
 						 techAnalyzer.start();
 					 }
 //						 (new TechinicalAnalyzer(this, m_contract_GBPJPY,contractMap, orderHashMap)).start();
