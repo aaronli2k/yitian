@@ -110,6 +110,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 	//Use below to store all contract <currencyPair, contract>
 	ConcurrentHashMap<String, Contract> contractMap = new ConcurrentHashMap<String, Contract>();
+	//Use below to store all contract <currencyPair, contract>
+	ConcurrentHashMap<String, TechinicalAnalyzer> contractTechAnalyzerMap = new ConcurrentHashMap<String, TechinicalAnalyzer>();
 	
 	//Use below to store all submitted order <orderId, Order>
 	ConcurrentHashMap<Integer, Order> submittedOrderHashMap = new ConcurrentHashMap<Integer, Order>();
@@ -538,7 +540,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
         m_frame.setTitle("Built @ " + new Date()); 
         
         // make initial connection to local host, port 4001, client id 0, no connection options
-		controller().connect( "127.0.0.1", 4001, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
+		controller().connect( "127.0.0.1", 7496, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
     
 		 Thread me = Thread.currentThread();
 		 
@@ -573,9 +575,9 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			e.printStackTrace();
 		}	
 		 
-//		 (new OrderManagingThread()).start();
-//		 (new OrderSubmittingThread()).start();
-//		 (new MarketDataManagingThread()).start();
+		 (new OrderManagingThread()).start();
+		 (new OrderSubmittingThread()).start();
+		 (new MarketDataManagingThread()).start();
 
 //		 (new TechinicalAnalyzer(this, m_contract_GBPJPY,contractMap, orderHashMap)).start();
 //		 (new TechinicalAnalyzer(this, m_contract_EURCNH, contractMap, orderHashMap)).start();
@@ -585,8 +587,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		 
 	//	 for(Entry<String, Contract> currentContract : contractMap.entrySet())
 		 {
-			 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, contractMap, serverTimeCalendar, orderHashMap);		 
-			 Ta4J_backtest.start();
+//			 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, contractMap, serverTimeCalendar, orderHashMap);		 
+//			 Ta4J_backtest.start();
 //			 try {
 ////				Ta4J_backtest.join();
 //			} 
@@ -2555,19 +2557,22 @@ private void adjustStopPrice(Integer orderId, Order order){
 		public void historicalDataEnd() {
 			// TODO Auto-generated method stub
 //			System.out.println(new Date() + " end of bar high: ");
+			Bar bar = null;
 			TreeSet<Long> keys = new TreeSet<Long>(m_currencyContract.historicalBarMap.keySet());
 			TreeSet<Long> treereverse = (TreeSet) keys.descendingSet();
 			for (Long key : treereverse){
-			Bar bar = m_currencyContract.historicalBarMap.get(key);
+			bar = m_currencyContract.historicalBarMap.get(key);
 //			System.out.println(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
 //			show(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
 
 			}
+			System.out.println(new Date() + " Historical Data end: "+ m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
+
 		}
 	};
 	
 	
-	public void requestHistoricalBar(String endTime, Contract currencyContract){
+	public void requestHistoricalBar(String endTime, Contract currencyContract, Boolean isFirstTime){
 		//forex orderDetail;
 		
 		//Only request it once.
@@ -2584,9 +2589,17 @@ private void adjustStopPrice(Integer orderId, Order order){
 		    historicalDataReq.add(orderDetail.Symbol);
 		    currencyContract = contractMap.get(orderDetail.Symbol);
 		  */  
+		
+			//Request one month day in initial request, then just one day in following request.
+			DurationUnit durationToRequest;
+			if(isFirstTime)
+				durationToRequest = DurationUnit.MONTH;
+			else
+				durationToRequest = DurationUnit.DAY;
+
 			histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract);
 			if(forexHistoricalHandler != null && currencyContract != null)
-				controller().reqHistoricalData(currencyContract, endTime, 1, DurationUnit.MONTH, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+				controller().reqHistoricalData(currencyContract, endTime, 1, durationToRequest, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
 			else
 			{
 				System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
@@ -2710,6 +2723,8 @@ class MarketDataManagingThread extends Thread {
       	forex orderDetail;
       	DateFormat formatter; 
   		String orderDateStr;
+   	    Boolean isFirstTime = true;
+
   	
  //     System.out.println("Hello from a Order submission thread!");
 //      Thread.currentThread().setPriority(Thread.MAX_PRIORITY - 1);
@@ -2828,7 +2843,7 @@ class MarketDataManagingThread extends Thread {
 	   	        
 	   	        
 	   	        
-	   	    // displaying the Tree set data
+			// displaying the Tree set data
 //			   System.out.println("Tree set data in reverse order: ");     
 			   if (iterator.hasNext()){
 
@@ -2858,14 +2873,25 @@ class MarketDataManagingThread extends Thread {
 				  if(orderDetail != null ){
 					  historicalDataReq.add(orderDetail.Symbol);
 					  orderDateStr = formatter.format(new Date());
-					  requestHistoricalBar(orderDateStr, contractMap.get(orderDetail.Symbol));
+					  requestHistoricalBar(orderDateStr, contractMap.get(orderDetail.Symbol), isFirstTime);
+					  
+					  //after we starts Historical bar request. Let's analyze it.
+					 if(contractTechAnalyzerMap.containsKey(orderDetail.Symbol) == false){
+						 TechinicalAnalyzer techAnalyzer = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap);
+						 techAnalyzer.start();
+					 }
+//						 (new TechinicalAnalyzer(this, m_contract_GBPJPY,contractMap, orderHashMap)).start();
+//						 (new TechinicalAnalyzer(this, m_contract_EURCNH, contractMap, orderHashMap)).start();
+//						 (new TechinicalAnalyzer(this, m_contract_NZDUSD, contractMap, orderHashMap)).start();
+//						 (new TechinicalAnalyzer(this, m_contract_AUDUSD, contractMap, orderHashMap)).start();
+					  
 				  }
 			   }else{
 				  //If it is end of list, let's start it again. 
 				  treeadd = new TreeSet<Long>(orderHashMap.keySet());
 				  treereverse=(TreeSet<Long>)treeadd.descendingSet();
 				  iterator = treereverse.iterator(); 		
-				  
+				  isFirstTime = false;
 				  historicalDataReq.clear();				     
 				  
 			   }

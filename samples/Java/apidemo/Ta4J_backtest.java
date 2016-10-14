@@ -113,7 +113,7 @@ public class Ta4J_backtest  extends Thread{
 		Date pastDate = serverTimeCalendar.getTime();
 		Calendar localCal = Calendar.getInstance();
 		localCal.setTime(pastDate);
-		localCal.add(Calendar.YEAR, -8);
+		localCal.add(Calendar.YEAR, -10);
 		Date oneYearAgoDate = localCal.getTime();
 	    final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
@@ -177,24 +177,7 @@ public class Ta4J_backtest  extends Thread{
 			Bar bar = currencyContractHost.historicalBarMap.get(key);
 			currencyContractHost.historicalBarMap.remove(key);
 			System.out.println(currencyContractHost.symbol() + currencyContractHost.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close() + " bar volume: " + bar.volume());
-//			show(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
-//
-//			
-//
-//	      
-//	       
-//          String[] line;
-//	  //          while ((line = csvReader.readNext()) != null) 
-//	            {
-					
-					
-					
 
-				//	if(!yearKeyMap.containsKey(date.getYear()))
-					{
-					//	yearKeyMap.put(date.getYear(), ticks);
-					}
-	//				ticks = yearKeyMap.get(date.getYear());
 
 					if(oneYearAgoDate.after(new Date(bar.time() * 1000))){
 						completed = true;
@@ -219,8 +202,8 @@ public class Ta4J_backtest  extends Thread{
 				continue;
 			 TimeSeries oneYearSeries = new TimeSeries(currencyContractHost.symbol() + currencyContractHost.currency() + "_ticks", ticks);
 	//	      allTicks.addAll(ticks);
-		       new TicksAccesser(oneYearSeries);
-
+		       new TicksAccesser(oneYearSeries).writeToCsv();
+		       System.out.println(new Date() + "Write ticks into file " + currencyContractHost.symbol() + currencyContractHost.currency() + "_ticks.csv"); 
 		       
 		       //before adjusting calendar to new date, ensure that we receive all ticks.
 				DateTime currentTickDate = (ticks.get(ticks.size() - 1).getEndTime());

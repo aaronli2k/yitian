@@ -16,6 +16,7 @@ import com.ib.client.Types.SecIdType;
 import com.ib.client.Types.SecType;
 import com.ib.controller.Bar;
 
+
 public class Contract implements Cloneable {
     private int     m_conid;
     private String  m_symbol;

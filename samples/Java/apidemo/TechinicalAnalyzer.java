@@ -1,6 +1,6 @@
 package apidemo;
 
-import eu.verdelhan.ta4j.AnalysisCriterion;
+
 
 /**
  * The MIT License (MIT)
@@ -94,6 +94,8 @@ public class TechinicalAnalyzer extends Thread{
     	apiDemoHost = apiDemo;
     	orderHashMapHost = orderHashMap;
     	ContractHashMapHost = contractHashMap;
+        System.out.println("**********************Techinical Analyzer for " +currencyContract.symbol() + currencyContract.currency() + " Initialization **********************");
+
     }
     
     public synchronized  void run(){
@@ -101,11 +103,11 @@ public class TechinicalAnalyzer extends Thread{
     	
     	Tick newTick  = null;
     	Bar bar = null;
-    //	while(true)
+    	while(true)
     	{
 
 
-            System.out.println("********************** Initialization **********************");
+            System.out.println("**********************Techinical Analyzer " + currencyContractHost.symbol() + currencyContractHost.currency() + " Running **********************");
             // Getting the time series
             
 //            //Simulated testing for different dataset.
@@ -125,7 +127,10 @@ public class TechinicalAnalyzer extends Thread{
             }
             
             TimeSeries series = buildTimeSeriesFromMap(6000);
-
+            if(series == null){
+            	System.out.println(new Date() + "TimeSeries series = buildTimeSeriesFromMap(6000); return a null pointer");
+            	return; //If series is null, there is something wrong.
+            	}
             // Building the trading strategy
             Strategy longStrategy = buildLongStrategy(series);
             Strategy shortStrategy = buildShortStrategy(series);
@@ -140,7 +145,8 @@ public class TechinicalAnalyzer extends Thread{
             /**
              * We run the strategy for the 50 next ticks.
              */
-            while (true) {
+            while (true) 
+            {
 
                 // New tick
             	while(currencyContractHost.historicalBarMap.size() == 0 && !newTickAvailable){
@@ -209,8 +215,8 @@ public class TechinicalAnalyzer extends Thread{
 							lastProcessedtime = newTick.getEndTime().toDate();
 							
 			//                Tick newTick = generateRandomTick();
-			//                System.out.println("------------------------------------------------------\n"
-			//                        + "Tick "+ new Date() +" added, close price = " + newTick.getClosePrice().toDouble());
+			                System.out.println("-----------Techinical Analyzer " + currencyContractHost.symbol() + currencyContractHost.currency() + "------\n"
+			                        + "Tick "+ new Date() +" added, close price = " + newTick.getClosePrice().toDouble());
 			//                series.addTick(newTick);
 			                
 							
@@ -218,7 +224,7 @@ public class TechinicalAnalyzer extends Thread{
                 int endIndex = series.getEnd();
                 if (longStrategy.shouldEnter(endIndex)) {
                     // Our strategy should enter
-                    System.out.println(newTick.getSimpleDateName() + " Strategy should ENTER LONG on " + endIndex);
+                    System.out.println(new Date() + " Strategy should ENTER LONG on " + endIndex);
                     boolean entered = longtradingRecord.enter(endIndex, newTick.getClosePrice(), Decimal.TEN);
                     if (entered) {
                         Order entry = longtradingRecord.getLastEntry();
@@ -236,7 +242,7 @@ public class TechinicalAnalyzer extends Thread{
                     
                 } else if (longStrategy.shouldExit(endIndex)) {
                     // Our strategy should exit
-                    System.out.println(newTick.getSimpleDateName() + " Strategy should EXIT LONG on " + endIndex);
+                    System.out.println(new Date() + " Strategy should EXIT LONG on " + endIndex);
                     boolean exited = longtradingRecord.exit(endIndex, newTick.getClosePrice(), Decimal.TEN);
                     if (exited) {
                         Order exit = longtradingRecord.getLastExit();
@@ -257,7 +263,7 @@ public class TechinicalAnalyzer extends Thread{
                 endIndex = series.getEnd();
                 if (shortStrategy.shouldEnter(endIndex)) {
                     // Our strategy should enter
-                    System.out.println(newTick.getSimpleDateName() + " Strategy should ENTER SHORT on " + endIndex);
+                    System.out.println(new Date() + " Strategy should ENTER SHORT on " + endIndex);
                     boolean entered = shorttradingRecord.enter(endIndex, newTick.getClosePrice(), Decimal.TEN);
                     if (entered) {
                         Order entry = shorttradingRecord.getLastEntry();
@@ -273,7 +279,7 @@ public class TechinicalAnalyzer extends Thread{
                     
                 } else if (shortStrategy.shouldExit(endIndex)) {
                     // Our strategy should exit
-                    System.out.println(newTick.getSimpleDateName() + " Strategy should EXIT SHORT on " + endIndex);
+                    System.out.println(new Date() + " Strategy should EXIT SHORT on " + endIndex);
                     boolean exited = shorttradingRecord.exit(endIndex, newTick.getClosePrice(), Decimal.TEN);
                     if (exited) {
                         Order exit = shorttradingRecord.getLastExit();
@@ -345,10 +351,12 @@ public class TechinicalAnalyzer extends Thread{
 		boolean completed = false;
 		ArrayList<Tick> ticks = new ArrayList<Tick>();
 
+		Bar bar = null;
+		
 		for (Long key : keys){
-		Bar bar = currencyContractHost.historicalBarMap.get(key);
+		bar = currencyContractHost.historicalBarMap.get(key);
 		currencyContractHost.historicalBarMap.remove(key);
-		System.out.println(currencyContractHost.symbol() + currencyContractHost.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close() + " bar volume: " + bar.volume());
+//		System.out.println(currencyContractHost.symbol() + currencyContractHost.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close() + " bar volume: " + bar.volume());
 //		show(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
 //
 //		
@@ -368,7 +376,8 @@ public class TechinicalAnalyzer extends Thread{
 				}
 //				ticks = yearKeyMap.get(date.getYear());
 
-				
+				if(bar == null)
+					continue;
                 double open = bar.open();
                 double high = bar.high();
                 double low = bar.low();
@@ -378,6 +387,7 @@ public class TechinicalAnalyzer extends Thread{
                 ticks.add(tick);
                 
             }
+		System.out.println(currencyContractHost.symbol() + currencyContractHost.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close() + " bar volume: " + bar.volume());
 
 		if(ticks.isEmpty())
 			return null;
