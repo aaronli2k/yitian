@@ -17,6 +17,7 @@ import com.ib.client.Types.SecType;
 import com.ib.controller.Bar;
 
 
+
 public class Contract implements Cloneable {
     private int     m_conid;
     private String  m_symbol;
@@ -60,6 +61,8 @@ public Bar    getHistoricalBar(long time){
 	return historicalBarMap.get(time);
 }
     private MovingAverage sma = new MovingAverage(20);
+	public Double longMinSma = 0.0;
+	public Double longMaxSma = 0.0;
     
     // Get
     public double strike()          { return m_strike; }
