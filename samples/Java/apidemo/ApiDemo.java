@@ -39,6 +39,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 
+import org.joda.time.DateTime;
+
 import com.ib.client.CommissionReport;
 import com.ib.client.Contract;
 import com.ib.client.Execution;
@@ -863,7 +865,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		//if duration is longer than 30 minutes, take 3 bars.
 		//if duration is beblow 5 minutes. take 1 bar.
 		//If duration is bewtween 5 and 30, takes 2 bars.
-		TreeSet<Long> keys = new TreeSet<Long>(currentContract.historicalBarMap.keySet());
+		TreeSet<Long> keys = new TreeSet<Long>(currentContract.historical5MBarMap.keySet());
 		TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
 		Iterator<Long> iterator =  treereverse.iterator();
 		Integer counter = 0;
@@ -890,13 +892,13 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 		}else if(duration <= 60){ //If duration is less or euqual to 60 seconds. use 5 minutes bar high and low.
 			if(orderDetail.TradeMethod.equals("SELL")){
-				triggerPrice = currentContract.historicalBarMap.get(treereverse.first()).low() * (1 - TriggerPct / 100);
+				triggerPrice = currentContract.historical5MBarMap.get(treereverse.first()).low() * (1 - TriggerPct / 100);
 			}else {
-				triggerPrice = currentContract.historicalBarMap.get(treereverse.first()).high() * (1 + TriggerPct / 100);
+				triggerPrice = currentContract.historical5MBarMap.get(treereverse.first()).high() * (1 + TriggerPct / 100);
 			}			
 		}else if(duration <= 5 * 60){//If duration is 5 minutes, let's use last 10 minutes's high and low.
 			while(iterator.hasNext() && counter < 2){
-				Bar bar = currentContract.historicalBarMap.get(iterator.next());
+				Bar bar = currentContract.historical5MBarMap.get(iterator.next());
 				if(high < bar.high())
 					high = bar.high();
 				if(low > bar.low())
@@ -911,7 +913,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			}
 		}else if(duration <= 15 * 60){//If duration is 15 minutes, let's use last 30 minutes's high and low.
 			while(iterator.hasNext() && counter < 2){
-				Bar bar = currentContract.historicalBarMap.get(iterator.next());
+				Bar bar = currentContract.historical5MBarMap.get(iterator.next());
 				if(high < bar.high())
 					high = bar.high();
 				if(low > bar.low())
@@ -928,7 +930,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		else if(duration <= 30 * 60){//If duration is 30 minutes, let's use last 60 minutes's high and low.
 
 			while(iterator.hasNext() && counter < 2){
-				Bar bar = currentContract.historicalBarMap.get(iterator.next());
+				Bar bar = currentContract.historical5MBarMap.get(iterator.next());
 				if(high < bar.high())
 					high = bar.high();
 				if(low > bar.low())
@@ -944,7 +946,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 		}else{//If duration is longer than 30 minutes, let's use last 90 minutes's high and low.
 			while(iterator.hasNext() && counter < 2){
-				Bar bar = currentContract.historicalBarMap.get(iterator.next());
+				Bar bar = currentContract.historical5MBarMap.get(iterator.next());
 				if(high < bar.high())
 					high = bar.high();
 				if(low > bar.low())
@@ -1719,7 +1721,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 						//Check whether price information is valid or not.
 						System.out.println(orderDetail.Symbol + " BID price: " + contractMap.get(orderDetail.Symbol).getBidPrice() );
-						if(contractMap.get(orderDetail.Symbol).historicalBarMap.isEmpty() && (contractMap.get(orderDetail.Symbol).getAskPrice() == 0.0 || contractMap.get(orderDetail.Symbol).getBidPrice() == 0.0)){
+						if(contractMap.get(orderDetail.Symbol).historical5MBarMap.isEmpty() && (contractMap.get(orderDetail.Symbol).getAskPrice() == 0.0 || contractMap.get(orderDetail.Symbol).getBidPrice() == 0.0)){
 							System.out.println("Historical price map is empty: " + orderDetail.Date + orderDetail.Time + " " +orderDetail.Symbol);
 							continue;
 						}
@@ -1844,7 +1846,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					Contract currencyContract = contractMap.get(orderDetail.Symbol);
 
 					//If price information isn't available, just skip current order.
-					if(currencyContract.historicalBarMap.isEmpty() || currencyContract.getAskPrice() == 0.0 || currencyContract.getBidPrice() == 0.0)
+					if(currencyContract.historical5MBarMap.isEmpty() || currencyContract.getAskPrice() == 0.0 || currencyContract.getBidPrice() == 0.0)
 						continue;
 
 					//Adjust STop price according to actual open price and current market price.
@@ -2500,10 +2502,108 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			// TODO Auto-generated method stub
 			//			System.out.println(new Date() + " end of bar high: ");
 			System.out.println(new Date() + " Historical Data end: "+ m_currencyContract.symbol() + m_currencyContract.currency());
+			//Calculate 15m and hourly bar chart from 15 minutes bar.
+			calculate15MnHourBarFrom5MBarMap();
+		
 		}
+		
+		
+		void	calculate15MnHourBarFrom5MBarMap(){
+
+			TreeSet<Long> keys = new TreeSet<Long>(m_currencyContract.historical5MBarMap.keySet());
+			//		TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
+
+
+
+			Bar bar = null, new15MBar = null, newHourlyBar;
+			Calendar cal = Calendar.getInstance();
+
+			for (Long key : keys){
+				bar = m_currencyContract.historical5MBarMap.get(key);
+	//			m_currencyContract.historical5MBarMap.remove(key);
+
+				if(bar == null)
+					continue;		
+				
+				DateTime tickTime = new DateTime(bar.time() * 1000);
+				cal.setTime(tickTime.toDate());
+				cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 15));
+				
+					new15MBar = m_currencyContract.historical15MBarMap.get(cal.getTimeInMillis()/1000);			
+					new15MBar = calculateNewBarFrom5MBar(bar, new15MBar, 15);			
+					m_currencyContract.historical15MBarMap.put(new15MBar.time(), new15MBar);
+					
+					
+					tickTime = new DateTime(bar.time() * 1000);
+					cal.setTime(tickTime.toDate());
+					cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 60));
+					newHourlyBar = m_currencyContract.historicalHourBarMap.get(cal.getTimeInMillis()/1000);
+					newHourlyBar = calculateNewBarFrom5MBar(bar, newHourlyBar, 60);			
+					m_currencyContract.historicalHourBarMap.put(newHourlyBar.time(), newHourlyBar);	
+			}
+		}
+
+
+		Bar calculateNewBarFrom5MBar(Bar fiveMBar, Bar OldBarToUpdate, int duation){
+			
+
+			Bar newBar = null;
+			Calendar cal = Calendar.getInstance();
+
+			
+				if(fiveMBar == null)
+					return fiveMBar;
+				double open = fiveMBar.open();
+				double high = fiveMBar.high();
+				double low = fiveMBar.low();
+				double close = fiveMBar.close();
+				Long volume = fiveMBar.volume();
+				DateTime tickTime = new DateTime(fiveMBar.time() * 1000);
+				cal.setTime(tickTime.toDate());
+				cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % duation) );
+				if(OldBarToUpdate == null){
+					OldBarToUpdate = new Bar(cal.getTimeInMillis() / 1000, high, low, open, close, 0, volume, 0);		
+					return OldBarToUpdate;
+				}
+				
+				//Update previous hour's close and compare its high and low.
+				if(tickTime.getMinuteOfHour() % duation == 0){
+					cal.setTime(tickTime.toDate());
+					cal.add(Calendar.MINUTE, -1 * duation);
+					
+					
+						if(high < OldBarToUpdate.high())
+							high = OldBarToUpdate.high(); 
+						if(low > OldBarToUpdate.low())
+							low = OldBarToUpdate.low(); 
+						open = OldBarToUpdate.open();
+						close = fiveMBar.close();
+						newBar = new Bar(cal.getTimeInMillis() / 1000, high, low, open, close, 0, 0, 0);
+					}else{
+						if(high < OldBarToUpdate.high())
+							high = OldBarToUpdate.high(); 
+						if(low > OldBarToUpdate.low())
+							low = OldBarToUpdate.low(); 
+						open = OldBarToUpdate.open();
+						close = fiveMBar.close();
+						newBar = new Bar(cal.getTimeInMillis() / 1000, high, low, open, close, 0, 0, 0);
+					}
+					
+			
+			return newBar;
+
+
+			
+		}
+
+		
+		
 	};
 
 
+	
+	
+	
 	public void requestHistoricalBar(String endTime, Contract currencyContract, Boolean isFirstTime){
 		int length = 0;
 
@@ -2762,9 +2862,15 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 							//after we starts Historical bar request. Let's analyze it.
 							if(contractTechAnalyzerMap.containsKey(orderDetail.Symbol) == false){
-								TechinicalAnalyzer techAnalyzer = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap);
-								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer);
-								techAnalyzer.start();
+								TechinicalAnalyzer techAnalyzer60M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 60);
+//								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
+								techAnalyzer60M.start();
+								TechinicalAnalyzer techAnalyzer15M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 15);
+//								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
+								techAnalyzer15M.start();
+								TechinicalAnalyzer techAnalyzer5M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 5);
+								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer5M);
+								techAnalyzer5M.start();
 							}
 
 

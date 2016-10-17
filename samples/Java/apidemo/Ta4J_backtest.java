@@ -168,14 +168,14 @@ public class Ta4J_backtest  extends Thread{
 				e.printStackTrace();
 			}
 //			
-			TreeSet<Long> keys = new TreeSet<Long>(currencyContractHost.historicalBarMap.keySet());
+			TreeSet<Long> keys = new TreeSet<Long>(currencyContractHost.historical5MBarMap.keySet());
 			TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
 			boolean completed = false;
 			ticks = new ArrayList<Tick>();
 
 			for (Long key : treereverse){
-			Bar bar = currencyContractHost.historicalBarMap.get(key);
-			currencyContractHost.historicalBarMap.remove(key);
+			Bar bar = currencyContractHost.historical5MBarMap.get(key);
+			currencyContractHost.historical5MBarMap.remove(key);
 			System.out.println(currencyContractHost.symbol() + currencyContractHost.currency() + " time: " + bar.formattedTime()+ " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close() + " bar volume: " + bar.volume());
 
 
