@@ -1632,8 +1632,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					systemTimePlus1M = serverTimeCalendar.getTime();	
 					systemTimePlus2M = new Date(serverTimeCalendar.getTimeInMillis() + 50 * 1000);	
 
-					//Compare system time and order to make sure that we submit the order on time
-					if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime)){
+					//Compare system time and order to make sure that we submit the order on time or this is a market order which should be submitted immedietely
+					if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime) || orderDetail.EntryMethod.equals("MKT")){
 
 						boolean needToSubmit = true;
 						if(orderDetail.OCA == true){ //first is OCA is false. which is only a single order.
@@ -1733,7 +1733,14 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 
 						// Do something
-						if(orderDetail.TradeMethod.equals("BUY")){
+						if(orderDetail.EntryMethod.equals("MKT")){
+							if(orderDetail.TradeMethod.equals("CLOSE"))
+								closeCurrentLiveOrder(orderDetail);
+							else
+								placeMarketOrder(orderDetail);
+								
+						}
+						else if(orderDetail.TradeMethod.equals("BUY")){
 							if(orderDetail.EntryMethod.equals("STOP"))
 							{
 								//This is a new order
@@ -1789,10 +1796,36 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				}
 			}
 		}
+
+
 	}
 
 
+		private void closeCurrentLiveOrder(forex orderDetailIn) {
+			// TODO Auto-generated method stub
+			for(Entry<Integer, Order> entry : liveOrderMap.entrySet()){
 
+				//Guy, let's rest 500ms here
+				try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}   
+
+
+				Order order = entry.getValue();
+				forex orderDetail = null;
+				if(order != null)
+					orderDetail = orderHashMap.get(order.seqOrderNo()); 		
+				if(orderDetail == null)
+					continue;
+				Contract currencyContract = contractMap.get(orderDetail.Symbol);
+
+				if(orderDetail.Symbol.equals(orderDetailIn.Symbol))
+					adjustStopPrice(entry.getKey(), entry.getValue(), -0.1);
+			}
+		}
 
 
 	//TODO Auto-generated catch block
@@ -1850,7 +1883,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 						continue;
 
 					//Adjust STop price according to actual open price and current market price.
-					adjustStopPrice(entry.getKey(), entry.getValue());
+					adjustStopPrice(entry.getKey(), entry.getValue(), 0.15);
 
 
 					if(orderDetail != null){
@@ -1869,11 +1902,11 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				}
 			} 		
 		}    
+	}
 
 
 
-
-		private void adjustStopPrice(Integer orderId, Order order){
+		private void adjustStopPrice(Integer orderId, Order order, double Percent){
 			forex orderDetail;
 
 			//If current order is parent order, just return
@@ -1952,25 +1985,25 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					if(	currencyContract.longMaxSma > 0.0)
 						newStopPrice = currencyContract.longMaxSma;
 					else
-						newStopPrice = maPrice * (1 + 0.15/100);
+						newStopPrice = maPrice * (1 + Percent/100);
 				}
 				else if(maPrice < (openPrice * (1 - 0.2/100))){
 					if(	currencyContract.longMaxSma > 0.0)
 						newStopPrice = currencyContract.longMaxSma;
 					else						
-						newStopPrice = maPrice * (1 + 0.1/100);
+						newStopPrice = maPrice * (1 + Percent/100);
 				}
 				//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
 				else if(maPrice < (openPrice * (1 - 0.15/100))){
 					if(	currencyContract.longMaxSma > 0.0)
 						newStopPrice = currencyContract.longMaxSma;
 					else						
-						newStopPrice = openPrice * (1 - 0.01/100);
+						newStopPrice = openPrice * (1 - Percent/100);
 				}else{//defaul set stop price as 0.15 loss from current price
 					if(	currencyContract.longMaxSma > 0.0)
 						newStopPrice = currencyContract.longMaxSma;
 					else
-						newStopPrice = openPrice * (1 + 0.15/100);
+						newStopPrice = openPrice * (1 + Percent/100);
 				}
 				newStopPrice = fixDoubleDigi(newStopPrice);
 
@@ -1991,25 +2024,25 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					if(	currencyContract.longMinSma > 0.0)
 						newStopPrice = currencyContract.longMinSma;
 					else						
-						newStopPrice = maPrice * (1 - 0.15/100);
+						newStopPrice = maPrice * (1 - Percent/100);
 				}
 				else if(maPrice > (openPrice * (1 + 0.2/100))){
 					if(	currencyContract.longMinSma > 0.0)
 						newStopPrice = currencyContract.longMinSma;
 					else						
-						newStopPrice = maPrice * (1 - 0.1/100);
+						newStopPrice = maPrice * (1 - Percent/100);
 				}
 				//If current bid price 0.2 % is higher than actual price, adjust STOP price to actual open price 
 				else if(maPrice > (openPrice * (1 + 0.15/100))){
 					if(	currencyContract.longMinSma > 0.0)
 						newStopPrice = currencyContract.longMinSma;
 					else						
-						newStopPrice = openPrice * (1 + 0.01/100);
+						newStopPrice = openPrice * (1 + Percent/100);
 				}else{//defaul set stop price as  0.15 loss from current price
 					if(	currencyContract.longMinSma > 0.0)
 						newStopPrice = currencyContract.longMinSma;
 					else						
-						newStopPrice = openPrice * (1 - 0.15/100);
+						newStopPrice = openPrice * (1 - Percent/100);
 				}
 				newStopPrice = fixDoubleDigi(newStopPrice);
 
@@ -2032,7 +2065,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			//			submittedOrderHashMap.put(order.orderId(), order);
 
 		}
-		}
+	
 
 
 
@@ -2504,7 +2537,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			System.out.println(new Date() + " Historical Data end: "+ m_currencyContract.symbol() + m_currencyContract.currency());
 			//Calculate 15m and hourly bar chart from 15 minutes bar.
 			calculate15MnHourBarFrom5MBarMap();
-		
+			m_currencyContract.tickLatch60M.countDown();
+			
 		}
 		
 		
@@ -2531,7 +2565,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				
 					new15MBar = m_currencyContract.historical15MBarMap.get(cal.getTimeInMillis()/1000);			
 					new15MBar = calculateNewBarFrom5MBar(bar, new15MBar, 15);			
-					m_currencyContract.historical15MBarMap.put(new15MBar.time(), new15MBar);
+					new15MBar = m_currencyContract.historical15MBarMap.put(new15MBar.time(), new15MBar);
 					
 					
 					tickTime = new DateTime(bar.time() * 1000);
@@ -2539,7 +2573,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 60));
 					newHourlyBar = m_currencyContract.historicalHourBarMap.get(cal.getTimeInMillis()/1000);
 					newHourlyBar = calculateNewBarFrom5MBar(bar, newHourlyBar, 60);			
-					m_currencyContract.historicalHourBarMap.put(newHourlyBar.time(), newHourlyBar);	
+					newHourlyBar = m_currencyContract.historicalHourBarMap.put(newHourlyBar.time(), newHourlyBar);	
 			}
 		}
 
@@ -2729,7 +2763,6 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			ConcurrentHashMap<Long, forex> savedOrderHashMap = new ConcurrentHashMap<Long, forex>(orderHashMap);
 
 
-			//      Thread.currentThread().setPriority(Thread.MAX_PRIORITY - 1);      
 
 			// creating reverse set for order
 			TreeSet<Long> treeadd = new TreeSet<Long>(orderHashMap.keySet());
@@ -2865,12 +2898,18 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 								TechinicalAnalyzer techAnalyzer60M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 60);
 //								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
 								techAnalyzer60M.start();
+								techAnalyzer60M.setPriority(Thread.NORM_PRIORITY +3);      
+
 								TechinicalAnalyzer techAnalyzer15M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 15);
 //								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
 								techAnalyzer15M.start();
+								techAnalyzer15M.setPriority(Thread.NORM_PRIORITY + 2);      
+
 								TechinicalAnalyzer techAnalyzer5M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 5);
 								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer5M);
 								techAnalyzer5M.start();
+								techAnalyzer5M.setPriority(Thread.NORM_PRIORITY + 1);      
+
 							}
 
 

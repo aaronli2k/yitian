@@ -90,7 +90,7 @@ public class TechinicalAnalyzer extends Thread{
 	private String currentTechnicalSignal;
 
 	private int durationHost = 0;
-	private final int TICK_LIMIT = 5000;
+	private int TICK_LIMIT = 5000;
 
 	final SimpleDateFormat DATEOnly_FORMAT = new SimpleDateFormat("yyyyMMdd");
 	final SimpleDateFormat TIMEOnly_FORMAT = new SimpleDateFormat("HH:mm:ss");
@@ -107,14 +107,18 @@ public class TechinicalAnalyzer extends Thread{
 		if(duration  == 5){
 			barHashMap = currencyContract.historical5MBarMap;
 			currentTechnicalSignal = currencyContract.m_currentTechnicalSignal5M;
+			TICK_LIMIT = 5000;
 			}
 		else if(duration  == 15){
 			barHashMap = currencyContract.historical15MBarMap;
 			currentTechnicalSignal = currencyContract.m_currentTechnicalSignal15M;
+			TICK_LIMIT = 2000;
+
 		}
 		else if(duration  == 60){
 			barHashMap = currencyContract.historicalHourBarMap;
 			currentTechnicalSignal = currencyContract.m_currentTechnicalSignal60M;
+			TICK_LIMIT = 600;
 		
 		}
 		System.out.println("**********************Techinical Analyzer for " +currencyContract.symbol() + currencyContract.currency() + duration +  " minutes Initialization **********************");
@@ -138,7 +142,18 @@ public class TechinicalAnalyzer extends Thread{
 			//            barHashMap = ticksAccess.readFromCsv("NZDUSD_ticks_history_2007_to_2016.csv");
 			//			ticksAccess.start();
 
-			while(currencyContractHost.historical5MBarMap.size() < TICK_LIMIT){
+			//while(currencyContractHost.historical5MBarMap.size() < TICK_LIMIT)
+			{
+				try {
+					{
+						currencyContractHost.tickLatch60M.await();
+						currencyContractHost.tickLatch60M.reset();
+					}
+					
+				} catch (InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 				double randomWait = Math.random() * ( 60 - 30 );
 				try {
 					Thread.sleep((long) (1000));
@@ -194,13 +209,15 @@ public class TechinicalAnalyzer extends Thread{
 			TradingRecord shorttradingRecord = new TradingRecord();
 
 			System.out.println("************************************************************");
-
+			
 			/**
 			 * We run the strategy for the 50 next ticks.
 			 */
 			while (true) 
 			{
 
+				{
+					
 				// wait for New tick
 				while(barHashMap.size() == 0 && !newTickAvailable){
 					try {
@@ -209,8 +226,8 @@ public class TechinicalAnalyzer extends Thread{
 						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
-				}
-
+				}}
+				
 
 
 
@@ -221,6 +238,12 @@ public class TechinicalAnalyzer extends Thread{
 
 				while(newTickAvailable == false)
 				{
+					try {
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 					SortedSet<Long> keys = new TreeSet<Long>(barHashMap.keySet());
 					//								TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
 
@@ -231,7 +254,7 @@ public class TechinicalAnalyzer extends Thread{
 
 						//If last acquired time is before this tick time, which means this data is acquired and should be abandoned.
 						if(lastProcessedtime.compareTo(new Date(bar.time() * 1000)) >= 0){
-							barHashMap.remove(key);
+	//						barHashMap.remove(key);
 							continue;
 						}
 
@@ -253,7 +276,7 @@ public class TechinicalAnalyzer extends Thread{
 
 				//                Tick newTick = generateRandomTick();
 				System.out.println("-----------Techinical Analyzer " + currencyContractHost.symbol() + currencyContractHost.currency() + "------\n"
-						+ "Tick "+ new Date() +" added, close price = " + newTick.getClosePrice().toDouble());
+						+ "Tick "+ newTick.getDateName() +" added, close price = " + newTick.getClosePrice().toDouble());
 				//                series.addTick(newTick);
 
 
@@ -261,17 +284,17 @@ public class TechinicalAnalyzer extends Thread{
 				int endIndex = series.getEnd();
 
 
-				                System.out.println(new Date().toString() + " "  + durationHost + " minutes" + "------Techinical Analyzer begin" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
-				                System.out.println(new Date() + "Closed Price: " + closePrice.getValue(endIndex));
-				                System.out.println(new Date() + "5 minutes SMA 5: " + shortSma.getValue(endIndex));
-				                System.out.println(new Date() + "5 minutes SMA 10: " + longSma.getValue(endIndex));
-				                System.out.println(new Date() + "hourly SMA 5: " + shortSmaHourly.getValue(endIndex));
-				                System.out.println(new Date() + "hourly SMA 10: " + longSmaHourly.getValue(endIndex));
-				                System.out.println(new Date() + "5 minutes RSI: " + rsi.getValue(endIndex));
-				                System.out.println(new Date() + "5 minutes Stoch K: " + sof.getValue(endIndex) + " D: " + sos.getValue(endIndex));
-				                System.out.println(new Date() + " Stoch K corss down D  is " + new CrossedDownIndicatorRule(sof, sos).isSatisfied(endIndex));
-				                System.out.println(new Date() + " Stoch K under D  is " + new UnderIndicatorRule(sof, sos).isSatisfied(endIndex));
-				                System.out.println(new Date().toString()+ " " + durationHost + " minutes" +  "-----Techinical Analyzer end" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
+				                System.out.println(series.getLastTick().getDateName() + " "  + durationHost + " minutes" + "------Techinical Analyzer begin" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
+				                System.out.println(series.getLastTick().getDateName() + "Closed Price: " + closePrice.getValue(endIndex));
+				                System.out.println(series.getLastTick().getDateName() + "5 minutes SMA 5: " + shortSma.getValue(endIndex));
+				                System.out.println(series.getLastTick().getDateName() + "5 minutes SMA 10: " + longSma.getValue(endIndex));
+				                System.out.println(series.getLastTick().getDateName() + "hourly SMA 5: " + shortSmaHourly.getValue(endIndex));
+				                System.out.println(series.getLastTick().getDateName() + "hourly SMA 10: " + longSmaHourly.getValue(endIndex));
+				                System.out.println(series.getLastTick().getDateName() + "5 minutes RSI: " + rsi.getValue(endIndex));
+				                System.out.println(series.getLastTick().getDateName() + "5 minutes Stoch K: " + sof.getValue(endIndex) + " D: " + sos.getValue(endIndex));
+				                System.out.println(series.getLastTick().getDateName() + " Stoch K corss down D  is " + new CrossedDownIndicatorRule(sof, sos).isSatisfied(endIndex));
+				                System.out.println(series.getLastTick().getDateName() + " Stoch K under D  is " + new UnderIndicatorRule(sof, sos).isSatisfied(endIndex));
+				                System.out.println(series.getLastTick().getDateName().toString()+ " " + durationHost + " minutes" +  "-----Techinical Analyzer end" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
 
 				currencyContractHost.longMinSma = longMinSma.getValue(endIndex).toDouble();
 				currencyContractHost.longMaxSma = longMaxSma.getValue(endIndex).toDouble();
@@ -279,7 +302,7 @@ public class TechinicalAnalyzer extends Thread{
 				
 				if (longStrategy.shouldEnter(endIndex)) {
 					// Our strategy should enter
-					System.out.println(new Date() + " " + durationHost + " minutes Strategy should ENTER LONG on " + endIndex);
+					System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes Strategy should ENTER LONG on " + endIndex);
 					boolean entered = longtradingRecord.enter(endIndex, newTick.getClosePrice(), Decimal.TEN);
 					if (entered) {
 						Order entry = longtradingRecord.getLastEntry();
@@ -288,21 +311,35 @@ public class TechinicalAnalyzer extends Thread{
 						+ ", amount=" + entry.getAmount().toDouble() + ")");
 					}
 
-					if(durationHost == 5)
+					if(durationHost == 5){
 						currencyContractHost.m_currentTechnicalSignal5M = "UP";
-					else if(durationHost == 15)
+					}
+					else if(durationHost == 15){
+						if(currencyContractHost.m_currentTechnicalSignal15M.equals("UP"))
+							continue;
+						{
 							currencyContractHost.m_currentTechnicalSignal15M = "UP";
-					else if(durationHost == 60)
-						currencyContractHost.m_currentTechnicalSignal60M = "UP";
+//							currencyContractHost.m_currentTechnicalSignal5M = "";
+						}
+					}
+					else if(durationHost == 60){
+						if(currencyContractHost.m_currentTechnicalSignal60M.equals("UP"))
+							continue;
+						{
+							currencyContractHost.m_currentTechnicalSignal60M = "UP";
+//							currencyContractHost.m_currentTechnicalSignal15M = "";
+//							currencyContractHost.m_currentTechnicalSignal5M = "";
+						}
+					}
 					
 					ContractHashMapHost.put(currencyContractHost.symbol() + currencyContractHost.currency(), currencyContractHost);
 
-//					placeTestMarketOrder("BUY");
+//					
 
 
 				} else if (longStrategy.shouldExit(endIndex)) {
 					// Our strategy should exit
-					System.out.println(new Date() + " " + durationHost + " minutes  Strategy should EXIT LONG on " + endIndex);
+					System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should EXIT LONG on " + endIndex);
 					boolean exited = longtradingRecord.exit(endIndex, newTick.getClosePrice(), Decimal.TEN);
 					if (exited) {
 						Order exit = longtradingRecord.getLastExit();
@@ -311,12 +348,28 @@ public class TechinicalAnalyzer extends Thread{
 						+ ", amount=" + exit.getAmount().toDouble() + ")");
 					}
 
-					if(durationHost == 5)
+					if(durationHost == 5){
 						currencyContractHost.m_currentTechnicalSignal5M = "DOWN";
-					else if(durationHost == 15)
+//						placeTestMarketOrder("BUY");
+					}
+					else if(durationHost == 15){
+						if(currencyContractHost.m_currentTechnicalSignal15M.equals("DOWN"))
+							continue;
+						{
 							currencyContractHost.m_currentTechnicalSignal15M = "DOWN";
-					else if(durationHost == 60)
-						currencyContractHost.m_currentTechnicalSignal60M = "DOWN";
+//							currencyContractHost.m_currentTechnicalSignal5M = "";
+						}
+					}
+					else if(durationHost == 60){
+						if(currencyContractHost.m_currentTechnicalSignal60M.equals("DOWN"))
+							continue;
+						{
+							currencyContractHost.m_currentTechnicalSignal60M = "DOWN";
+//							currencyContractHost.m_currentTechnicalSignal15M = "";
+//							currencyContractHost.m_currentTechnicalSignal5M = "";
+						}
+
+					}
 					
 					ContractHashMapHost.put(currencyContractHost.symbol() + currencyContractHost.currency(), currencyContractHost);
 //					placeTestMarketOrder("CLOSE");
@@ -329,7 +382,7 @@ public class TechinicalAnalyzer extends Thread{
 				endIndex = series.getEnd();
 				if (shortStrategy.shouldEnter(endIndex)) {
 					// Our strategy should enter
-					System.out.println(new Date() + " " + durationHost + " minutes  Strategy should ENTER SHORT on " + endIndex);
+					System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should ENTER SHORT on " + endIndex);
 					boolean entered = shorttradingRecord.enter(endIndex, newTick.getClosePrice(), Decimal.TEN);
 					if (entered) {
 						Order entry = shorttradingRecord.getLastEntry();
@@ -338,19 +391,37 @@ public class TechinicalAnalyzer extends Thread{
 						+ ", amount=" + entry.getAmount().toDouble() + ")");
 					}
 
-					if(durationHost == 5)
+					if(durationHost == 5){
 						currencyContractHost.m_currentTechnicalSignal5M = "DOWN";
-					else if(durationHost == 15)
+//						placeTestMarketOrder("BUY");
+					}
+					else if(durationHost == 15){
+						if(currencyContractHost.m_currentTechnicalSignal15M.equals("DOWN"))
+							continue;
+						{
 							currencyContractHost.m_currentTechnicalSignal15M = "DOWN";
-					else if(durationHost == 60)
-						currencyContractHost.m_currentTechnicalSignal60M = "DOWN";
+//							currencyContractHost.m_currentTechnicalSignal5M = "";
+						}
+					}
+					else if(durationHost == 60){
+						if(currencyContractHost.m_currentTechnicalSignal60M.equals("DOWN"))
+						continue;
+						{
+							currencyContractHost.m_currentTechnicalSignal60M = "DOWN";
+//							currencyContractHost.m_currentTechnicalSignal15M = "";
+//							currencyContractHost.m_currentTechnicalSignal5M = "";
+						}
+
+					}
+					
+
 					ContractHashMapHost.put(currencyContractHost.symbol() + currencyContractHost.currency(), currencyContractHost);
 //					placeTestMarketOrder("SELL");
 
 
 				} else if (shortStrategy.shouldExit(endIndex)) {
 					// Our strategy should exit
-					System.out.println(new Date() + " " + durationHost + " minutes  Strategy should EXIT SHORT on " + endIndex);
+					System.out.println(series.getLastTick().getSimpleDateName() + " " + durationHost + " minutes  Strategy should EXIT SHORT on " + endIndex);
 					boolean exited = shorttradingRecord.exit(endIndex, newTick.getClosePrice(), Decimal.TEN);
 					if (exited) {
 						Order exit = shorttradingRecord.getLastExit();
@@ -359,18 +430,69 @@ public class TechinicalAnalyzer extends Thread{
 						+ ", amount=" + exit.getAmount().toDouble() + ")");
 					}
 
-					if(durationHost == 5)
+
+					if(durationHost == 5){
 						currencyContractHost.m_currentTechnicalSignal5M = "UP";
-					else if(durationHost == 15)
+//						placeTestMarketOrder("BUY");
+					}
+					else if(durationHost == 15){
+						if(currencyContractHost.m_currentTechnicalSignal15M.equals("DOWN")){
 							currencyContractHost.m_currentTechnicalSignal15M = "UP";
-					else if(durationHost == 60)
-						currencyContractHost.m_currentTechnicalSignal60M = "UP";
+//							currencyContractHost.m_currentTechnicalSignal5M = "";
+						}
+					}
+					else if(durationHost == 60){
+						if(currencyContractHost.m_currentTechnicalSignal15M.equals("DOWN")){
+							currencyContractHost.m_currentTechnicalSignal60M = "UP";
+//							currencyContractHost.m_currentTechnicalSignal15M = "";
+//							currencyContractHost.m_currentTechnicalSignal5M = "";
+						}
+
+					}
+					
+
 					ContractHashMapHost.put(currencyContractHost.symbol() + currencyContractHost.currency(), currencyContractHost);
 
 //					placeTestMarketOrder("CLOSE");
 
 				}
 
+				apiDemoHost.show(series.getLastTick().getDateName() + " "  + durationHost + " minutes" + "------Techinical Analyzer begin" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
+				apiDemoHost.show(series.getLastTick().getDateName() + " " + " m_currentTechnicalSignal60M " + currencyContractHost.m_currentTechnicalSignal60M);
+				apiDemoHost.show(series.getLastTick().getDateName() + " " + " m_currentTechnicalSignal15M " + currencyContractHost.m_currentTechnicalSignal15M);
+				apiDemoHost.show(series.getLastTick().getDateName() + " " + " m_currentTechnicalSignal5M " + currencyContractHost.m_currentTechnicalSignal5M);
+
+				System.out.println(series.getLastTick().getDateName() + " "  + durationHost + " minutes" + "------Techinical Analyzer begin" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
+				System.out.println(series.getLastTick().getDateName() + " " + " m_currentTechnicalSignal60M " + currencyContractHost.m_currentTechnicalSignal60M);
+				System.out.println(series.getLastTick().getDateName() + " " + " m_currentTechnicalSignal15M " + currencyContractHost.m_currentTechnicalSignal15M);
+				System.out.println(series.getLastTick().getDateName() + " " + " m_currentTechnicalSignal5M " + currencyContractHost.m_currentTechnicalSignal5M);
+
+				//If processed tick is ealier, don't submit the order.
+				if(new Date().after(series.getLastTick().getEndTime().toDate()))
+					continue;
+				
+				if(currencyContractHost.m_currentTechnicalSignal60M.equals("UP") && currencyContractHost.m_currentTechnicalSignal15M.equals("UP") && currencyContractHost.m_currentTechnicalSignal5M.equals("UP")){
+					placeTestMarketOrder("BUY");
+				}else if(currencyContractHost.m_currentTechnicalSignal60M.equals("DOWN") && currencyContractHost.m_currentTechnicalSignal15M.equals("DOWN") && currencyContractHost.m_currentTechnicalSignal5M.equals("DOWN")){
+					placeTestMarketOrder("SELL");}
+				else if(currencyContractHost.m_currentTechnicalSignal60M.equals("DOWN") && currencyContractHost.m_currentTechnicalSignal15M.equals("UP")){
+						placeTestMarketOrder("CLOSE");	}
+				else if(currencyContractHost.m_currentTechnicalSignal60M.equals("UP") && currencyContractHost.m_currentTechnicalSignal15M.equals("DOWN")){
+						placeTestMarketOrder("CLOSE");	}
+				
+				
+				if(durationHost == 60){
+	//				currencyContractHost.tickLatch60M.countDown();
+					currencyContractHost.tickLatch15M.countDown();
+				}
+				else if(durationHost == 15)
+					currencyContractHost.tickLatch5M.countDown();
+				else if(durationHost == 5)
+					currencyContractHost.tickLatch60M.countDown();
+	//				currencyContractHost.tickLatch5M.countDown();
+				
+				
+				
 				//              SimpleDateFormat formatter = new SimpleDateFormat("yyyy");
 				//            	try {
 				//					if((formatter.parse("2015")).compareTo(new Date(bar.time() * 1000)) <= 0){
@@ -432,13 +554,22 @@ public class TechinicalAnalyzer extends Thread{
 		ArrayList<Tick> ticks = new ArrayList<Tick>();
 
 		Bar bar = null;
-
+		Calendar cal = Calendar.getInstance();
+		
+		//Let's keep 1 day data to process
+		cal.add(Calendar.HOUR, -24);
+		
 		for (Long key : keys){
 			bar = barHashMap.get(key);
 			barHashMap.remove(key);
 
 			if(bar == null)
 				continue;
+			
+			//Let's keep 1 day data to process
+			if(new DateTime(bar.time() * 1000).toDate().after(cal.getTime()))
+				break;
+			
 			double open = bar.open();
 			double high = bar.high();
 			double low = bar.low();
@@ -466,7 +597,7 @@ public class TechinicalAnalyzer extends Thread{
 	 * @param series a time series
 	 * @return a dummy strategy
 	 */
-	private static Strategy buildLongStrategy(TimeSeries series) {
+	private Strategy buildLongStrategy(TimeSeries series) {
 		if (series == null) {
 			throw new IllegalArgumentException("Series cannot be null");
 		}
@@ -504,21 +635,36 @@ public class TechinicalAnalyzer extends Thread{
 		// We want to buy:
 		//  - if the 5-ticks SMA crosses over 10-ticks SMA
 		//  - and if the K(sof) goes above D(sos)
-		Rule buyingRule = ( new OverIndicatorRule(shortSma, longSma).or(new OverIndicatorRule(closePrice, shortSma)))
+		Rule buyingRule = null;
+		if(durationHost == 5){
+		 buyingRule = ( new CrossedUpIndicatorRule(shortSma, longSma).or(new CrossedUpIndicatorRule(closePrice, shortSma)))
 				.and( new OverIndicatorRule(sof, sos))
 				.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 				.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
-
+		}else{
+			 buyingRule = ( new OverIndicatorRule(shortSma, longSma).or(new OverIndicatorRule(closePrice, shortSma)))
+			.and( new OverIndicatorRule(sof, sos))
+			.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
+			.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
+	}
 
 		// Selling rules
 		// We want to sell:
 		//  - if the 5-ticks SMA crosses under 30-ticks SMA
 		//  - or if if the price looses more than 3%
 		//  - or if the price earns more than 2%
-		Rule sellingRule = (new CrossedDownIndicatorRule(shortSma, longSma).or(new UnderIndicatorRule(closePrice, shortSma)))
-				.and(new UnderIndicatorRule(sof, sos))
+		Rule sellingRule = null;
+		if(durationHost == 5){
+			sellingRule = ( new CrossedDownIndicatorRule(shortSma, longSma).or(new CrossedDownIndicatorRule(closePrice, shortSma)))
+				.and( new UnderIndicatorRule(sof, sos))
 				.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
-				.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));;
+				.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
+		}else{
+			sellingRule = ( new OverIndicatorRule(shortSma, longSma).or(new OverIndicatorRule(closePrice, shortSma)))
+			.and( new UnderIndicatorRule(sof, sos))
+			.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
+			.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
+	}
 
 		// Running our juicy trading strategy...
 		//     TradingRecord tradingRecord = series.run(new Strategy(buyingRule, sellingRule));        
@@ -536,7 +682,7 @@ public class TechinicalAnalyzer extends Thread{
 	 * @param series a time series
 	 * @return a dummy strategy
 	 */
-	private static Strategy buildShortStrategy(TimeSeries series) {
+	private Strategy buildShortStrategy(TimeSeries series) {
 		if (series == null) {
 			throw new IllegalArgumentException("Series cannot be null");
 		}
@@ -578,21 +724,37 @@ public class TechinicalAnalyzer extends Thread{
 		// We want to buy:
 		//  - if the 5-ticks SMA crosses over 30-ticks SMA
 		//  - and if the K(sof) goes above D(sos)
-		Rule buyingRule = ( new OverIndicatorRule(shortSma, longSma).or(new OverIndicatorRule(closePrice, shortSma)))
+		Rule buyingRule = null;
+		if(durationHost == 5){
+		 buyingRule = ( new CrossedUpIndicatorRule(shortSma, longSma).or(new CrossedUpIndicatorRule(closePrice, shortSma)))
 				.and( new OverIndicatorRule(sof, sos))
 				.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 				.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
-
+		}else{
+			 buyingRule = ( new OverIndicatorRule(shortSma, longSma).or(new OverIndicatorRule(closePrice, shortSma)))
+			.and( new OverIndicatorRule(sof, sos))
+			.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
+			.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
+	}
 
 		// Selling rules
 		// We want to sell:
 		//  - if the 5-ticks SMA crosses under 30-ticks SMA
 		//  - or if if the price looses more than 3%
 		//  - or if the price earns more than 2%
-		Rule sellingRule = (new CrossedDownIndicatorRule(shortSma, longSma).or(new UnderIndicatorRule(closePrice, shortSma)))
-				.and(new UnderIndicatorRule(sof, sos))
+		Rule sellingRule = null;
+		if(durationHost == 5){
+			sellingRule = ( new CrossedDownIndicatorRule(shortSma, longSma).or(new CrossedDownIndicatorRule(closePrice, shortSma)))
+				.and( new UnderIndicatorRule(sof, sos))
 				.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
-				.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));;
+				.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
+		}else{
+			sellingRule = ( new OverIndicatorRule(shortSma, longSma).or(new OverIndicatorRule(closePrice, shortSma)))
+			.and( new UnderIndicatorRule(sof, sos))
+			.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
+			.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
+	}
+
 
 		// Running our juicy trading strategy...
 		//     TradingRecord tradingRecord = series.run(new Strategy(buyingRule, sellingRule));        
@@ -632,9 +794,9 @@ public class TechinicalAnalyzer extends Thread{
 		while(orderHashMapHost.containsKey(orderDetail.orderSeqNo)){
 			orderDetail.orderSeqNo++;
 		}
-		      orderHashMapHost.put(orderDetail.orderSeqNo, orderDetail);
+		orderHashMapHost.put(orderDetail.orderSeqNo, orderDetail);
 		//       
-//		       apiDemoHost.placeMarketOrder(orderDetail);
+//	       apiDemoHost.placeMarketOrder(orderDetail);
 
 
 //		currencyContractHost.m_currentTechnicalSignal = action;

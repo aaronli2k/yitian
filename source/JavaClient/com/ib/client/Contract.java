@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
 import com.ib.client.Types.Action;
 import com.ib.client.Types.Right;
@@ -47,18 +48,29 @@ public class Contract implements Cloneable {
     private double m_openPrice = 0.0;
     private double m_smaPrice = 0.0;
     
-    public String m_currentTechnicalSignal = "None";
-    
+    public String m_currentTechnicalSignal5M = "None";
+    public String m_currentTechnicalSignal15M = "None";
+    public String m_currentTechnicalSignal60M = "None";
+
+
     public double m_maxPrice = 0.0;
     public double m_minPrice = 0.0;
-    public ConcurrentHashMap<Long, Bar> historicalBarMap = new ConcurrentHashMap<Long, Bar>();
+    public ConcurrentHashMap<Long, Bar> historical5MBarMap = new ConcurrentHashMap<Long, Bar>();
+    public ConcurrentHashMap<Long, Bar> historical15MBarMap = new ConcurrentHashMap<Long, Bar>();
+    public ConcurrentHashMap<Long, Bar> historicalHourBarMap = new ConcurrentHashMap<Long, Bar>();
+
+    public utility.ResettableCountDownLatch tickLatch60M = new utility.ResettableCountDownLatch(1);
+    public utility.ResettableCountDownLatch tickLatch15M = new utility.ResettableCountDownLatch(1);
+    public utility.ResettableCountDownLatch tickLatch5M = new utility.ResettableCountDownLatch(1);
+
     
-public void    putHistoricalBar(long time, Bar historicalBar){
-	historicalBarMap.put(time, historicalBar);
+
+    public void    putHistoricalBar(long time, Bar historicalBar){
+	historical5MBarMap.put(time, historicalBar);
 }
 
 public Bar    getHistoricalBar(long time){
-	return historicalBarMap.get(time);
+	return historical5MBarMap.get(time);
 }
     private MovingAverage sma = new MovingAverage(20);
 	public Double longMinSma = 0.0;
