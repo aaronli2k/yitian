@@ -2749,6 +2749,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		double lmtPrice = 0.0;
 		int counter = 0;
 		ExecutionFilter exeFilterReport = new ExecutionFilter();
+		private TechinicalAnalyzerTrader techAnalyzer60M;
 
 
 		public void run() {
@@ -2893,22 +2894,24 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 							orderDateStr = formatter.format(new Date());
 							requestHistoricalBar(orderDateStr, contractMap.get(orderDetail.Symbol), isHistoryReqFirstTime);
 
+
+							
 							//after we starts Historical bar request. Let's analyze it.
-							if(contractTechAnalyzerMap.containsKey(orderDetail.Symbol) == false){
-								TechinicalAnalyzer techAnalyzer60M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 60);
+							if(techAnalyzer60M == null){
+								techAnalyzer60M = new TechinicalAnalyzerTrader(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap);
 //								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
 								techAnalyzer60M.start();
-								techAnalyzer60M.setPriority(Thread.NORM_PRIORITY +3);      
+//								techAnalyzer60M.setPriority(Thread.NORM_PRIORITY +3);      
 
-								TechinicalAnalyzer techAnalyzer15M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 15);
-//								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
-								techAnalyzer15M.start();
-								techAnalyzer15M.setPriority(Thread.NORM_PRIORITY + 2);      
-
-								TechinicalAnalyzer techAnalyzer5M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 5);
-								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer5M);
-								techAnalyzer5M.start();
-								techAnalyzer5M.setPriority(Thread.NORM_PRIORITY + 1);      
+//								TechinicalAnalyzer techAnalyzer15M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 15);
+////								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
+//								techAnalyzer15M.start();
+//								techAnalyzer15M.setPriority(Thread.NORM_PRIORITY + 2);      
+//
+//								TechinicalAnalyzer techAnalyzer5M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 5);
+//								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer5M);
+//								techAnalyzer5M.start();
+//								techAnalyzer5M.setPriority(Thread.NORM_PRIORITY + 1);      
 
 							}
 

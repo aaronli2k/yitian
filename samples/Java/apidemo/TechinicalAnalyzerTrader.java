@@ -85,34 +85,34 @@ public class TechinicalAnalyzerTrader extends Thread{
 	private ApiDemo apiDemoHost;
 	private boolean newTickAvailable;
 	private ConcurrentHashMap<Long, forex> orderHashMapHost;
-	private ConcurrentHashMap<String, Contract> ContractHashMapHost;
+	private ConcurrentHashMap<String, Contract> contractHashMapHost;
 	private final int TICK_LIMIT = 5000;
+	
 
 	final SimpleDateFormat DATEOnly_FORMAT = new SimpleDateFormat("yyyyMMdd");
 	final SimpleDateFormat TIMEOnly_FORMAT = new SimpleDateFormat("HH:mm:ss");
-	private ConcurrentHashMap<Long, Bar> barHashMap;
-	private String currentTechnicalSignal;
+	private ConcurrentHashMap<Long, Bar> shortBarHashMap, mediumBarHashMap, longBarHashMap;
+	private String shortTechnicalSignal, mediumTechnicalSignal, longTechnicalSignal;
+  
 
 
-
-	public TechinicalAnalyzerTrader(ApiDemo apiDemo, Contract currencyContract, ConcurrentHashMap<String, Contract> contractHashMap , ConcurrentHashMap<Long, forex> orderHashMap, int duration){
+	public TechinicalAnalyzerTrader(ApiDemo apiDemo, Contract currencyContract, ConcurrentHashMap<String, Contract> contractHashMap , ConcurrentHashMap<Long, forex> orderHashMap){
 		currencyContractHost = currencyContract;
 		apiDemoHost = apiDemo;
 		orderHashMapHost = orderHashMap;
-		ContractHashMapHost = contractHashMap;
-		if(duration  == 5){
-			barHashMap = currencyContract.historical5MBarMap;
-			currentTechnicalSignal = currencyContract.m_currentTechnicalSignal5M;
-			}
-		else if(duration  == 15){
-			barHashMap = currencyContract.historical15MBarMap;
-			currentTechnicalSignal = currencyContract.m_currentTechnicalSignal15M;
-		}
-		else if(duration  == 60){
-			barHashMap = currencyContract.historicalHourBarMap;
-			currentTechnicalSignal = currencyContract.m_currentTechnicalSignal60M;
+		contractHashMapHost = contractHashMap;
 		
-		}
+		shortBarHashMap = currencyContract.historical5MBarMap;
+		mediumBarHashMap = currencyContract.historical15MBarMap;
+		longBarHashMap = currencyContract.historicalHourBarMap;
+		
+		shortTechnicalSignal = currencyContract.m_currentTechnicalSignal5M;
+		
+		mediumTechnicalSignal = currencyContract.m_currentTechnicalSignal15M;
+	
+		longTechnicalSignal = currencyContract.m_currentTechnicalSignal60M;
+		
+	
 		System.out.println("**********************Techinical Analyzer Trader for " +currencyContract.symbol() + currencyContract.currency() + " Initialization **********************");
 
 	}
@@ -122,7 +122,24 @@ public class TechinicalAnalyzerTrader extends Thread{
 
 		Tick newTick  = null;
 		Bar bar = null;
-		while(true)
+		Tick lastLongTick = null;
+		Tick lastMediumTick = null;
+		Tick lastShortTick = null;
+		
+		TechinicalAnalyzer techAnalyzerLong = new TechinicalAnalyzer(ApiDemo.INSTANCE, currencyContractHost,contractHashMapHost, orderHashMapHost, 60, longBarHashMap, 800);
+		
+		TechinicalAnalyzer techAnalyzerMedium = new TechinicalAnalyzer(ApiDemo.INSTANCE, currencyContractHost,contractHashMapHost, orderHashMapHost, 15, mediumBarHashMap, 2000);
+
+	  
+
+	TechinicalAnalyzer techAnalyzerShort = new TechinicalAnalyzer(ApiDemo.INSTANCE, currencyContractHost,contractHashMapHost, orderHashMapHost, 5, shortBarHashMap, 5000);
+
+	
+   
+		
+		
+		
+	//	while(true)
 		{
 
 
@@ -134,54 +151,24 @@ public class TechinicalAnalyzerTrader extends Thread{
 			//            currencyContractHost.historicalBarMap = ticksAccess.readFromCsv("NZDUSD_ticks_history_2007_to_2016.csv");
 			//			ticksAccess.start();
 
-			while(barHashMap.size() < TICK_LIMIT){
-				double randomWait = Math.random() * ( 60 - 30 );
-				try {
-					Thread.sleep((long) (1000));
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} // I know...
-				//           	currencyContractHost.historicalBarMap.notify();
+			try {
+				{
+					currencyContractHost.tickLatch60M.await();
+					currencyContractHost.tickLatch60M.reset();
+				}
+				
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
 			}
 
+			lastLongTick = techAnalyzerLong.initDB();
+			lastMediumTick = techAnalyzerMedium.initDB();
+			lastShortTick = techAnalyzerShort.initDB();
+//			shortBarHashMap.clear();
+//			mediumBarHashMap.clear();
+//			longBarHashMap.clear();
 			
-			
-			TimeSeries series = buildTimeSeriesFromMap(TICK_LIMIT);
-			if(series == null){
-				System.out.println(new Date() + "TimeSeries series = buildTimeSeriesFromMap(TICK_LIMIT); return a null pointer");
-				return; //If series is null, there is something wrong.
-			}
-			// Building the trading strategy
-			Strategy longStrategy = buildLongStrategy(series);
-			Strategy shortStrategy = buildShortStrategy(series);
-
-			ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
-
-			// Getting the simple moving average (SMA) of the close price over the last 5 ticks
-			SMAIndicator shortSma = new SMAIndicator(closePrice, 5);
-			SMAIndicator shortSmaHourly = new SMAIndicator(closePrice, 5 * 12);
-
-			// Here is the 5-ticks-SMA value at the 42nd index
-			System.out.println("5-ticks-SMA value at the 42nd index: " + shortSma.getValue(42).toDouble());
-
-			// Getting a longer SMA (e.g. over the 30 last ticks)
-			SMAIndicator longSma = new SMAIndicator(closePrice, 10);
-			SMAIndicator longSmaHourly = new SMAIndicator(closePrice, 10 * 12);
-
-
-			// Relative strength index
-			RSIIndicator rsi = new RSIIndicator(closePrice, 14);
-
-			StochasticOscillatorKIndicator sof = new StochasticOscillatorKIndicator(series, 14);
-			SMAIndicator sma = new SMAIndicator(sof, 3);
-			StochasticOscillatorDIndicator sos = new StochasticOscillatorDIndicator(sma);
-
-			MinPriceIndicator minPrice = new MinPriceIndicator(series);
-			SMAIndicator longMinSma = new SMAIndicator(minPrice, 10);
-			
-			MaxPriceIndicator maxPrice = new MaxPriceIndicator(series);
-			SMAIndicator longMaxSma = new SMAIndicator(maxPrice, 10);
 
 
 			newTickAvailable = true;
@@ -198,165 +185,64 @@ public class TechinicalAnalyzerTrader extends Thread{
 			{
 
 				// wait for New tick
-				while(barHashMap.size() == 0 && !newTickAvailable){
+				if((shortBarHashMap.size() > 0 && newTickAvailable) == false)
+				{
 					try {
-						Thread.sleep(1000);
-					} catch (InterruptedException e) {
+						{
+							currencyContractHost.tickLatch60M.await();
+							currencyContractHost.tickLatch60M.reset();
+						}
+						
+					} catch (InterruptedException e1) {
 						// TODO Auto-generated catch block
-						e.printStackTrace();
+						e1.printStackTrace();
 					}
+					
 				}
-
-
-
-
+				
+				if(shortBarHashMap.size() == 0)
+					newTickAvailable = false;
+				
+				lastLongTick = techAnalyzerLong.analyze(lastLongTick.getEndTime().toDate());
+				lastMediumTick = techAnalyzerMedium.analyze(lastMediumTick.getEndTime().toDate());
+				lastShortTick = techAnalyzerShort.analyze(lastShortTick.getEndTime().toDate());
+					
+				
+				
 				//Insert new data into series
 
-				Date lastProcessedtime = series.getLastTick().getEndTime().toDate();
-
-
-				while(newTickAvailable == false)
-				{
-					SortedSet<Long> keys = new TreeSet<Long>(barHashMap.keySet());
-					//								TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
-
-					for (Long key : keys){
-						bar = barHashMap.get(key);
-						//					currencyContractHost.historicalBarMap.remove(key);
-
-
-						//If last acquired time is before this tick time, which means this data is acquired and should be abandoned.
-						if(lastProcessedtime.compareTo(new Date(bar.time() * 1000)) >= 0){
-							barHashMap.remove(key);
-							continue;
-						}
-
-						double open = bar.open();
-						double high = bar.high();
-						double low = bar.low();
-						double close = bar.close();
-						double volume = bar.volume();
-						newTick = new Tick(new DateTime(bar.time() * 1000), open, high, low, close, volume);
-						series.addTick(newTick);
-						newTickAvailable = true;
-						break;
-
-					}
-				}
-				newTickAvailable = false;
-				newTick = series.getLastTick();
-				lastProcessedtime = newTick.getEndTime().toDate();
-
-				//                Tick newTick = generateRandomTick();
-				System.out.println("-----------Techinical Analyzer Trader " + currencyContractHost.symbol() + currencyContractHost.currency() + "------\n"
-						+ "Tick "+ new Date() +" added, close price = " + newTick.getClosePrice().toDouble());
-				//                series.addTick(newTick);
-
-
-
-				int endIndex = series.getEnd();
-
-
-				//                System.out.println(new Date() + "-----------Techinical Analyzer begin" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
-				//                System.out.println(new Date() + "Closed Price: " + closePrice.getValue(endIndex));
-				//                System.out.println(new Date() + "5 minutes SMA 5: " + shortSma.getValue(endIndex));
-				//                System.out.println(new Date() + "5 minutes SMA 10: " + longSma.getValue(endIndex));
-				//                System.out.println(new Date() + "hourly SMA 5: " + shortSmaHourly.getValue(endIndex));
-				//                System.out.println(new Date() + "hourly SMA 10: " + longSmaHourly.getValue(endIndex));
-				//                System.out.println(new Date() + "5 minutes RSI: " + rsi.getValue(endIndex));
-				//                System.out.println(new Date() + "5 minutes Stoch K: " + sof.getValue(endIndex) + " D: " + sos.getValue(endIndex));
-				//                System.out.println(new Date() + " Stoch K corss down D  is " + new CrossedDownIndicatorRule(sof, sos).isSatisfied(endIndex));
-				//                System.out.println(new Date() + " Stoch K under D  is " + new UnderIndicatorRule(sof, sos).isSatisfied(endIndex));
-				//                System.out.println(new Date() + "-----------Techinical Analyzer end" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
-
-				currencyContractHost.longMinSma = longMinSma.getValue(endIndex).toDouble();
-				currencyContractHost.longMaxSma = longMaxSma.getValue(endIndex).toDouble();
-				ContractHashMapHost.put(currencyContractHost.symbol() + currencyContractHost.currency(), currencyContractHost);
-		
-		
 				
-				if (currencyContractHost.m_currentTechnicalSignal60M.equals("UP") && currencyContractHost.m_currentTechnicalSignal15M.equals("UP") && longStrategy.shouldEnter(endIndex)) {
-					// Our strategy should enter
-					System.out.println(new Date() + " Strategy should ENTER LONG on " + endIndex);
-					boolean entered = longtradingRecord.enter(endIndex, newTick.getClosePrice(), Decimal.TEN);
-					if (entered) {
-						Order entry = longtradingRecord.getLastEntry();
-						System.out.println("Entered on " + entry.getIndex()
-						+ " (price=" + entry.getPrice().toDouble()
-						+ ", amount=" + entry.getAmount().toDouble() + ")");
+//				apiDemoHost.show(lastTick.getDateName() + " "  + durationHost + " minutes" + "------Techinical Analyzer begin" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
+//				apiDemoHost.show(series.getLastTick().getDateName() + " " + " m_currentTechnicalSignal60M " + currencyContractHost.m_currentTechnicalSignal60M);
+//				apiDemoHost.show(series.getLastTick().getDateName() + " " + " m_currentTechnicalSignal15M " + currencyContractHost.m_currentTechnicalSignal15M);
+//				apiDemoHost.show(series.getLastTick().getDateName() + " " + " m_currentTechnicalSignal5M " + currencyContractHost.m_currentTechnicalSignal5M);
+//
+//				System.out.println(series.getLastTick().getDateName() + " "  + durationHost + " minutes" + "------Techinical Analyzer begin" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
+//				System.out.println(series.getLastTick().getDateName() + " " + " m_currentTechnicalSignal60M " + currencyContractHost.m_currentTechnicalSignal60M);
+//				System.out.println(series.getLastTick().getDateName() + " " + " m_currentTechnicalSignal15M " + currencyContractHost.m_currentTechnicalSignal15M);
+//				System.out.println(series.getLastTick().getDateName() + " " + " m_currentTechnicalSignal5M " + currencyContractHost.m_currentTechnicalSignal5M);
+
+				//If processed tick is ealier, don't submit the order.
+				Calendar cal = Calendar.getInstance();
+				cal.setTime(lastShortTick.getEndTime().toDate());
+				cal.add(Calendar.MINUTE, +5);
+				if(new Date().after(cal.getTime())){
+					continue;
 					}
+				
+				if(currencyContractHost.m_currentTechnicalSignal60M.equals("UP") && currencyContractHost.m_currentTechnicalSignal15M.equals("UP") && currencyContractHost.m_currentTechnicalSignal5M.equals("UP")){
+					placeTestMarketOrder("BUY", lastShortTick);
+				}else if(currencyContractHost.m_currentTechnicalSignal60M.equals("DOWN") && currencyContractHost.m_currentTechnicalSignal15M.equals("DOWN") && currencyContractHost.m_currentTechnicalSignal5M.equals("DOWN")){
+					placeTestMarketOrder("SELL", lastShortTick);}
+				else if(currencyContractHost.m_currentTechnicalSignal60M.equals("DOWN") && currencyContractHost.m_currentTechnicalSignal15M.equals("UP")){
+						placeTestMarketOrder("CLOSE", lastShortTick);	}
+				else if(currencyContractHost.m_currentTechnicalSignal60M.equals("UP") && currencyContractHost.m_currentTechnicalSignal15M.equals("DOWN")){
+						placeTestMarketOrder("CLOSE", lastShortTick);	}
+				
+				
 
 
-	//				currencyContractHost.m_currentTechnicalSignal = "BUY";
-					ContractHashMapHost.put(currencyContractHost.symbol() + currencyContractHost.currency(), currencyContractHost);
-
-					placeTestMarketOrder("BUY");
-
-
-				} else if (currencyContractHost.m_currentTechnicalSignal60M.equals("DOWN") || currencyContractHost.m_currentTechnicalSignal15M.equals("DOWN") || longStrategy.shouldExit(endIndex)) {
-					// Our strategy should exit
-					System.out.println(new Date() + " Strategy should EXIT LONG on " + endIndex);
-					boolean exited = longtradingRecord.exit(endIndex, newTick.getClosePrice(), Decimal.TEN);
-					if (exited) {
-						Order exit = longtradingRecord.getLastExit();
-						System.out.println("Exited on " + exit.getIndex()
-						+ " (price=" + exit.getPrice().toDouble()
-						+ ", amount=" + exit.getAmount().toDouble() + ")");
-					}
-
-//					currencyContractHost.m_currentTechnicalSignal = "CLOSE";
-					ContractHashMapHost.put(currencyContractHost.symbol() + currencyContractHost.currency(), currencyContractHost);
-					placeTestMarketOrder("CLOSE");
-
-
-
-				}
-
-				//If it is a short
-				endIndex = series.getEnd();
-				if (currencyContractHost.m_currentTechnicalSignal60M.equals("DOWN") && currencyContractHost.m_currentTechnicalSignal15M.equals("DOWN") && shortStrategy.shouldEnter(endIndex)) {
-					// Our strategy should enter
-					System.out.println(new Date() + " Strategy should ENTER SHORT on " + endIndex);
-					boolean entered = shorttradingRecord.enter(endIndex, newTick.getClosePrice(), Decimal.TEN);
-					if (entered) {
-						Order entry = shorttradingRecord.getLastEntry();
-						System.out.println("Entered on " + entry.getIndex()
-						+ " (price=" + entry.getPrice().toDouble()
-						+ ", amount=" + entry.getAmount().toDouble() + ")");
-					}
-
-//					currencyContractHost.m_currentTechnicalSignal = "SELL";
-					ContractHashMapHost.put(currencyContractHost.symbol() + currencyContractHost.currency(), currencyContractHost);
-					placeTestMarketOrder("SELL");
-
-
-				} else if (currencyContractHost.m_currentTechnicalSignal60M.equals("UP") || currencyContractHost.m_currentTechnicalSignal15M.equals("UP") || shortStrategy.shouldExit(endIndex)) {
-					// Our strategy should exit
-					System.out.println(new Date() + " Strategy should EXIT SHORT on " + endIndex);
-					boolean exited = shorttradingRecord.exit(endIndex, newTick.getClosePrice(), Decimal.TEN);
-					if (exited) {
-						Order exit = shorttradingRecord.getLastExit();
-						System.out.println("Exited on " + exit.getIndex()
-						+ " (price=" + exit.getPrice().toDouble()
-						+ ", amount=" + exit.getAmount().toDouble() + ")");
-					}
-
-//					currencyContractHost.m_currentTechnicalSignal = "CLOSE";
-					ContractHashMapHost.put(currencyContractHost.symbol() + currencyContractHost.currency(), currencyContractHost);
-
-					placeTestMarketOrder("CLOSE");
-
-				}
-
-				//              SimpleDateFormat formatter = new SimpleDateFormat("yyyy");
-				//            	try {
-				//					if((formatter.parse("2015")).compareTo(new Date(bar.time() * 1000)) <= 0){
-				//						break;
-				//						}
-				//				} catch (ParseException e) {
-				//					// TODO Auto-generated catch block
-				//					e.printStackTrace();
-				//				}
+				
 				//                
 			}
 			// Analysis
@@ -402,7 +288,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 
 
 	
-	private TimeSeries buildTimeSeriesFromMap(int seriesLimit){
+	private TimeSeries buildTimeSeriesFromMap(ConcurrentHashMap<Long, Bar> barHashMap, int seriesLimit){
 		TreeSet<Long> keys = new TreeSet<Long>(barHashMap.keySet());
 		//		TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
 
@@ -623,10 +509,23 @@ public class TechinicalAnalyzerTrader extends Thread{
 
 
 
-	private void placeTestMarketOrder(String action){
+	private void placeTestMarketOrder(String action, Tick newTick){
 
-
-		forex orderDetail = new forex();
+		//First check whether this order has been submitted before. If yes, return.
+		forex orderDetail = null;
+		Date currentTime = newTick.getEndTime().toDate();
+		SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
+		String orderDateStr = formatter.format(currentTime);
+		long orderSeqNo = Long.parseLong(orderDateStr + "00");
+		while(orderHashMapHost.containsKey(orderSeqNo)){
+			orderDetail = orderHashMapHost.get(orderSeqNo);
+			if(orderDetail.Symbol.equals(currencyContractHost.symbol() + currencyContractHost.currency()) && orderDetail.TradeMethod.equals(action) && orderDetail.EntryMethod.equals("MKT"))
+				return;
+			
+			orderSeqNo++;
+		}
+		
+		orderDetail = new forex();
 		orderDetail.Symbol = currencyContractHost.symbol() + currencyContractHost.currency();
 		orderDetail.TradeMethod = action;
 		orderDetail.EntryMethod = "MKT";
@@ -635,17 +534,12 @@ public class TechinicalAnalyzerTrader extends Thread{
 		orderDetail.TriggerPct = "0";
 		orderDetail.LossPct = "0.2";
 		orderDetail.groupId = (long) 0;
-		Date currentTime = new Date();
+		orderDetail.orderSeqNo = orderSeqNo;
 		orderDetail.Date = DATEOnly_FORMAT.format(currentTime);
 		orderDetail.Time = TIMEOnly_FORMAT.format(currentTime);
 
-		SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMddHHmmss");
-		Object orderDateStr = formatter.format(currentTime);
-		orderDetail.orderSeqNo = Long.parseLong(orderDateStr + "00");
-		while(orderHashMapHost.containsKey(orderDetail.orderSeqNo)){
-			orderDetail.orderSeqNo++;
-		}
-		      orderHashMapHost.put(orderDetail.orderSeqNo, orderDetail);
+		
+		orderHashMapHost.put(orderDetail.orderSeqNo, orderDetail);
 		//       
 	//	       apiDemoHost.placeMarketOrder(orderDetail);
 
