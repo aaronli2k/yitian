@@ -42,6 +42,7 @@ import eu.verdelhan.ta4j.indicators.oscillators.StochasticOscillatorDIndicator;
 import eu.verdelhan.ta4j.indicators.oscillators.StochasticOscillatorKIndicator;
 import eu.verdelhan.ta4j.indicators.simple.ClosePriceIndicator;
 import eu.verdelhan.ta4j.indicators.simple.MaxPriceIndicator;
+import eu.verdelhan.ta4j.indicators.simple.MedianPriceIndicator;
 import eu.verdelhan.ta4j.indicators.simple.MinPriceIndicator;
 import eu.verdelhan.ta4j.indicators.trackers.RSIIndicator;
 import eu.verdelhan.ta4j.indicators.trackers.SMAIndicator;
@@ -109,6 +110,10 @@ public class TechinicalAnalyzer{
 	private SMAIndicator longMinSma;
 	private MaxPriceIndicator maxPrice;
 	private SMAIndicator longMaxSma;
+	private MedianPriceIndicator medPrice;
+	private SMAIndicator longMedSma;
+
+	private Bar nextBar = null;
 
 	public TechinicalAnalyzer(ApiDemo apiDemo, Contract currencyContract, ConcurrentHashMap<String, Contract> contractHashMap , ConcurrentHashMap<Long, forex> orderHashMap, int duration, ConcurrentHashMap<Long, Bar> barHashMapIn, int tickLimit){
 		currencyContractHost = currencyContract;
@@ -178,8 +183,8 @@ public class TechinicalAnalyzer{
 		smaStoch = new SMAIndicator(sofStoch, 3);
 		sosStoch = new StochasticOscillatorDIndicator(smaStoch);
 
-		minPrice = new MinPriceIndicator(series);
-		longMinSma = new SMAIndicator(minPrice, 10);
+		medPrice = new MedianPriceIndicator(series);
+		longMedSma = new SMAIndicator(medPrice, 10);
 
 		maxPrice = new MaxPriceIndicator(series);
 		longMaxSma = new SMAIndicator(maxPrice, 10);
@@ -201,19 +206,9 @@ public class TechinicalAnalyzer{
 
 		{
 
-
-
-
-
-
-
-
 			//Insert new data into series
 
 			//= series.getLastTick().getEndTime().toDate();
-
-
-
 			{
 
 				SortedSet<Long> keys = new TreeSet<Long>(barHashMap.keySet());
@@ -242,11 +237,11 @@ public class TechinicalAnalyzer{
 
 				}
 			}
-			
+
 			//If it is same tick, don't process it. Maybe change it later.
-//			if(newTick == null)
-//				return newTick;
-			
+			//			if(newTick == null)
+			//				return newTick;
+
 			newTick = series.getLastTick();
 			lastProcessedtime = newTick.getEndTime().toDate();
 
@@ -271,14 +266,18 @@ public class TechinicalAnalyzer{
 			System.out.println(series.getLastTick().getDateName() + " Stoch K under D  is " + new UnderIndicatorRule(sofStoch, sosStoch).isSatisfied(endIndex));
 			System.out.println(series.getLastTick().getDateName().toString()+ " " + durationHost + " minutes" +  "-----Techinical Analyzer end" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
 
-			currencyContractHost.longMinSma = longMinSma.getValue(endIndex).toDouble();
-			currencyContractHost.longMaxSma = longMaxSma.getValue(endIndex).toDouble();
+			if(durationHost == 60)
+				currencyContractHost.longMedSma = longMedSma.getValue(endIndex).toDouble();
+			else if(durationHost == 15)
+				currencyContractHost.mediumMedSma = longMedSma.getValue(endIndex).toDouble();
+			else
+				currencyContractHost.shortMedSma = longMedSma.getValue(endIndex).toDouble();
 			ContractHashMapHost.put(currencyContractHost.symbol() + currencyContractHost.currency(), currencyContractHost);
 
 			if (longStrategy.shouldEnter(endIndex)) {
 				// Our strategy should enter
 				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes Strategy should ENTER LONG on " + endIndex);
-			
+
 
 				if(durationHost == 5){
 					currencyContractHost.m_currentTechnicalSignal5M = "UP";
@@ -287,15 +286,15 @@ public class TechinicalAnalyzer{
 					if(!currencyContractHost.m_currentTechnicalSignal15M.equals("UP"))
 					{
 						currencyContractHost.m_currentTechnicalSignal15M = "UP";
-						//							currencyContractHost.m_currentTechnicalSignal5M = "";
+						currencyContractHost.m_currentTechnicalSignal5M = "";
 					}
 				}
 				else if(durationHost == 60){
 					if(!currencyContractHost.m_currentTechnicalSignal60M.equals("UP"))
 					{
 						currencyContractHost.m_currentTechnicalSignal60M = "UP";
-						//							currencyContractHost.m_currentTechnicalSignal15M = "";
-						//							currencyContractHost.m_currentTechnicalSignal5M = "";
+						currencyContractHost.m_currentTechnicalSignal15M = "";
+						currencyContractHost.m_currentTechnicalSignal5M = "";
 					}
 				}
 
@@ -307,25 +306,24 @@ public class TechinicalAnalyzer{
 			} else if (longStrategy.shouldExit(endIndex)) {
 				// Our strategy should exit
 				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should EXIT LONG on " + endIndex);
-				
+
 
 				if(durationHost == 5){
 					currencyContractHost.m_currentTechnicalSignal5M = "DOWN";
-					//						placeTestMarketOrder("BUY");
 				}
 				else if(durationHost == 15){
 					if(!currencyContractHost.m_currentTechnicalSignal15M.equals("DOWN"))
 					{
 						currencyContractHost.m_currentTechnicalSignal15M = "DOWN";
-						//							currencyContractHost.m_currentTechnicalSignal5M = "";
+						currencyContractHost.m_currentTechnicalSignal5M = "";
 					}
 				}
 				else if(durationHost == 60){
 					if(!currencyContractHost.m_currentTechnicalSignal60M.equals("DOWN"))
 					{
 						currencyContractHost.m_currentTechnicalSignal60M = "DOWN";
-						//							currencyContractHost.m_currentTechnicalSignal15M = "";
-						//							currencyContractHost.m_currentTechnicalSignal5M = "";
+						currencyContractHost.m_currentTechnicalSignal15M = "";
+						currencyContractHost.m_currentTechnicalSignal5M = "";
 					}
 
 				}
@@ -342,7 +340,7 @@ public class TechinicalAnalyzer{
 			if (shortStrategy.shouldEnter(endIndex)) {
 				// Our strategy should enter
 				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should ENTER SHORT on " + endIndex);
-				
+
 
 				if(durationHost == 5){
 					currencyContractHost.m_currentTechnicalSignal5M = "DOWN";
@@ -373,7 +371,7 @@ public class TechinicalAnalyzer{
 			} else if (shortStrategy.shouldExit(endIndex)) {
 				// Our strategy should exit
 				System.out.println(series.getLastTick().getSimpleDateName() + " " + durationHost + " minutes  Strategy should EXIT SHORT on " + endIndex);
-				
+
 
 
 				if(durationHost == 5){
@@ -470,20 +468,21 @@ public class TechinicalAnalyzer{
 		Bar bar = null;
 		Calendar cal = Calendar.getInstance();
 
-		//Let's keep 1 day data to process
-		cal.add(Calendar.HOUR, -24);
-
+		//Let's keep 1 day data to process and make sure it is a round clock
+		cal.add(Calendar.HOUR, -23);
+		cal.add(Calendar.MINUTE, (2 + cal.get(Calendar.MINUTE)) * -1);
 		for (Long key : keys){
 			bar = barHashMap.get(key);
-//			barHashMap.remove(key);
+			//			barHashMap.remove(key);
 
 			if(bar == null)
 				continue;
 
 			//Let's keep 1 day data to process
-			if(new DateTime(bar.time() * 1000).toDate().after(cal.getTime()))
+			if(new DateTime(bar.time() * 1000).toDate().after(cal.getTime())){
+				System.out.println("Tick time: " + cal.getTime());
 				break;
-
+			}
 			double open = bar.open();
 			double high = bar.high();
 			double low = bar.low();
@@ -505,6 +504,13 @@ public class TechinicalAnalyzer{
 	}
 
 
+	public Bar nextTickToAnalyze(){
+
+
+
+		return nextBar;
+
+	}
 
 
 	/**

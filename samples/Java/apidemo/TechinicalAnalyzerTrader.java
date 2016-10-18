@@ -117,6 +117,13 @@ public class TechinicalAnalyzerTrader extends Thread{
 
 	}
 
+	private DateTime nextTickRunTime(Tick currentTick, int duration){
+		
+		return currentTick.getEndTime().plusMinutes(duration);	
+
+		
+	}
+	
 	public synchronized  void run(){
 		//();
 
@@ -132,7 +139,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 
 	  
 
-	TechinicalAnalyzer techAnalyzerShort = new TechinicalAnalyzer(ApiDemo.INSTANCE, currencyContractHost,contractHashMapHost, orderHashMapHost, 5, shortBarHashMap, 5000);
+		TechinicalAnalyzer techAnalyzerShort = new TechinicalAnalyzer(ApiDemo.INSTANCE, currencyContractHost,contractHashMapHost, orderHashMapHost, 5, shortBarHashMap, 5000);
 
 	
    
@@ -203,9 +210,16 @@ public class TechinicalAnalyzerTrader extends Thread{
 				if(shortBarHashMap.size() == 0)
 					newTickAvailable = false;
 				
-				lastLongTick = techAnalyzerLong.analyze(lastLongTick.getEndTime().toDate());
-				lastMediumTick = techAnalyzerMedium.analyze(lastMediumTick.getEndTime().toDate());
 				lastShortTick = techAnalyzerShort.analyze(lastShortTick.getEndTime().toDate());
+				
+				if(lastShortTick.getEndTime().getMinuteOfHour() % 15 == 0  || nextTickRunTime(lastShortTick, 15).isAfter(nextTickRunTime(lastMediumTick, 15)))
+					lastMediumTick = techAnalyzerMedium.analyze(lastMediumTick.getEndTime().toDate());
+				
+				if(lastShortTick.getEndTime().getMinuteOfHour() == 0 || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastLongTick, 5)))
+					lastLongTick = techAnalyzerLong.analyze(lastLongTick.getEndTime().toDate());
+				
+				
+				
 					
 				
 				

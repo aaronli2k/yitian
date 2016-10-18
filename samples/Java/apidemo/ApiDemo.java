@@ -113,7 +113,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	//Use below to store all contract <currencyPair, contract>
 	ConcurrentHashMap<String, Contract> contractMap = new ConcurrentHashMap<String, Contract>();
 	//Use below to store all contract <currencyPair, contract>
-	ConcurrentHashMap<String, TechinicalAnalyzer> contractTechAnalyzerMap = new ConcurrentHashMap<String, TechinicalAnalyzer>();
+	ConcurrentHashMap<String, TechinicalAnalyzerTrader> contractTechAnalyzerMap = new ConcurrentHashMap<String, TechinicalAnalyzerTrader>();
 
 	//Use below to store all submitted order <orderId, Order>
 	ConcurrentHashMap<Integer, Order> submittedOrderHashMap = new ConcurrentHashMap<Integer, Order>();
@@ -975,8 +975,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			orderPrices.triggerPrice = triggerPrice;	
 			orderPrices.profitPrice = triggerPrice * (1 -  1.0 / 100);
 			// profitTakingPrice = triggerPrice * (1 - Double.parseDouble(orderDetail.ProfitPct) / 100);
-			if(	contractMap.get(orderDetail.Symbol).longMaxSma > 0.0)
-				orderPrices.stoprPrice = contractMap.get(orderDetail.Symbol).longMaxSma;
+			if(	contractMap.get(orderDetail.Symbol).mediumMedSma > 0.0 && contractMap.get(orderDetail.Symbol).mediumMedSma < 0.5)
+				orderPrices.stoprPrice = contractMap.get(orderDetail.Symbol).mediumMedSma;
 			else
 				orderPrices.stoprPrice = triggerPrice * (1 + stopLosspct / 100);
 		}
@@ -990,11 +990,11 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			orderPrices.triggerPrice = triggerPrice;	
 			orderPrices.profitPrice = triggerPrice * (1 + 1.0 / 100);
 			// profitTakingPrice = triggerPrice * (1 + Double.parseDouble(orderDetail.ProfitPct) / 100);
-			if(	contractMap.get(orderDetail.Symbol).longMinSma > 0.0)
-				orderPrices.stoprPrice = contractMap.get(orderDetail.Symbol).longMinSma;
+			if(	contractMap.get(orderDetail.Symbol).mediumMedSma > 0.0 && contractMap.get(orderDetail.Symbol).mediumMedSma < 0.5)
+				orderPrices.stoprPrice = contractMap.get(orderDetail.Symbol).mediumMedSma;
 			else					
 				orderPrices.stoprPrice = triggerPrice * (1 - stopLosspct  / 100);	
-	//		orderPrices.stoprPrice = contractMap.get(orderDetail.Symbol).longMinSma;
+			//		orderPrices.stoprPrice = contractMap.get(orderDetail.Symbol).longMinSma;
 
 		}
 
@@ -1506,14 +1506,14 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				//	System.out.println("Looping thru all orders: " + new Date());
 
 
-//				//Don't do it if it is Sat morning after 6 or on Sunday.
-//				System.out.println(new Date() +" Week day: " + serverTimeCalendar.get(Calendar.DAY_OF_WEEK));
-//				if(((serverTimeCalendar.get(Calendar.DAY_OF_WEEK) == 1) && (serverTimeCalendar.get(Calendar.HOUR_OF_DAY) <= 7)))
-//					continue;	
-//				if(((serverTimeCalendar.get(Calendar.DAY_OF_WEEK) == 7) && (serverTimeCalendar.get(Calendar.HOUR_OF_DAY) >= 7)))
-//					continue;
-//				if((serverTimeCalendar.get(Calendar.DAY_OF_WEEK) == 7))
-//					continue;
+				//				//Don't do it if it is Sat morning after 6 or on Sunday.
+				//				System.out.println(new Date() +" Week day: " + serverTimeCalendar.get(Calendar.DAY_OF_WEEK));
+				//				if(((serverTimeCalendar.get(Calendar.DAY_OF_WEEK) == 1) && (serverTimeCalendar.get(Calendar.HOUR_OF_DAY) <= 7)))
+				//					continue;	
+				//				if(((serverTimeCalendar.get(Calendar.DAY_OF_WEEK) == 7) && (serverTimeCalendar.get(Calendar.HOUR_OF_DAY) >= 7)))
+				//					continue;
+				//				if((serverTimeCalendar.get(Calendar.DAY_OF_WEEK) == 7))
+				//					continue;
 
 				{				
 					forex GBPJPYorder, EURCNHorder;
@@ -1738,7 +1738,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 								closeCurrentLiveOrder(orderDetail);
 							else
 								placeMarketOrder(orderDetail);
-								
+
 						}
 						else if(orderDetail.TradeMethod.equals("BUY")){
 							if(orderDetail.EntryMethod.equals("STOP"))
@@ -1801,31 +1801,31 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	}
 
 
-		private void closeCurrentLiveOrder(forex orderDetailIn) {
-			// TODO Auto-generated method stub
-			for(Entry<Integer, Order> entry : liveOrderMap.entrySet()){
+	private void closeCurrentLiveOrder(forex orderDetailIn) {
+		// TODO Auto-generated method stub
+		for(Entry<Integer, Order> entry : liveOrderMap.entrySet()){
 
-				//Guy, let's rest 500ms here
-				try {
-					Thread.sleep(500);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}   
+			//Guy, let's rest 500ms here
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}   
 
 
-				Order order = entry.getValue();
-				forex orderDetail = null;
-				if(order != null)
-					orderDetail = orderHashMap.get(order.seqOrderNo()); 		
-				if(orderDetail == null)
-					continue;
-				Contract currencyContract = contractMap.get(orderDetail.Symbol);
+			Order order = entry.getValue();
+			forex orderDetail = null;
+			if(order != null)
+				orderDetail = orderHashMap.get(order.seqOrderNo()); 		
+			if(orderDetail == null)
+				continue;
+			Contract currencyContract = contractMap.get(orderDetail.Symbol);
 
-				if(orderDetail.Symbol.equals(orderDetailIn.Symbol))
-					adjustStopPrice(entry.getKey(), entry.getValue(), -0.1);
-			}
+			if(orderDetail.Symbol.equals(orderDetailIn.Symbol))
+				adjustStopPrice(entry.getKey(), entry.getValue(), -0.1);
 		}
+	}
 
 
 	//TODO Auto-generated catch block
@@ -1873,14 +1873,19 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					Order order = entry.getValue();
 					orderDetail = null;
 					if(order != null)
-						orderDetail = orderHashMap.get(order.seqOrderNo()); 		
-					if(orderDetail == null)
-						continue;
+						orderDetail = orderHashMap.get(order.seqOrderNo()); 	
+
+
+					if(orderDetail == null){
+						orderDetail = liveForexOrderMap.get(order.orderId());
+						if(orderDetail == null)
+							return;	
+					}
 					Contract currencyContract = contractMap.get(orderDetail.Symbol);
 
-					//If price information isn't available, just skip current order.
-					if(currencyContract.historical5MBarMap.isEmpty() || currencyContract.getAskPrice() == 0.0 || currencyContract.getBidPrice() == 0.0)
-						continue;
+					//					//If price information isn't available, just skip current order.
+					//					if(currencyContract.historical5MBarMap.isEmpty() || currencyContract.getAskPrice() == 0.0 || currencyContract.getBidPrice() == 0.0)
+					//						continue;
 
 					//Adjust STop price according to actual open price and current market price.
 					adjustStopPrice(entry.getKey(), entry.getValue(), 0.15);
@@ -1906,166 +1911,166 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 
 
-		private void adjustStopPrice(Integer orderId, Order order, double Percent){
-			forex orderDetail;
+	private void adjustStopPrice(Integer orderId, Order order, double Percent){
+		forex orderDetail;
 
-			//If current order is parent order, just return
-			if(order.tif().equals("GTD"))
-				return;
+		//If current order is parent order, just return
+		if(order.tif().equals("GTD"))
+			return;
 
 
-			//	System.out.println("STH happens" + orderAnother.volatility() + orderAnother.volatilityType()  + order.getVolatilityType());
+		//	System.out.println("STH happens" + orderAnother.volatility() + orderAnother.volatilityType()  + order.getVolatilityType());
+		if(order == null)
+			return;
+
+		//If current order is profit taking order, just return
+		if(order.orderType().equals("LMT"))
+			return;
+
+
+
+		order = submittedOrderHashMap.get(orderId);
+		if(order == null){
+			order = liveOrderMap.get(orderId);
 			if(order == null)
 				return;
-
-			//If current order is profit taking order, just return
-			if(order.orderType().equals("LMT"))
-				return;
-
-
-
-			order = submittedOrderHashMap.get(orderId);
-			if(order == null){
-				order = liveOrderMap.get(orderId);
-				if(order == null)
-					return;
-			}
-
-			//If its parent Order isn't executed, don't change stop Price.
-			if(!executedOrderMap.containsKey(order.parentId()))
-				return;
-
-			//If its parent Order isn't executed, don't change stop Price.
-			if(liveOrderMap.containsKey(order.parentId()))
-				return;
-
-			Order stopLoss = new Order();
-			stopLoss.orderId(order.orderId());
-			stopLoss.action(order.action());
-			stopLoss.orderType(order.orderType());
-			//Stop trigger price
-			stopLoss.auxPrice(order.auxPrice());
-			stopLoss.totalQuantity(order.totalQuantity());
-			stopLoss.parentId(order.parentId());
-			//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
-			//to activate all its predecessors
-			stopLoss.transmit(true);				    				 
-			stopLoss.account(m_acctList.get(0));
-			stopLoss.tif("GTC");
-
-			order = stopLoss;
-
-
-			orderDetail = executedOrderMap.get(order.parentId());
-			if(orderDetail == null){
-
-				orderDetail = liveForexOrderMap.get(order.orderId());
-				if(orderDetail == null)
-					return;	
-			}
-			Double openPrice = 0.0;
-			if(orderDetail.ActualPrice != null && !orderDetail.ActualPrice.isEmpty())
-				openPrice = Double.parseDouble(orderDetail.ActualPrice);
-
-			Double currentBidPrice, currentAskPrice, newStopPrice = 0.0;
-			Contract currencyContract = contractMap.get(orderDetail.Symbol);
-
-			if(currencyContract == null)
-				return;
-
-			currentBidPrice = currencyContract.getBidPrice();
-			currentAskPrice = currencyContract.getAskPrice();
-			double maPrice = currencyContract.ma();
-			Action action = order.action();
-
-			//This is a short position, we need to buy it at a price higher than current ask price to stop loss and lower price to make profit
-			if(action.equals(Action.BUY)){
-				//If current ask price 0.3 % is bigger than actual price, adjust STOP price to current price + 0.1% 
-				if(openPrice == 0.0){
-					if(	currencyContract.longMaxSma > 0.0)
-						newStopPrice = currencyContract.longMaxSma;
-					else
-						newStopPrice = maPrice * (1 + Percent/100);
-				}
-				else if(maPrice < (openPrice * (1 - 0.2/100))){
-					if(	currencyContract.longMaxSma > 0.0)
-						newStopPrice = currencyContract.longMaxSma;
-					else						
-						newStopPrice = maPrice * (1 + Percent/100);
-				}
-				//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
-				else if(maPrice < (openPrice * (1 - 0.15/100))){
-					if(	currencyContract.longMaxSma > 0.0)
-						newStopPrice = currencyContract.longMaxSma;
-					else						
-						newStopPrice = openPrice * (1 - Percent/100);
-				}else{//defaul set stop price as 0.15 loss from current price
-					if(	currencyContract.longMaxSma > 0.0)
-						newStopPrice = currencyContract.longMaxSma;
-					else
-						newStopPrice = openPrice * (1 + Percent/100);
-				}
-				newStopPrice = fixDoubleDigi(newStopPrice);
-
-				if(order.auxPrice() == 0.0)
-					return;
-
-				if (order.auxPrice() <= newStopPrice)
-					return;
-
-				//If current ask price is higher than stop price, we shouldn't set it, otherwise, it will stop out immediately.
-				if(currentAskPrice > newStopPrice)
-					return;
-
-			}else{//This is a long position, we need to sell it at a price higher than current bid price to make profit and stop at lower price to stop loss
-
-				//If current bid price 0.3 % is higher than actual price, adjust STOP price to current price - 0.1% 
-				if(openPrice == 0.0){
-					if(	currencyContract.longMinSma > 0.0)
-						newStopPrice = currencyContract.longMinSma;
-					else						
-						newStopPrice = maPrice * (1 - Percent/100);
-				}
-				else if(maPrice > (openPrice * (1 + 0.2/100))){
-					if(	currencyContract.longMinSma > 0.0)
-						newStopPrice = currencyContract.longMinSma;
-					else						
-						newStopPrice = maPrice * (1 - Percent/100);
-				}
-				//If current bid price 0.2 % is higher than actual price, adjust STOP price to actual open price 
-				else if(maPrice > (openPrice * (1 + 0.15/100))){
-					if(	currencyContract.longMinSma > 0.0)
-						newStopPrice = currencyContract.longMinSma;
-					else						
-						newStopPrice = openPrice * (1 + Percent/100);
-				}else{//defaul set stop price as  0.15 loss from current price
-					if(	currencyContract.longMinSma > 0.0)
-						newStopPrice = currencyContract.longMinSma;
-					else						
-						newStopPrice = openPrice * (1 - Percent/100);
-				}
-				newStopPrice = fixDoubleDigi(newStopPrice);
-
-				if(order.auxPrice() == 0.0)
-					return;
-
-				if (order.auxPrice() >= newStopPrice)
-					return;
-
-				//If current ask price is lower than stop price, we shouldn't set it, otherwise, it will stop out immediately.
-				if(currentBidPrice < newStopPrice)
-					return;
-			}	
-
-			System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + newStopPrice + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
-			show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + newStopPrice  + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
-			order.auxPrice(newStopPrice);
-			ForexOrderHandler stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
-			controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
-			//			submittedOrderHashMap.put(order.orderId(), order);
-
 		}
-	
+
+		//If its parent Order isn't executed, don't change stop Price.
+		if(!executedOrderMap.containsKey(order.parentId()))
+			return;
+
+		//If its parent Order isn't executed, don't change stop Price.
+		if(liveOrderMap.containsKey(order.parentId()))
+			return;
+
+		Order stopLoss = new Order();
+		stopLoss.orderId(order.orderId());
+		stopLoss.action(order.action());
+		stopLoss.orderType(order.orderType());
+		//Stop trigger price
+		stopLoss.auxPrice(order.auxPrice());
+		stopLoss.totalQuantity(order.totalQuantity());
+		stopLoss.parentId(order.parentId());
+		//In this case, the low side order will be the last child being sent. Therefore, it needs to set this attribute to true 
+		//to activate all its predecessors
+		stopLoss.transmit(true);				    				 
+		stopLoss.account(m_acctList.get(0));
+		stopLoss.tif("GTC");
+
+		order = stopLoss;
+
+
+		orderDetail = executedOrderMap.get(order.parentId());
+		if(orderDetail == null){
+
+			orderDetail = liveForexOrderMap.get(order.orderId());
+			if(orderDetail == null)
+				return;	
+		}
+		Double openPrice = 0.0;
+		if(orderDetail.ActualPrice != null && !orderDetail.ActualPrice.isEmpty())
+			openPrice = Double.parseDouble(orderDetail.ActualPrice);
+
+		Double currentBidPrice, currentAskPrice, newStopPrice = 0.0;
+		Contract currencyContract = contractMap.get(orderDetail.Symbol);
+
+		if(currencyContract == null)
+			return;
+
+		currentBidPrice = currencyContract.getBidPrice();
+		currentAskPrice = currencyContract.getAskPrice();
+		double maPrice = currencyContract.ma();
+		Action action = order.action();
+
+		//This is a short position, we need to buy it at a price higher than current ask price to stop loss and lower price to make profit
+		if(action.equals(Action.BUY)){
+			//If current ask price 0.3 % is bigger than actual price, adjust STOP price to current price + 0.1% 
+			if(openPrice == 0.0){
+				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
+					newStopPrice = currencyContract.mediumMedSma;
+				else
+					newStopPrice = maPrice * (1 + Percent/100);
+			}
+			else if(maPrice < (openPrice * (1 - 0.2/100))){
+				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
+					newStopPrice = currencyContract.mediumMedSma;
+				else						
+					newStopPrice = maPrice * (1 + Percent/100);
+			}
+			//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
+			else if(maPrice < (openPrice * (1 - 0.15/100))){
+				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
+					newStopPrice = currencyContract.mediumMedSma;
+				else						
+					newStopPrice = openPrice * (1 - Percent/100);
+			}else{//defaul set stop price as 0.15 loss from current price
+				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
+					newStopPrice = currencyContract.mediumMedSma;
+				else
+					newStopPrice = openPrice * (1 + Percent/100);
+			}
+			newStopPrice = fixDoubleDigi(newStopPrice);
+
+			if(order.auxPrice() == 0.0)
+				return;
+
+			if (order.auxPrice() <= newStopPrice)
+				return;
+
+			//If current ask price is higher than stop price, we shouldn't set it, otherwise, it will stop out immediately.
+			if(currentAskPrice > newStopPrice)
+				return;
+
+		}else{//This is a long position, we need to sell it at a price higher than current bid price to make profit and stop at lower price to stop loss
+
+			//If current bid price 0.3 % is higher than actual price, adjust STOP price to current price - 0.1% 
+			if(openPrice == 0.0){
+				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
+					newStopPrice = currencyContract.mediumMedSma;
+				else						
+					newStopPrice = maPrice * (1 - Percent/100);
+			}
+			else if(maPrice > (openPrice * (1 + 0.2/100))){
+				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
+					newStopPrice = currencyContract.mediumMedSma;
+				else						
+					newStopPrice = maPrice * (1 - Percent/100);
+			}
+			//If current bid price 0.2 % is higher than actual price, adjust STOP price to actual open price 
+			else if(maPrice > (openPrice * (1 + 0.15/100))){
+				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
+					newStopPrice = currencyContract.mediumMedSma;
+				else						
+					newStopPrice = openPrice * (1 + Percent/100);
+			}else{//defaul set stop price as  0.15 loss from current price
+				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
+					newStopPrice = currencyContract.mediumMedSma;
+				else						
+					newStopPrice = openPrice * (1 - Percent/100);
+			}
+			newStopPrice = fixDoubleDigi(newStopPrice);
+
+			if(order.auxPrice() == 0.0)
+				return;
+
+			if (order.auxPrice() >= newStopPrice)
+				return;
+
+			//If current ask price is lower than stop price, we shouldn't set it, otherwise, it will stop out immediately.
+			if(currentBidPrice < newStopPrice)
+				return;
+		}	
+
+		System.out.println("SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + newStopPrice + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+		show(new Date() + " SeqNo: " + orderDetail.orderSeqNo + "Sending Mofidied Order: " + order.orderId() + " " + currencyContract.symbol() + currencyContract.currency() + " old STOP: " + order.auxPrice() + " new STOP: " + newStopPrice  + " BId@: " + currentBidPrice + " ask@ " + currentAskPrice + " ma: " + maPrice);
+		order.auxPrice(newStopPrice);
+		ForexOrderHandler stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
+		controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
+		//			submittedOrderHashMap.put(order.orderId(), order);
+
+	}
+
 
 
 
@@ -2164,7 +2169,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		stporderHandler = new ForexOrderHandler(order, orderDetail.orderSeqNo);
 		controller().placeOrModifyOrder( currencyContract, order, stporderHandler);	
 		submittedOrderHashMap.put(order.orderId(), order);
-		}	    
+	}	    
 
 
 
@@ -2526,8 +2531,14 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		@Override
 		public void historicalData(Bar bar, boolean hasGaps) {
 			// TODO Auto-generated method stub
-			m_currencyContract.putHistoricalBar(bar.time(), bar);
+			if(bar != null){
+				m_currencyContract.putHistoricalBar((long)(bar.time()), bar);
+				
+			
+			}
+			
 			contractMap.put(m_currencyContract.symbol() + m_currencyContract.currency(), m_currencyContract);
+			
 		}
 
 		@Override
@@ -2538,15 +2549,16 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			//Calculate 15m and hourly bar chart from 15 minutes bar.
 			calculate15MnHourBarFrom5MBarMap();
 			m_currencyContract.tickLatch60M.countDown();
-			
+
 		}
-		
-		
+
+
 		void	calculate15MnHourBarFrom5MBarMap(){
 
 			TreeSet<Long> keys = new TreeSet<Long>(m_currencyContract.historical5MBarMap.keySet());
 			//		TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
 
+			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm");
 
 
 			Bar bar = null, new15MBar = null, newHourlyBar;
@@ -2554,90 +2566,217 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 			for (Long key : keys){
 				bar = m_currencyContract.historical5MBarMap.get(key);
-	//			m_currencyContract.historical5MBarMap.remove(key);
+				//			m_currencyContract.historical5MBarMap.remove(key);
 
 				if(bar == null)
 					continue;		
-				
+
 				DateTime tickTime = new DateTime(bar.time() * 1000);
-				cal.setTime(tickTime.toDate());
-				cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 15));
 				
-					new15MBar = m_currencyContract.historical15MBarMap.get(cal.getTimeInMillis()/1000);			
-					new15MBar = calculateNewBarFrom5MBar(bar, new15MBar, 15);			
-					new15MBar = m_currencyContract.historical15MBarMap.put(new15MBar.time(), new15MBar);
-					
-					
-					tickTime = new DateTime(bar.time() * 1000);
-					cal.setTime(tickTime.toDate());
-					cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 60));
-					newHourlyBar = m_currencyContract.historicalHourBarMap.get(cal.getTimeInMillis()/1000);
-					newHourlyBar = calculateNewBarFrom5MBar(bar, newHourlyBar, 60);			
-					newHourlyBar = m_currencyContract.historicalHourBarMap.put(newHourlyBar.time(), newHourlyBar);	
+				try {
+					if(tickTime.isAfter(new DateTime(formatter.parse("2016-10-18 7:35")))){
+						System.out.println("15 m " + tickTime.toString());
+
+					}
+				} catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				cal.setTime(tickTime.toDate());
+				if(tickTime.getMinuteOfHour() % 15 != 0)
+					cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 15) + 15);
+				tickTime = new DateTime(cal.getTime());
+				System.out.println("15 m " + tickTime.toString());
+
+				new15MBar = m_currencyContract.historical15MBarMap.get((long)(cal.getTimeInMillis()/1000));			
+				new15MBar = calculateNewBarFrom5MBar(bar, new15MBar, 15, new DateTime(cal.getTimeInMillis()));	
+				
+				try {
+					if(tickTime.isAfter(new DateTime(formatter.parse("2016-10-18 7:35")))){
+						
+
+						if(new15MBar != null)						
+
+						System.out.println("15 m new15MBar " + new15MBar.formattedTime());
+
+
+					}
+				} catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				if(new15MBar != null)
+					new15MBar = m_currencyContract.historical15MBarMap.put((long)(new15MBar.time()), new15MBar);
+
+
+				tickTime = new DateTime(bar.time() * 1000);
+				cal.setTime(tickTime.toDate());
+				if(tickTime.getMinuteOfHour() != 0)
+					cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 60) + 60);
+				tickTime = new DateTime(cal.getTime());
+				System.out.println("60 m " + tickTime.toString());
+				newHourlyBar = m_currencyContract.historicalHourBarMap.get((long)cal.getTimeInMillis()/1000);
+				newHourlyBar = calculateNewBarFrom5MBar(bar, newHourlyBar, 60, new DateTime(cal.getTimeInMillis()));
+				
+				try {
+					if(tickTime.isAfter(new DateTime(formatter.parse("2016-10-18 7:35")))){
+						
+
+						if(newHourlyBar != null)
+						System.out.println("60 m newHourlyBar " + newHourlyBar.formattedTime() + newHourlyBar.time());
+
+						System.out.println("Does it contain a 2016-10-18 8:00 key in historicalHourBarMap " +  m_currencyContract.historicalHourBarMap.containsKey((long)1476738000));
+
+
+					}
+				} catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				
+				
+				if(newHourlyBar != null)
+					newHourlyBar = m_currencyContract.historicalHourBarMap.put((long)(newHourlyBar.time()), newHourlyBar);	
+				
+				try {
+					if(tickTime.isAfter(new DateTime(formatter.parse("2016-10-18 7:35")))){
+						
+						System.out.println("Does it contain a 2016-10-18 8:00 key in historicalHourBarMap " +  m_currencyContract.historicalHourBarMap.containsKey((long)1476738000));
+						
+//						newHourlyBar = m_currencyContract.historicalHourBarMap.get(newHourlyBar.time());	
+//						new15MBar = m_currencyContract.historical15MBarMap.get(new15MBar.time());
+
+						if(new15MBar != null)						
+						System.out.println("15 m new15MBar " + new15MBar.formattedTime());
+						if(newHourlyBar != null)
+						System.out.println("60 m newHourlyBar " + newHourlyBar.formattedTime());
+
+
+						for (Long key1 : m_currencyContract.historicalHourBarMap.keySet()){
+							bar = m_currencyContract.historicalHourBarMap.get((long)key1);
+							//			m_currencyContract.historical5MBarMap.remove(key);
+
+							if(bar == null)
+								continue;		
+
+							System.out.println("Hourly bar map: " + bar.formattedTime() + bar.time());
+						}	
+						
+					}
+				} catch (ParseException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
 			}
+			
+			
+			keys = new TreeSet<Long>(m_currencyContract.historical5MBarMap.keySet());
+			//		TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
+
+
+
+			
+
+			for (Long key : keys){
+				bar = m_currencyContract.historical5MBarMap.get(key);
+				//			m_currencyContract.historical5MBarMap.remove(key);
+
+				if(bar == null)
+					continue;		
+
+				System.out.println("5 m bar map: " + bar.formattedTime() + bar.time());
+			}
+			
+			keys = new TreeSet<Long>(m_currencyContract.historical15MBarMap.keySet());
+			//		TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
+			for (Long key : keys){
+				bar = m_currencyContract.historical15MBarMap.get(key);
+				//			m_currencyContract.historical5MBarMap.remove(key);
+
+				if(bar == null)
+					continue;		
+
+				System.out.println("15 m bar map: " + bar.formattedTime() + bar.time());
+			}
+			
+			keys = new TreeSet<Long>(m_currencyContract.historicalHourBarMap.keySet());
+			for (Long key : keys){
+				bar = m_currencyContract.historicalHourBarMap.get((long)key);
+				//			m_currencyContract.historical5MBarMap.remove(key);
+
+				if(bar == null)
+					continue;		
+
+				System.out.println("Hourly bar map: " + bar.formattedTime() + bar.time());
+			}
+			
 		}
 
 
-		Bar calculateNewBarFrom5MBar(Bar fiveMBar, Bar OldBarToUpdate, int duation){
-			
+		Bar calculateNewBarFrom5MBar(Bar fiveMBar, Bar OldBarToUpdate, int duation, DateTime dateTime){
+
 
 			Bar newBar = null;
 			Calendar cal = Calendar.getInstance();
 
-			
-				if(fiveMBar == null)
-					return fiveMBar;
-				double open = fiveMBar.open();
-				double high = fiveMBar.high();
-				double low = fiveMBar.low();
-				double close = fiveMBar.close();
-				Long volume = fiveMBar.volume();
-				DateTime tickTime = new DateTime(fiveMBar.time() * 1000);
-				cal.setTime(tickTime.toDate());
-				cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % duation) );
-				if(OldBarToUpdate == null){
-					OldBarToUpdate = new Bar(cal.getTimeInMillis() / 1000, high, low, open, close, 0, volume, 0);		
-					return OldBarToUpdate;
-				}
-				
-				//Update previous hour's close and compare its high and low.
-				if(tickTime.getMinuteOfHour() % duation == 0){
-					cal.setTime(tickTime.toDate());
-					cal.add(Calendar.MINUTE, -1 * duation);
-					
-					
-						if(high < OldBarToUpdate.high())
-							high = OldBarToUpdate.high(); 
-						if(low > OldBarToUpdate.low())
-							low = OldBarToUpdate.low(); 
-						open = OldBarToUpdate.open();
-						close = fiveMBar.close();
-						newBar = new Bar(cal.getTimeInMillis() / 1000, high, low, open, close, 0, 0, 0);
-					}else{
-						if(high < OldBarToUpdate.high())
-							high = OldBarToUpdate.high(); 
-						if(low > OldBarToUpdate.low())
-							low = OldBarToUpdate.low(); 
-						open = OldBarToUpdate.open();
-						close = fiveMBar.close();
-						newBar = new Bar(cal.getTimeInMillis() / 1000, high, low, open, close, 0, 0, 0);
-					}
-					
-			
+
+			if(fiveMBar == null)
+				return fiveMBar;
+			double open = fiveMBar.open();
+			double high = fiveMBar.high();
+			double low = fiveMBar.low();
+			double close = fiveMBar.close();
+			Long volume = fiveMBar.volume();
+			DateTime tickTime = new DateTime(fiveMBar.time() * 1000);
+			cal.setTime(tickTime.toDate());
+			cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % duation) );
+			if(OldBarToUpdate == null){
+				OldBarToUpdate = new Bar(dateTime.getMillis() / 1000, high, low, open, close, 0, volume, 0);		
+				return OldBarToUpdate;
+			}
+
+			//Update previous hour's close and compare its high and low.
+			if(tickTime.getMinuteOfHour() % duation == 0){
+//				cal.setTime(tickTime.toDate());
+//				cal.add(Calendar.MINUTE, -1 * duation);
+
+
+				if(high < OldBarToUpdate.high())
+					high = OldBarToUpdate.high(); 
+				if(low > OldBarToUpdate.low())
+					low = OldBarToUpdate.low(); 
+				open = OldBarToUpdate.open();
+				close = fiveMBar.close();
+				newBar = new Bar(tickTime.getMillis() / 1000, high, low, open, close, 0, 0, 0);
+			}else{
+
+				if(high < OldBarToUpdate.high())
+					high = OldBarToUpdate.high(); 
+				if(low > OldBarToUpdate.low())
+					low = OldBarToUpdate.low(); 
+				open = OldBarToUpdate.open();
+				close = fiveMBar.close();
+				newBar = new Bar(dateTime.getMillis() / 1000, high, low, open, close, 0, 0, 0);
+			}
+
+
 			return newBar;
 
 
-			
+
 		}
 
-		
-		
+
+
 	};
 
 
-	
-	
-	
+
+
+
 	public void requestHistoricalBar(String endTime, Contract currencyContract, Boolean isFirstTime){
 		int length = 0;
 
@@ -2649,7 +2788,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		}
 		else{
 			durationToRequest = DurationUnit.SECOND;
-			length = 3600;			
+			length = 7200;			
 		}
 
 		histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract);
@@ -2749,7 +2888,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		double lmtPrice = 0.0;
 		int counter = 0;
 		ExecutionFilter exeFilterReport = new ExecutionFilter();
-		private TechinicalAnalyzerTrader techAnalyzer60M;
+		//		private TechinicalAnalyzerTrader techAnalyzer60M;
 
 
 		public void run() {
@@ -2782,7 +2921,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				
+
 				//Check connection with server every second.
 				//Check whether current connection is disconnected. If yes, connect it and skip below action
 				if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED"))
@@ -2821,15 +2960,15 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 							// do something
 							inputFileName = "Forex" + orderDateStr + ".xls";
 						}
-						
-						
+
+
 						if(savedOrderHashMap.equals(orderHashMap) == false){
 							excelOutput.setOutputFile(fileNameStrs[0] + "_" + "Report_" + orderDateStr + "." + fileNameStrs[1]);
 							excelOutput.write(orderHashMap);
 							show(new Date() + " File " + fileNameStrs[0] + "_" + orderDateStr + "." + fileNameStrs[1] + " write back.");	
 							savedOrderHashMap = orderHashMap;
 						}
-						
+
 						excelInput.setInputFile(inputFileName);
 						orderHashMap = excelInput.read(orderHashMap);	
 						show(new Date() + " File " + inputFileName + " is read back. Total size in HashMap: " + orderHashMap.size() + " orders.");
@@ -2851,8 +2990,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				}
 
 
-				//Request historical data every 10 seconds.
-				if(fileReadingCounter % 10 == 0){ 					
+				//Request historical data every 30 seconds.
+				if(fileReadingCounter % 30 == 0){ 					
 
 					formatter = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 
@@ -2895,23 +3034,24 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 							requestHistoricalBar(orderDateStr, contractMap.get(orderDetail.Symbol), isHistoryReqFirstTime);
 
 
-							
-							//after we starts Historical bar request. Let's analyze it.
-							if(techAnalyzer60M == null){
-								techAnalyzer60M = new TechinicalAnalyzerTrader(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap);
-//								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
-								techAnalyzer60M.start();
-//								techAnalyzer60M.setPriority(Thread.NORM_PRIORITY +3);      
 
-//								TechinicalAnalyzer techAnalyzer15M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 15);
-////								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
-//								techAnalyzer15M.start();
-//								techAnalyzer15M.setPriority(Thread.NORM_PRIORITY + 2);      
-//
-//								TechinicalAnalyzer techAnalyzer5M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 5);
-//								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer5M);
-//								techAnalyzer5M.start();
-//								techAnalyzer5M.setPriority(Thread.NORM_PRIORITY + 1);      
+							TechinicalAnalyzerTrader techAnalyzer60M;
+							//after we starts Historical bar request. Let's analyze it.
+							if(contractTechAnalyzerMap.containsKey(orderDetail.Symbol) == false){
+								techAnalyzer60M = new TechinicalAnalyzerTrader(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap);
+								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
+						//		techAnalyzer60M.start();
+								//								techAnalyzer60M.setPriority(Thread.NORM_PRIORITY +3);      
+
+								//								TechinicalAnalyzer techAnalyzer15M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 15);
+								////								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
+								//								techAnalyzer15M.start();
+								//								techAnalyzer15M.setPriority(Thread.NORM_PRIORITY + 2);      
+								//
+								//								TechinicalAnalyzer techAnalyzer5M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 5);
+								//								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer5M);
+								//								techAnalyzer5M.start();
+								//								techAnalyzer5M.setPriority(Thread.NORM_PRIORITY + 1);      
 
 							}
 
