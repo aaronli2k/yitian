@@ -1633,7 +1633,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					systemTimePlus2M = new Date(serverTimeCalendar.getTimeInMillis() + 50 * 1000);	
 
 					//Compare system time and order to make sure that we submit the order on time or this is a market order which should be submitted immedietely
-					if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime) || orderDetail.EntryMethod.equals("MKT")){
+					if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime) || (orderDetail.EntryMethod != null && orderDetail.EntryMethod.equals("MKT"))){
 
 						boolean needToSubmit = true;
 						if(orderDetail.OCA == true){ //first is OCA is false. which is only a single order.
@@ -2521,19 +2521,25 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	reportListener tradeReportListener = new reportListener();	
 
 	class histortyDataHandler implements IHistoricalDataHandler{
-		Contract m_currencyContract;
+		private Contract m_currencyContract;
+		private int durationHost = 0;
 
-		public histortyDataHandler(Contract currencyContract) {
+		public histortyDataHandler(Contract currencyContract, int duration) {
 			// TODO Auto-generated constructor stub
 			m_currencyContract = currencyContract;
+			durationHost = duration;
 		}
 
 		@Override
 		public void historicalData(Bar bar, boolean hasGaps) {
 			// TODO Auto-generated method stub
 			if(bar != null){
-				m_currencyContract.putHistoricalBar((long)(bar.time()), bar);
-				
+				if(durationHost == 5)
+					m_currencyContract.historical5MBarMap.put((long)(bar.time()), bar);
+				else if(durationHost == 15)
+					m_currencyContract.historical15MBarMap.put((long)(bar.time()), bar);
+				else if(durationHost == 60)
+					m_currencyContract.historicalHourBarMap.put((long)(bar.time()), bar);
 			
 			}
 			
@@ -2547,9 +2553,13 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			//			System.out.println(new Date() + " end of bar high: ");
 			System.out.println(new Date() + " Historical Data end: "+ m_currencyContract.symbol() + m_currencyContract.currency());
 			//Calculate 15m and hourly bar chart from 15 minutes bar.
-			calculate15MnHourBarFrom5MBarMap();
-			m_currencyContract.tickLatch60M.countDown();
-
+			//calculate15MnHourBarFrom5MBarMap();
+			if(durationHost == 60)
+				m_currencyContract.tickLatch60M.countDown();
+			else if(durationHost == 15)
+				m_currencyContract.tickLatch15M.countDown();
+			else if(durationHost == 5)
+				m_currencyContract.tickLatch5M.countDown();
 		}
 
 
@@ -2573,39 +2583,39 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 				DateTime tickTime = new DateTime(bar.time() * 1000);
 				
-				try {
-					if(tickTime.isAfter(new DateTime(formatter.parse("2016-10-18 7:35")))){
-						System.out.println("15 m " + tickTime.toString());
-
-					}
-				} catch (ParseException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+//				try {
+//					if(tickTime.isAfter(new DateTime(formatter.parse("2016-10-18 7:35")))){
+//						System.out.println("15 m " + tickTime.toString());
+//
+//					}
+//				} catch (ParseException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
 				
 				cal.setTime(tickTime.toDate());
 				if(tickTime.getMinuteOfHour() % 15 != 0)
 					cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 15) + 15);
 				tickTime = new DateTime(cal.getTime());
-				System.out.println("15 m " + tickTime.toString());
+//				System.out.println("15 m " + tickTime.toString());
 
 				new15MBar = m_currencyContract.historical15MBarMap.get((long)(cal.getTimeInMillis()/1000));			
 				new15MBar = calculateNewBarFrom5MBar(bar, new15MBar, 15, new DateTime(cal.getTimeInMillis()));	
 				
-				try {
-					if(tickTime.isAfter(new DateTime(formatter.parse("2016-10-18 7:35")))){
-						
-
-						if(new15MBar != null)						
-
-						System.out.println("15 m new15MBar " + new15MBar.formattedTime());
-
-
-					}
-				} catch (ParseException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+//				try {
+//					if(tickTime.isAfter(new DateTime(formatter.parse("2016-10-18 7:35")))){
+//						
+//
+//						if(new15MBar != null)						
+//
+//						System.out.println("15 m new15MBar " + new15MBar.formattedTime());
+//
+//
+//					}
+//				} catch (ParseException e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
 				if(new15MBar != null)
 					new15MBar = m_currencyContract.historical15MBarMap.put((long)(new15MBar.time()), new15MBar);
 
@@ -2615,106 +2625,18 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				if(tickTime.getMinuteOfHour() != 0)
 					cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 60) + 60);
 				tickTime = new DateTime(cal.getTime());
-				System.out.println("60 m " + tickTime.toString());
+//				System.out.println("60 m " + tickTime.toString());
 				newHourlyBar = m_currencyContract.historicalHourBarMap.get((long)cal.getTimeInMillis()/1000);
 				newHourlyBar = calculateNewBarFrom5MBar(bar, newHourlyBar, 60, new DateTime(cal.getTimeInMillis()));
+			
 				
-				try {
-					if(tickTime.isAfter(new DateTime(formatter.parse("2016-10-18 7:35")))){
-						
-
-						if(newHourlyBar != null)
-						System.out.println("60 m newHourlyBar " + newHourlyBar.formattedTime() + newHourlyBar.time());
-
-						System.out.println("Does it contain a 2016-10-18 8:00 key in historicalHourBarMap " +  m_currencyContract.historicalHourBarMap.containsKey((long)1476738000));
-
-
-					}
-				} catch (ParseException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+				
+				if(newHourlyBar != null){
+					newHourlyBar = m_currencyContract.historicalHourBarMap.put((long)(newHourlyBar.time()), newHourlyBar);				
 				}
-				
-				
-				
-				if(newHourlyBar != null)
-					newHourlyBar = m_currencyContract.historicalHourBarMap.put((long)(newHourlyBar.time()), newHourlyBar);	
-				
-				try {
-					if(tickTime.isAfter(new DateTime(formatter.parse("2016-10-18 7:35")))){
-						
-						System.out.println("Does it contain a 2016-10-18 8:00 key in historicalHourBarMap " +  m_currencyContract.historicalHourBarMap.containsKey((long)1476738000));
-						
-//						newHourlyBar = m_currencyContract.historicalHourBarMap.get(newHourlyBar.time());	
-//						new15MBar = m_currencyContract.historical15MBarMap.get(new15MBar.time());
-
-						if(new15MBar != null)						
-						System.out.println("15 m new15MBar " + new15MBar.formattedTime());
-						if(newHourlyBar != null)
-						System.out.println("60 m newHourlyBar " + newHourlyBar.formattedTime());
-
-
-						for (Long key1 : m_currencyContract.historicalHourBarMap.keySet()){
-							bar = m_currencyContract.historicalHourBarMap.get((long)key1);
-							//			m_currencyContract.historical5MBarMap.remove(key);
-
-							if(bar == null)
-								continue;		
-
-							System.out.println("Hourly bar map: " + bar.formattedTime() + bar.time());
-						}	
-						
-					}
-				} catch (ParseException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-				
-			}
 			
-			
-			keys = new TreeSet<Long>(m_currencyContract.historical5MBarMap.keySet());
-			//		TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
-
-
-
-			
-
-			for (Long key : keys){
-				bar = m_currencyContract.historical5MBarMap.get(key);
-				//			m_currencyContract.historical5MBarMap.remove(key);
-
-				if(bar == null)
-					continue;		
-
-				System.out.println("5 m bar map: " + bar.formattedTime() + bar.time());
-			}
-			
-			keys = new TreeSet<Long>(m_currencyContract.historical15MBarMap.keySet());
-			//		TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
-			for (Long key : keys){
-				bar = m_currencyContract.historical15MBarMap.get(key);
-				//			m_currencyContract.historical5MBarMap.remove(key);
-
-				if(bar == null)
-					continue;		
-
-				System.out.println("15 m bar map: " + bar.formattedTime() + bar.time());
-			}
-			
-			keys = new TreeSet<Long>(m_currencyContract.historicalHourBarMap.keySet());
-			for (Long key : keys){
-				bar = m_currencyContract.historicalHourBarMap.get((long)key);
-				//			m_currencyContract.historical5MBarMap.remove(key);
-
-				if(bar == null)
-					continue;		
-
-				System.out.println("Hourly bar map: " + bar.formattedTime() + bar.time());
-			}
-			
+	}
 		}
-
 
 		Bar calculateNewBarFrom5MBar(Bar fiveMBar, Bar OldBarToUpdate, int duation, DateTime dateTime){
 
@@ -2788,10 +2710,10 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		}
 		else{
 			durationToRequest = DurationUnit.SECOND;
-			length = 7200;			
+			length = 14400;			
 		}
 
-		histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract);
+		histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract, 5);
 		if(forexHistoricalHandler != null && currencyContract != null)
 			controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
 		else
@@ -2800,6 +2722,24 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
 		}
 
+		forexHistoricalHandler = new histortyDataHandler(currencyContract, 15);
+		if(forexHistoricalHandler != null && currencyContract != null)
+			controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._15_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+		else
+		{
+			System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+		}
+		
+		forexHistoricalHandler = new histortyDataHandler(currencyContract, 60);
+		if(forexHistoricalHandler != null && currencyContract != null)
+			controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._1_hour, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+		else
+		{
+			System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+		}
+		
 	}
 
 	public void placeMarketOrder(forex orderDetail){		
@@ -3040,7 +2980,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 							if(contractTechAnalyzerMap.containsKey(orderDetail.Symbol) == false){
 								techAnalyzer60M = new TechinicalAnalyzerTrader(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap);
 								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
-						//		techAnalyzer60M.start();
+								techAnalyzer60M.start();
 								//								techAnalyzer60M.setPriority(Thread.NORM_PRIORITY +3);      
 
 								//								TechinicalAnalyzer techAnalyzer15M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 15);

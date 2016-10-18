@@ -162,6 +162,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 				{
 					currencyContractHost.tickLatch60M.await();
 					currencyContractHost.tickLatch60M.reset();
+					lastLongTick = techAnalyzerLong.initDB();
 				}
 				
 			} catch (InterruptedException e1) {
@@ -169,9 +170,32 @@ public class TechinicalAnalyzerTrader extends Thread{
 				e1.printStackTrace();
 			}
 
-			lastLongTick = techAnalyzerLong.initDB();
-			lastMediumTick = techAnalyzerMedium.initDB();
-			lastShortTick = techAnalyzerShort.initDB();
+			try {
+				{
+					currencyContractHost.tickLatch15M.await();
+					currencyContractHost.tickLatch15M.reset();
+					lastMediumTick = techAnalyzerMedium.initDB();
+				}
+				
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			
+			try {
+				{
+					currencyContractHost.tickLatch5M.await();
+					currencyContractHost.tickLatch5M.reset();
+					lastShortTick = techAnalyzerShort.initDB();
+				}
+				
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			
+			
+			
 //			shortBarHashMap.clear();
 //			mediumBarHashMap.clear();
 //			longBarHashMap.clear();
@@ -196,8 +220,8 @@ public class TechinicalAnalyzerTrader extends Thread{
 				{
 					try {
 						{
-							currencyContractHost.tickLatch60M.await();
-							currencyContractHost.tickLatch60M.reset();
+							currencyContractHost.tickLatch5M.await();
+							currencyContractHost.tickLatch5M.reset();
 						}
 						
 					} catch (InterruptedException e1) {

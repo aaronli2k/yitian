@@ -223,6 +223,7 @@ public class TechinicalAnalyzer{
 					//If last acquired time is before this tick time, which means this data is acquired and should be abandoned.
 					if(lastProcessedtime.compareTo(new Date(bar.time() * 1000)) >= 0){
 						//						barHashMap.remove(key);
+//						System.out.println(durationHost + " minutes " + " Bar " + bar.formattedTime() + " High: " +  bar.high() + " Low: " +  bar.low() + " Open: " +  bar.open() + " close: " +  bar.close());
 						continue;
 					}
 
@@ -333,6 +334,10 @@ public class TechinicalAnalyzer{
 
 
 
+			}else{
+				// Our strategy should WAIT
+				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes LONG Strategy should WAIT  on " + endIndex);
+
 			}
 
 			//If it is a short
@@ -397,6 +402,10 @@ public class TechinicalAnalyzer{
 				ContractHashMapHost.put(currencyContractHost.symbol() + currencyContractHost.currency(), currencyContractHost);
 
 				//					placeTestMarketOrder("CLOSE");
+
+			}else{
+				// Our strategy should WAIT
+				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes SHORT Strategy should WAIT  on " + endIndex);
 
 			}
 
@@ -580,7 +589,7 @@ public class TechinicalAnalyzer{
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
 		}else{
-			sellingRule = ( new OverIndicatorRule(shortSma, longSma).or(new OverIndicatorRule(closePrice, shortSma)))
+			sellingRule = ( new UnderIndicatorRule(shortSma, longSma).or(new UnderIndicatorRule(closePrice, shortSma)))
 					.and( new UnderIndicatorRule(sof, sos))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));

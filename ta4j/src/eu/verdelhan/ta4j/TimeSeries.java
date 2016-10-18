@@ -262,6 +262,42 @@ public class TimeSeries {
     }
 
     /**
+     * Adds a tick at the end of the series.
+     * <p>
+     * Begin index set to 0 if if wasn't initialized.<br>
+     * End index set to 0 if if wasn't initialized, or incremented if it matches the end of the series.<br>
+     * Exceeding ticks are removed.
+     * @param tick the tick to be added
+     * @see TimeSeries#setMaximumTickCount(int)
+     */
+    public void removeTick(int tickIndex) {
+        if (tickIndex >= ticks.size()) {
+            throw new IllegalArgumentException("Cannot remove index beyond maximum size");
+        }
+        
+        if(ticks.isEmpty()){
+            throw new IllegalArgumentException("Cannot remove empty list");        	
+        }
+        
+        
+
+
+        ticks.remove(tickIndex);
+        if (beginIndex == -1) {
+            // Begin index set to 0 only if if wasn't initialized
+            beginIndex = 0;
+        }
+        endIndex--;
+        if (endIndex == -1) {
+            // Begin index set to 0 only if if wasn't initialized
+        	endIndex = 0;
+        }
+        removeExceedingTicks();
+    }
+ 
+    
+    
+    /**
      * Returns a new time series which is a view of a subset of the current series.
      * <p>
      * The new series has begin and end indexes which correspond to the bounds of the sub-set into the full series.<br>
