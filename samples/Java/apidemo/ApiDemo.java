@@ -543,7 +543,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		m_frame.setTitle("Built @ " + new Date()); 
 
 		// make initial connection to local host, port 4001, client id 0, no connection options
-		controller().connect( "127.0.0.1", 7496, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
+		controller().connect( "127.0.0.1", 4001, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
 
 		Thread me = Thread.currentThread();
 
@@ -1891,7 +1891,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					//						continue;
 
 					//Adjust STop price according to actual open price and current market price.
-					adjustStopPrice(entry.getKey(), entry.getValue(), 0.15);
+					adjustStopPrice(entry.getKey(), entry.getValue(), 0.10);
 
 
 					if(orderDetail != null){
@@ -1994,27 +1994,27 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				newStopPrice = maPrice * (1 + Percent/100);
 			}
 			else if(openPrice == 0.0){
-				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < maPrice * (1 + Percent/100))
-					newStopPrice = currencyContract.extraMedSma;
-				else
+//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < maPrice * (1 + Percent/100))
+//					newStopPrice = currencyContract.extraMedSma;
+//				else
 					newStopPrice = maPrice * (1 + Percent/100);
 			}
 			else if(maPrice < (openPrice * (1 - 0.2/100))){
-				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < maPrice * (1 + Percent/100))
-					newStopPrice = currencyContract.extraMedSma;
-				else						
+//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < maPrice * (1 + Percent/100))
+//					newStopPrice = currencyContract.extraMedSma;
+//				else						
 					newStopPrice = maPrice * (1 + Percent/100);
 			}
 			//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
 			else if(maPrice < (openPrice * (1 - 0.15/100))){
-				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 - Percent/100))
-					newStopPrice = currencyContract.extraMedSma;
-				else						
+//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 - Percent/100))
+//					newStopPrice = currencyContract.extraMedSma;
+//				else						
 					newStopPrice = openPrice * (1 - Percent/100);
 			}else{//defaul set stop price as 0.15 loss from current price
-				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 + Percent/100))
-					newStopPrice = currencyContract.extraMedSma;
-				else
+//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 + Percent/100))
+//					newStopPrice = currencyContract.extraMedSma;
+//				else
 					newStopPrice = openPrice * (1 + Percent/100);
 			}
 			newStopPrice = fixDoubleDigi(newStopPrice);
@@ -2036,27 +2036,27 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				newStopPrice = maPrice * (1 - Percent/100);
 			}
 			else if(openPrice == 0.0){
-				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 - Percent/100))
-					newStopPrice = currencyContract.extraMedSma;
-				else						
+//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 - Percent/100))
+//					newStopPrice = currencyContract.extraMedSma;
+//				else						
 					newStopPrice = maPrice * (1 - Percent/100);
 			}
 			else if(maPrice > (openPrice * (1 + 0.2/100))){
-				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 - Percent/100))
-					newStopPrice = currencyContract.extraMedSma;
-				else						
+//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 - Percent/100))
+//					newStopPrice = currencyContract.extraMedSma;
+//				else						
 					newStopPrice = maPrice * (1 - Percent/100);
 			}
 			//If current bid price 0.2 % is higher than actual price, adjust STOP price to actual open price 
 			else if(maPrice > (openPrice * (1 + 0.15/100))){
-				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 + Percent/100))
-					newStopPrice = currencyContract.extraMedSma;
-				else						
+//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 + Percent/100))
+//					newStopPrice = currencyContract.extraMedSma;
+//				else						
 					newStopPrice = openPrice * (1 + Percent/100);
 			}else{//defaul set stop price as  0.15 loss from current price
-				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 - Percent/100))
-					newStopPrice = currencyContract.extraMedSma;
-				else						
+//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 - Percent/100))
+//					newStopPrice = currencyContract.extraMedSma;
+//				else						
 					newStopPrice = openPrice * (1 - Percent/100);
 			}
 			newStopPrice = fixDoubleDigi(newStopPrice);

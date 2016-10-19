@@ -333,13 +333,13 @@ public class TechinicalAnalyzerTrader extends Thread{
 				
 				if(pendingAction.equals("BUY")){
 					if(mediumTAResult.technicalSignal.equals("ENTER_LONG")){
-						if(mediumTAResult.technicalSignal.equals("ENTER_SHORT")){
+						if(!mediumTAResult.technicalSignal.equals("ENTER_LONG")){
 							placeTestMarketOrder("BUY", lastShortTick);
 						}						
 					}
 					{
 						if(shortTAResult.technicalSignal.equals("ENTER_LONG")){
-							if(currencyContractHost.m_currentTechnicalSignal5M.equals("ENTER_SHORT")){
+							if(!currencyContractHost.m_currentTechnicalSignal5M.equals("ENTER_SHORT")){
 								placeTestMarketOrder("BUY", lastShortTick);
 							}
 						}
@@ -347,23 +347,23 @@ public class TechinicalAnalyzerTrader extends Thread{
 				}
 				else if(pendingAction.equals("SELL")){
 					if(mediumTAResult.technicalSignal.equals("ENTER_SHORT")){
-						if(mediumTAResult.technicalSignal.equals("ENTER_LONG")){
+						if(!mediumTAResult.technicalSignal.equals("ENTER_LONG")){
 							placeTestMarketOrder("SELL", lastShortTick);
 						}						
 					}
 					{
 						if(shortTAResult.technicalSignal.equals("ENTER_SHORT")){
-							if(currencyContractHost.m_currentTechnicalSignal5M.equals("ENTER_LONG")){
-								placeTestMarketOrder("BUY", lastShortTick);
+							if(!currencyContractHost.m_currentTechnicalSignal5M.equals("ENTER_SHORT")){
+								placeTestMarketOrder("SELL", lastShortTick);
 							}
 						}
 					}
 				}	
 				
-				if(extraTAResult.technicalSignal.equals("EXIT_LONG") || extraTAResult.technicalSignal.equals("ENTER_SHORT")){
+				if(extraTAResult.technicalSignal.equals("EXIT_LONG") && !currencyContractHost.m_currentTechnicalSignal240M.equals("EXIT_LONG")){
 					placeTestMarketOrder("CLOSE", lastShortTick);
 
-				}else if(extraTAResult.technicalSignal.equals("EXIT_SHORT") || extraTAResult.technicalSignal.equals("ENTER_LONG")){
+				}else if(extraTAResult.technicalSignal.equals("EXIT_SHORT") && !currencyContractHost.m_currentTechnicalSignal240M.equals("EXIT_SHORT")){
 					placeTestMarketOrder("CLOSE", lastShortTick);
 				}
 				
@@ -477,7 +477,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 
 //		currencyContractHost.m_currentTechnicalSignal = action;
 //		ContractHashMapHost.put(orderDetail.Symbol, currencyContractHost);
-
+		System.out.println(new Date() + " Market order placed for " + orderDetail.Symbol); 
 	}
 
 }
