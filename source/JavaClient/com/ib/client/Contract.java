@@ -58,7 +58,10 @@ public class Contract implements Cloneable {
     public ConcurrentHashMap<Long, Bar> historical5MBarMap = new ConcurrentHashMap<Long, Bar>();
     public ConcurrentHashMap<Long, Bar> historical15MBarMap = new ConcurrentHashMap<Long, Bar>();
     public ConcurrentHashMap<Long, Bar> historicalHourBarMap = new ConcurrentHashMap<Long, Bar>();
+    public ConcurrentHashMap<Long, Bar> historical4HourBarMap = new ConcurrentHashMap<Long, Bar>();
+    public ConcurrentHashMap<Long, Bar> historicalDailyBarMap = new ConcurrentHashMap<Long, Bar>();
 
+    
     public utility.ResettableCountDownLatch tickLatch60M = new utility.ResettableCountDownLatch(1);
     public utility.ResettableCountDownLatch tickLatch15M = new utility.ResettableCountDownLatch(1);
     public utility.ResettableCountDownLatch tickLatch5M = new utility.ResettableCountDownLatch(1);

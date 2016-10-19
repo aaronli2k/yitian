@@ -1733,7 +1733,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 
 						// Do something
-						if(orderDetail.EntryMethod.equals("MKT")){
+						if(orderDetail.EntryMethod != null && orderDetail.EntryMethod.equals("MKT")){
 							if(orderDetail.TradeMethod.equals("CLOSE"))
 								closeCurrentLiveOrder(orderDetail);
 							else
@@ -2570,6 +2570,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				calculate15MnHourBarFrom5MBarMap();	
 				printOutBarMap(m_currencyContract.historical15MBarMap);
 				printOutBarMap(m_currencyContract.historicalHourBarMap);
+				printOutBarMap(m_currencyContract.historical4HourBarMap);
 
 
 			}
@@ -2665,13 +2666,83 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				
 				
 				if(newHourlyBar != null){
-					newHourlyBar = m_currencyContract.historicalHourBarMap.put((long)(newHourlyBar.time()), newHourlyBar);				
+					m_currencyContract.historicalHourBarMap.put((long)(newHourlyBar.time()), newHourlyBar);				
 				}
+				
+				
+				//Calculate 4 hour bar from one hour bar
+				tickTime = new DateTime(newHourlyBar.time() * 1000);
+				cal.setTime(tickTime.toDate());
+				//If bar time is 15 times, then it is a start of new bar. Or it is continuous of previous 15 minutes bar.
+				if((tickTime.getHourOfDay() + 1) % 4 != 0)
+					cal.add(Calendar.HOUR, -1 * (tickTime.getHourOfDay() + 1) % 4);
+				tickTime = new DateTime(cal.getTime());
+//				System.out.println("60 m " + tickTime.toString());
+				Bar new4HourBar = m_currencyContract.historical4HourBarMap.get((long)cal.getTimeInMillis()/1000);
+				new4HourBar = calculateNewBarFromHourlyBar(newHourlyBar, new4HourBar, 4, new DateTime(cal.getTimeInMillis()));
+				if(new4HourBar != null){
+					m_currencyContract.historical4HourBarMap.put((long)(new4HourBar.time()), new4HourBar);				
+				}
+				
+				
+				
 			
 	}
 		}
+		
+private		Bar calculateNewBarFromHourlyBar(Bar hourlyBar, Bar OldBarToUpdate, int duation, DateTime dateTime){
 
-		Bar calculateNewBarFrom5MBar(Bar fiveMBar, Bar OldBarToUpdate, int duation, DateTime dateTime){
+
+	Bar newBar = null;
+	Calendar cal = Calendar.getInstance();
+
+
+	if(hourlyBar == null)
+		return hourlyBar;
+	double open = hourlyBar.open();
+	double high = hourlyBar.high();
+	double low = hourlyBar.low();
+	double close = hourlyBar.close();
+	Long volume = hourlyBar.volume();
+	DateTime tickTime = new DateTime(hourlyBar.time() * 1000);
+	
+	if(OldBarToUpdate == null){
+		if(tickTime.getMinuteOfHour() % duation == 0){
+			return newBar = hourlyBar;
+		}else
+			newBar = new Bar(dateTime.getMillis() / 1000, high, low, open, close, 0, volume, 0);		
+		return newBar;
+	}
+
+	//Update previous hour's close and compare its high and low.
+	if((tickTime.getHourOfDay() + 1) % duation == 0){
+//		cal.setTime(tickTime.toDate());
+//		cal.add(Calendar.MINUTE, -1 * duation);
+
+		newBar = OldBarToUpdate;
+	}else{
+
+		if(high < OldBarToUpdate.high())
+			high = OldBarToUpdate.high(); 
+		if(low > OldBarToUpdate.low())
+			low = OldBarToUpdate.low(); 
+		open = OldBarToUpdate.open();
+		close = hourlyBar.close();
+		newBar = new Bar(dateTime.getMillis() / 1000, high, low, open, close, 0, 0, 0);
+	}
+
+
+	return newBar;
+
+
+
+
+	
+}
+
+		
+
+private		Bar calculateNewBarFrom5MBar(Bar fiveMBar, Bar OldBarToUpdate, int duation, DateTime dateTime){
 
 
 			Bar newBar = null;
@@ -2741,7 +2812,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		//Request one month day in initial request, then just one hour in following request.
 		DurationUnit durationToRequest;
 		if(isFirstTime){
-			durationToRequest = DurationUnit.DAY;
+			durationToRequest = DurationUnit.MONTH;
 			length = 2;
 		}
 		else{
@@ -3016,7 +3087,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 							if(contractTechAnalyzerMap.containsKey(orderDetail.Symbol) == false){
 								techAnalyzer60M = new TechinicalAnalyzerTrader(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap);
 								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
-							//	techAnalyzer60M.start();
+								techAnalyzer60M.start();
 								//								techAnalyzer60M.setPriority(Thread.NORM_PRIORITY +3);      
 
 								//								TechinicalAnalyzer techAnalyzer15M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 15);

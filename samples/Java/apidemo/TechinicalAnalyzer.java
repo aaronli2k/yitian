@@ -113,6 +113,9 @@ public class TechinicalAnalyzer{
 	private MedianPriceIndicator medPrice;
 	private SMAIndicator longMedSma;
 
+	private int fastSMAPeriod = 7;
+	private int slowSMAPeriod = 13;
+	
 	private Bar nextBar = null;
 
 	public TechinicalAnalyzer(ApiDemo apiDemo, Contract currencyContract, ConcurrentHashMap<String, Contract> contractHashMap , ConcurrentHashMap<Long, forex> orderHashMap, int duration, ConcurrentHashMap<Long, Bar> barHashMapIn, int tickLimit){
@@ -167,13 +170,13 @@ public class TechinicalAnalyzer{
 		closePrice = new ClosePriceIndicator(series);
 
 		// Getting the simple moving average (SMA) of the close price over the last 5 ticks
-		shortSma = new SMAIndicator(closePrice, 5);
+		shortSma = new SMAIndicator(closePrice, fastSMAPeriod);
 
 		// Here is the 5-ticks-SMA value at the 42nd index
 		System.out.println("5-ticks-SMA value at the 42nd index: " + shortSma.getValue(42).toDouble());
 
 		// Getting a longer SMA (e.g. over the 30 last ticks)
-		longSma = new SMAIndicator(closePrice, 10);
+		longSma = new SMAIndicator(closePrice, slowSMAPeriod);
 
 
 		// Relative strength index
@@ -531,30 +534,30 @@ public class TechinicalAnalyzer{
 			throw new IllegalArgumentException("Series cannot be null");
 		}
 
-		MinPriceIndicator minPrice = new MinPriceIndicator(series);
-		SMAIndicator longMinSma = new SMAIndicator(minPrice, 10);
-
-
-		ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
-
-		// Getting the simple moving average (SMA) of the close price over the last 5 ticks
-		SMAIndicator shortSma = new SMAIndicator(closePrice, 5);
-		SMAIndicator shortSmaHourly = new SMAIndicator(closePrice, 5 * 12);
-
-		// Here is the 5-ticks-SMA value at the 42nd index
-		System.out.println("5-ticks-SMA value at the 42nd index: " + shortSma.getValue(42).toDouble());
-
-		// Getting a longer SMA (e.g. over the 30 last ticks)
-		SMAIndicator longSma = new SMAIndicator(closePrice, 10);
-		SMAIndicator longSmaHourly = new SMAIndicator(closePrice, 10 * 12);
-
-
-		// Relative strength index
-		RSIIndicator rsi = new RSIIndicator(closePrice, 168);
-
-		StochasticOscillatorKIndicator sof = new StochasticOscillatorKIndicator(series, 14);
-		SMAIndicator sma = new SMAIndicator(sof, 3);
-		StochasticOscillatorDIndicator sos = new StochasticOscillatorDIndicator(sma);
+//		MinPriceIndicator minPrice = new MinPriceIndicator(series);
+//		SMAIndicator longMinSma = new SMAIndicator(minPrice, 10);
+//
+//
+//		ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
+//
+//		// Getting the simple moving average (SMA) of the close price over the last 5 ticks
+//		SMAIndicator shortSma = new SMAIndicator(closePrice, 5);
+//		SMAIndicator shortSmaHourly = new SMAIndicator(closePrice, 5 * 12);
+//
+//		// Here is the 5-ticks-SMA value at the 42nd index
+//		System.out.println("5-ticks-SMA value at the 42nd index: " + shortSma.getValue(42).toDouble());
+//
+//		// Getting a longer SMA (e.g. over the 30 last ticks)
+//		SMAIndicator longSma = new SMAIndicator(closePrice, 10);
+//		SMAIndicator longSmaHourly = new SMAIndicator(closePrice, 10 * 12);
+//
+//
+//		// Relative strength index
+//		RSIIndicator rsi = new RSIIndicator(closePrice, 168);
+//
+//		StochasticOscillatorKIndicator sof = new StochasticOscillatorKIndicator(series, 14);
+//		SMAIndicator sma = new SMAIndicator(sof, 3);
+//		StochasticOscillatorDIndicator sos = new StochasticOscillatorDIndicator(sma);
 
 
 
@@ -567,12 +570,12 @@ public class TechinicalAnalyzer{
 		Rule buyingRule = null;
 		if(durationHost == 5){
 			buyingRule = ( new CrossedUpIndicatorRule(shortSma, longSma).or(new CrossedUpIndicatorRule(closePrice, shortSma)))
-					.and( new OverIndicatorRule(sof, sos))
+					.and( new OverIndicatorRule(sofStoch, sosStoch))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
 		}else{
 			buyingRule = ( new OverIndicatorRule(shortSma, longSma).or(new OverIndicatorRule(closePrice, shortSma)))
-					.and( new OverIndicatorRule(sof, sos))
+					.and( new OverIndicatorRule(sofStoch, sosStoch))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
 		}
@@ -585,12 +588,12 @@ public class TechinicalAnalyzer{
 		Rule sellingRule = null;
 		if(durationHost == 5){
 			sellingRule = ( new CrossedDownIndicatorRule(shortSma, longSma).or(new CrossedDownIndicatorRule(closePrice, shortSma)))
-					.and( new UnderIndicatorRule(sof, sos))
+					.and( new UnderIndicatorRule(sofStoch, sosStoch))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
 		}else{
 			sellingRule = ( new UnderIndicatorRule(shortSma, longSma).or(new UnderIndicatorRule(closePrice, shortSma)))
-					.and( new UnderIndicatorRule(sof, sos))
+					.and( new UnderIndicatorRule(sofStoch, sosStoch))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
 		}
@@ -616,34 +619,34 @@ public class TechinicalAnalyzer{
 			throw new IllegalArgumentException("Series cannot be null");
 		}
 
-		MaxPriceIndicator maxPrice = new MaxPriceIndicator(series);
-		SMAIndicator longMaxSma = new SMAIndicator(maxPrice, 10);
-
-
-		ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
-
-
-
-		// Getting the simple moving average (SMA) of the close price over the last 5 ticks
-		SMAIndicator shortSma = new SMAIndicator(closePrice, 5);
-
-		// Getting the simple moving average (SMA) of the close price over the last 5 ticks
-		SMAIndicator shortSmaHourly = new SMAIndicator(closePrice, 5 * 12);    
-
-		// Here is the 5-ticks-SMA value at the 42nd index
-		System.out.println("5-ticks-SMA value at the 42nd index: " + shortSma.getValue(42).toDouble());
-
-		// Getting a longer SMA (e.g. over the 30 last ticks)
-		SMAIndicator longSma = new SMAIndicator(closePrice, 10);
-		SMAIndicator longSmaHourly = new SMAIndicator(closePrice, 10 * 12);
-
-
-		// Relative strength index
-		RSIIndicator rsi = new RSIIndicator(closePrice, 14);
-
-		StochasticOscillatorKIndicator sof = new StochasticOscillatorKIndicator(series, 168);
-		SMAIndicator sma = new SMAIndicator(sof, 3);
-		StochasticOscillatorDIndicator sos = new StochasticOscillatorDIndicator(sma);
+//		MaxPriceIndicator maxPrice = new MaxPriceIndicator(series);
+//		SMAIndicator longMaxSma = new SMAIndicator(maxPrice, 10);
+//
+//
+//		ClosePriceIndicator closePrice = new ClosePriceIndicator(series);
+//
+//
+//
+//		// Getting the simple moving average (SMA) of the close price over the last 5 ticks
+//		SMAIndicator shortSma = new SMAIndicator(closePrice, 5);
+//
+//		// Getting the simple moving average (SMA) of the close price over the last 5 ticks
+//		SMAIndicator shortSmaHourly = new SMAIndicator(closePrice, 5 * 12);    
+//
+//		// Here is the 5-ticks-SMA value at the 42nd index
+//		System.out.println("5-ticks-SMA value at the 42nd index: " + shortSma.getValue(42).toDouble());
+//
+//		// Getting a longer SMA (e.g. over the 30 last ticks)
+//		SMAIndicator longSma = new SMAIndicator(closePrice, 10);
+//		SMAIndicator longSmaHourly = new SMAIndicator(closePrice, 10 * 12);
+//
+//
+//		// Relative strength index
+//		RSIIndicator rsi = new RSIIndicator(closePrice, 14);
+//
+//		StochasticOscillatorKIndicator sof = new StochasticOscillatorKIndicator(series, 168);
+//		SMAIndicator sma = new SMAIndicator(sof, 3);
+//		StochasticOscillatorDIndicator sos = new StochasticOscillatorDIndicator(sma);
 
 
 
@@ -656,12 +659,12 @@ public class TechinicalAnalyzer{
 		Rule buyingRule = null;
 		if(durationHost == 5){
 			buyingRule = ( new CrossedUpIndicatorRule(shortSma, longSma).or(new CrossedUpIndicatorRule(closePrice, shortSma)))
-					.and( new OverIndicatorRule(sof, sos))
+					.and( new OverIndicatorRule(sofStoch, sosStoch))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
 		}else{
 			buyingRule = ( new OverIndicatorRule(shortSma, longSma).or(new OverIndicatorRule(closePrice, shortSma)))
-					.and( new OverIndicatorRule(sof, sos))
+					.and( new OverIndicatorRule(sofStoch, sosStoch))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
 		}
@@ -674,12 +677,12 @@ public class TechinicalAnalyzer{
 		Rule sellingRule = null;
 		if(durationHost == 5){
 			sellingRule = ( new CrossedDownIndicatorRule(shortSma, longSma).or(new CrossedDownIndicatorRule(closePrice, shortSma)))
-					.and( new UnderIndicatorRule(sof, sos))
+					.and( new UnderIndicatorRule(sofStoch, sosStoch))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
 		}else{
 			sellingRule = ( new UnderIndicatorRule(shortSma, longSma).or(new UnderIndicatorRule(closePrice, shortSma)))
-					.and( new UnderIndicatorRule(sof, sos))
+					.and( new UnderIndicatorRule(sofStoch, sosStoch))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
 		}
