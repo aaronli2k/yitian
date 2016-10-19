@@ -190,9 +190,7 @@ public class TechinicalAnalyzer{
 		Tick newTick  = null;
 		Bar bar = null;
 		int endIndex = 0;
-
-
-
+		
 		SortedSet<Long> keys = new TreeSet<Long>(barHashMap.keySet());
 		//								TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
 
@@ -255,7 +253,7 @@ public class TechinicalAnalyzer{
 		if (longStrategy.shouldEnter(endIndex)) {
 			// Our strategy should enter
 			System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes Strategy should ENTER LONG on " + endIndex);
-			currentTechnicalSignal = "UP";
+			currentTechnicalSignal = "ENTRY_LONG";
 
 
 
@@ -263,7 +261,7 @@ public class TechinicalAnalyzer{
 		} else if (longStrategy.shouldExit(endIndex)) {
 			// Our strategy should exit
 			System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should EXIT LONG on " + endIndex);
-			currentTechnicalSignal = "DOWN";
+			currentTechnicalSignal = "EXIT_LONG";
 
 
 
@@ -280,7 +278,7 @@ public class TechinicalAnalyzer{
 		if (shortStrategy.shouldEnter(endIndex)) {
 			// Our strategy should enter
 			System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should ENTER SHORT on " + endIndex);
-			currentTechnicalSignal = "DOWN";
+			currentTechnicalSignal = "ENTER_SHORT";
 
 
 
@@ -289,7 +287,7 @@ public class TechinicalAnalyzer{
 		} else if (shortStrategy.shouldExit(endIndex)) {
 			// Our strategy should exit
 			System.out.println(series.getLastTick().getSimpleDateName() + " " + durationHost + " minutes  Strategy should EXIT SHORT on " + endIndex);
-			currentTechnicalSignal = "UP";
+			currentTechnicalSignal = "EXIT_SHORT";
 
 
 
@@ -451,12 +449,13 @@ public class TechinicalAnalyzer{
 		//  - or if if the price looses more than 3%
 		//  - or if the price earns more than 2%
 		Rule sellingRule = null;
-		if(durationHost == 5){
-			sellingRule = ( new CrossedDownIndicatorRule(shortSma, longSma).or(new CrossedDownIndicatorRule(closePrice, shortSma)))
-					.and( new UnderIndicatorRule(sofStoch, sosStoch))
-					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
-		}else{
+//		if(durationHost == 5){
+//			sellingRule = ( new CrossedDownIndicatorRule(shortSma, longSma).or(new CrossedDownIndicatorRule(closePrice, shortSma)))
+//					.and( new UnderIndicatorRule(sofStoch, sosStoch))
+//					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
+//					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
+//		}else
+		{
 			sellingRule = ( new UnderIndicatorRule(shortSma, longSma).or(new UnderIndicatorRule(closePrice, shortSma)))
 					.and( new UnderIndicatorRule(sofStoch, sosStoch))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
@@ -522,12 +521,13 @@ public class TechinicalAnalyzer{
 		//  - if the 5-ticks SMA crosses over 30-ticks SMA
 		//  - and if the K(sof) goes above D(sos)
 		Rule buyingRule = null;
-		if(durationHost == 5){
-			buyingRule = ( new CrossedUpIndicatorRule(shortSma, longSma).or(new CrossedUpIndicatorRule(closePrice, shortSma)))
-					.and( new OverIndicatorRule(sofStoch, sosStoch))
-					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
-		}else{
+//		if(durationHost == 5){
+//			buyingRule = ( new CrossedUpIndicatorRule(shortSma, longSma).or(new CrossedUpIndicatorRule(closePrice, shortSma)))
+//					.and( new OverIndicatorRule(sofStoch, sosStoch))
+//					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
+//					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
+//		}else
+		{
 			buyingRule = ( new OverIndicatorRule(shortSma, longSma).or(new OverIndicatorRule(closePrice, shortSma)))
 					.and( new OverIndicatorRule(sofStoch, sosStoch))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
@@ -545,7 +545,8 @@ public class TechinicalAnalyzer{
 					.and( new UnderIndicatorRule(sofStoch, sosStoch))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
 					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
-		}else{
+		}else
+		{
 			sellingRule = ( new UnderIndicatorRule(shortSma, longSma).or(new UnderIndicatorRule(closePrice, shortSma)))
 					.and( new UnderIndicatorRule(sofStoch, sosStoch))
 					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))

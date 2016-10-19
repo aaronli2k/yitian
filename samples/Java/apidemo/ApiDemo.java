@@ -1634,7 +1634,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					systemTimePlus2M = new Date(serverTimeCalendar.getTimeInMillis() + 50 * 1000);	
 
 					//Compare system time and order to make sure that we submit the order on time or this is a market order which should be submitted immedietely
-					if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime) || (orderDetail.EntryMethod != null && orderDetail.EntryMethod.equals("MKT"))){
+					if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime) || (orderDetail.EntryMethod != null && orderDetail.EntryMethod.equals("MKT") && orderDetail.OrderStatus != null && !orderDetail.OrderStatus.isEmpty())){
 
 						boolean needToSubmit = true;
 						if(orderDetail.OCA == true){ //first is OCA is false. which is only a single order.
@@ -1657,6 +1657,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 						}
 						//To be confirmed later.
 
+						if(!orderDetail.TradeMethod.equals("CLOSE"))//always close the order.
+						{
 						//Make sure that we would NOT submit an duplicate order with current open order;
 						for (Entry<Integer, forex> entry : liveForexOrderMap.entrySet()) {
 							forex order2Loop = entry.getValue();
@@ -1707,7 +1709,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 								}
 							}    
 						}
-
+					}
 
 						if(needToSubmit == false)
 							continue;
@@ -1741,8 +1743,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 								placeMarketOrder(orderDetail);
 
 						}
-						else if(orderDetail.EntryMethod != null && orderDetail.TradeMethod.equals("BUY")){
-							if(orderDetail.EntryMethod.equals("STOP"))
+						else if( orderDetail.TradeMethod.equals("BUY")){
+							if(orderDetail.EntryMethod != null &&orderDetail.EntryMethod.equals("STOP"))
 							{
 								//This is a new order
 								bracketStopOrder(orderDetail, 0);
@@ -1937,13 +1939,14 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				return;
 		}
 
-		//If its parent Order isn't executed, don't change stop Price.
-		if(!executedOrderMap.containsKey(order.parentId()))
-			return;
-
-		//If its parent Order isn't executed, don't change stop Price.
-		if(liveOrderMap.containsKey(order.parentId()))
-			return;
+		//For testing purpose.
+//		//If its parent Order isn't executed, don't change stop Price.
+//		if(!executedOrderMap.containsKey(order.parentId()))
+//			return;
+//
+//		//If its parent Order isn't executed, don't change stop Price.
+//		if(liveOrderMap.containsKey(order.parentId()))
+//			return;
 
 		Order stopLoss = new Order();
 		stopLoss.orderId(order.orderId());
@@ -1987,79 +1990,85 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		//This is a short position, we need to buy it at a price higher than current ask price to stop loss and lower price to make profit
 		if(action.equals(Action.BUY)){
 			//If current ask price 0.3 % is bigger than actual price, adjust STOP price to current price + 0.1% 
-			if(openPrice == 0.0){
-				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
-					newStopPrice = currencyContract.mediumMedSma;
+			if(Percent == -0.1){ //which means we need to close the order now.
+				newStopPrice = maPrice * (1 + Percent/100);
+			}
+			else if(openPrice == 0.0){
+				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < maPrice * (1 + Percent/100))
+					newStopPrice = currencyContract.extraMedSma;
 				else
 					newStopPrice = maPrice * (1 + Percent/100);
 			}
 			else if(maPrice < (openPrice * (1 - 0.2/100))){
-				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
-					newStopPrice = currencyContract.mediumMedSma;
+				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < maPrice * (1 + Percent/100))
+					newStopPrice = currencyContract.extraMedSma;
 				else						
 					newStopPrice = maPrice * (1 + Percent/100);
 			}
 			//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
 			else if(maPrice < (openPrice * (1 - 0.15/100))){
-				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
-					newStopPrice = currencyContract.mediumMedSma;
+				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 - Percent/100))
+					newStopPrice = currencyContract.extraMedSma;
 				else						
 					newStopPrice = openPrice * (1 - Percent/100);
 			}else{//defaul set stop price as 0.15 loss from current price
-				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
-					newStopPrice = currencyContract.mediumMedSma;
+				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 + Percent/100))
+					newStopPrice = currencyContract.extraMedSma;
 				else
 					newStopPrice = openPrice * (1 + Percent/100);
 			}
 			newStopPrice = fixDoubleDigi(newStopPrice);
 
-			if(order.auxPrice() == 0.0)
+			if(order.auxPrice() == 0.0  && Percent != -0.1) //-0.1 is used to close the order now which means we need to close the order now.
 				return;
 
-			if (order.auxPrice() <= newStopPrice)
+			if (order.auxPrice() <= newStopPrice  && Percent != -0.1) //-0.1 is used to close the order now which means we need to close the order now.
 				return;
 
 			//If current ask price is higher than stop price, we shouldn't set it, otherwise, it will stop out immediately.
-			if(currentAskPrice > newStopPrice)
+			if(currentAskPrice > newStopPrice  && Percent != -0.1) //-0.1 is used to close the order now which means we need to close the order now.
 				return;
 
 		}else{//This is a long position, we need to sell it at a price higher than current bid price to make profit and stop at lower price to stop loss
 
 			//If current bid price 0.3 % is higher than actual price, adjust STOP price to current price - 0.1% 
-			if(openPrice == 0.0){
-				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
-					newStopPrice = currencyContract.mediumMedSma;
+			if(Percent == -0.1){ //-0.1 is used to close the order now which means we need to close the order now.
+				newStopPrice = maPrice * (1 - Percent/100);
+			}
+			else if(openPrice == 0.0){
+				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 - Percent/100))
+					newStopPrice = currencyContract.extraMedSma;
 				else						
 					newStopPrice = maPrice * (1 - Percent/100);
 			}
 			else if(maPrice > (openPrice * (1 + 0.2/100))){
-				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
-					newStopPrice = currencyContract.mediumMedSma;
+				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 - Percent/100))
+					newStopPrice = currencyContract.extraMedSma;
 				else						
 					newStopPrice = maPrice * (1 - Percent/100);
 			}
 			//If current bid price 0.2 % is higher than actual price, adjust STOP price to actual open price 
 			else if(maPrice > (openPrice * (1 + 0.15/100))){
-				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
-					newStopPrice = currencyContract.mediumMedSma;
+				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 + Percent/100))
+					newStopPrice = currencyContract.extraMedSma;
 				else						
 					newStopPrice = openPrice * (1 + Percent/100);
 			}else{//defaul set stop price as  0.15 loss from current price
-				if(	currencyContract.mediumMedSma > 0.0 && currencyContract.mediumMedSma < 0.5)
-					newStopPrice = currencyContract.mediumMedSma;
+				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 - Percent/100))
+					newStopPrice = currencyContract.extraMedSma;
 				else						
 					newStopPrice = openPrice * (1 - Percent/100);
 			}
 			newStopPrice = fixDoubleDigi(newStopPrice);
 
-			if(order.auxPrice() == 0.0)
+			if(order.auxPrice() == 0.0 && Percent != -0.1) //-0.1 is used to close the order now which means we need to close the order now.
 				return;
 
-			if (order.auxPrice() >= newStopPrice)
+			if (order.auxPrice() >= newStopPrice && Percent != -0.1) //-0.1 is used to close the order now which means we need to close the order now.
 				return;
 
 			//If current ask price is lower than stop price, we shouldn't set it, otherwise, it will stop out immediately.
-			if(currentBidPrice < newStopPrice)
+			if(currentBidPrice < newStopPrice && Percent != -0.1) //-0.1 is used to close the order now which means we need to close the order now.
 				return;
 		}	
 

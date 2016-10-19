@@ -78,7 +78,8 @@ public Bar    getHistoricalBar(long time){
 	return historical5MBarMap.get(time);
 }
     private MovingAverage sma = new MovingAverage(20);
-	public Double longMedSma = 0.0;
+	public Double extraMedSma = 0.0;
+    public Double longMedSma = 0.0;
 	public Double mediumMedSma = 0.0;
 	public Double shortMedSma = 0.0;
 	public Boolean isHistoryReqFirstTime = true;
