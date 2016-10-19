@@ -40,6 +40,7 @@ import javax.swing.Timer;
 import javax.swing.border.EmptyBorder;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 
 import com.ib.client.CommissionReport;
 import com.ib.client.Contract;
@@ -2563,14 +2564,14 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				}
 			else if(durationHost == 5){
 				m_currencyContract.tickLatch5M.countDown();
-				printOutBarMap(m_currencyContract.historical5MBarMap);
-				printOutBarMap(m_currencyContract.historical15MBarMap);
-				printOutBarMap(m_currencyContract.historicalHourBarMap);
+//				printOutBarMap(m_currencyContract.historical5MBarMap);
+//				printOutBarMap(m_currencyContract.historical15MBarMap);
+//				printOutBarMap(m_currencyContract.historicalHourBarMap);
 	//			Calculate 15m and hourly bar chart from 15 minutes bar.
 				calculate15MnHourBarFrom5MBarMap();	
-				printOutBarMap(m_currencyContract.historical15MBarMap);
-				printOutBarMap(m_currencyContract.historicalHourBarMap);
-				printOutBarMap(m_currencyContract.historical4HourBarMap);
+//				printOutBarMap(m_currencyContract.historical15MBarMap);
+//				printOutBarMap(m_currencyContract.historicalHourBarMap);
+//				printOutBarMap(m_currencyContract.historical4HourBarMap);
 
 
 			}
@@ -2671,15 +2672,26 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				
 				
 				//Calculate 4 hour bar from one hour bar
+				
+				DateTimeZone tz = DateTimeZone.getDefault();
+				DateTime nowLocal = new DateTime(newHourlyBar.time() * 1000);
+	//			LocalDateTime nowUTC = nowLocal.withZone(DateTimeZone.UTC).toLocalDateTime();
+				DateTime nowUTC2 = nowLocal.withZone(DateTimeZone.UTC);
+
+				Date dLocal = nowLocal.toDate();
+	//			Date dUTC = nowUTC.toDate();
+				Date dUTC2 = nowUTC2.toDate();
+				
+				
 				tickTime = new DateTime(newHourlyBar.time() * 1000);
 				cal.setTime(tickTime.toDate());
 				//If bar time is 15 times, then it is a start of new bar. Or it is continuous of previous 15 minutes bar.
-				if((tickTime.getHourOfDay() + 1) % 4 != 0)
-					cal.add(Calendar.HOUR, -1 * (tickTime.getHourOfDay() + 1) % 4);
+				if((nowUTC2.getHourOfDay()) % 4 != 0)
+					cal.add(Calendar.HOUR, -1 * nowUTC2.getHourOfDay() % 4);
 				tickTime = new DateTime(cal.getTime());
 //				System.out.println("60 m " + tickTime.toString());
 				Bar new4HourBar = m_currencyContract.historical4HourBarMap.get((long)cal.getTimeInMillis()/1000);
-				new4HourBar = calculateNewBarFromHourlyBar(newHourlyBar, new4HourBar, 4, new DateTime(cal.getTimeInMillis()));
+				new4HourBar = calculateNewBarFromHourlyBar(newHourlyBar, new4HourBar, 4, new DateTime(cal.getTimeInMillis()), nowUTC2);
 				if(new4HourBar != null){
 					m_currencyContract.historical4HourBarMap.put((long)(new4HourBar.time()), new4HourBar);				
 				}
@@ -2690,7 +2702,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	}
 		}
 		
-private		Bar calculateNewBarFromHourlyBar(Bar hourlyBar, Bar OldBarToUpdate, int duation, DateTime dateTime){
+private		Bar calculateNewBarFromHourlyBar(Bar hourlyBar, Bar OldBarToUpdate, int duation, DateTime dateTime, DateTime nowUTC2){
 
 
 	Bar newBar = null;
@@ -2707,7 +2719,7 @@ private		Bar calculateNewBarFromHourlyBar(Bar hourlyBar, Bar OldBarToUpdate, int
 	DateTime tickTime = new DateTime(hourlyBar.time() * 1000);
 	
 	if(OldBarToUpdate == null){
-		if(tickTime.getMinuteOfHour() % duation == 0){
+		if((nowUTC2.getHourOfDay()) % duation == 0){
 			return newBar = hourlyBar;
 		}else
 			newBar = new Bar(dateTime.getMillis() / 1000, high, low, open, close, 0, volume, 0);		
@@ -2715,7 +2727,7 @@ private		Bar calculateNewBarFromHourlyBar(Bar hourlyBar, Bar OldBarToUpdate, int
 	}
 
 	//Update previous hour's close and compare its high and low.
-	if((tickTime.getHourOfDay() + 1) % duation == 0){
+	if((nowUTC2.getHourOfDay()) % duation  == 0){
 //		cal.setTime(tickTime.toDate());
 //		cal.add(Calendar.MINUTE, -1 * duation);
 
