@@ -2552,17 +2552,48 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			// TODO Auto-generated method stub
 			//			System.out.println(new Date() + " end of bar high: ");
 			System.out.println(new Date() + " Historical Data end: "+ m_currencyContract.symbol() + m_currencyContract.currency());
-			//Calculate 15m and hourly bar chart from 15 minutes bar.
-			//calculate15MnHourBarFrom5MBarMap();
-			if(durationHost == 60)
+			
+			if(durationHost == 60){
 				m_currencyContract.tickLatch60M.countDown();
-			else if(durationHost == 15)
+				printOutBarMap(m_currencyContract.historicalHourBarMap);
+			}
+			else if(durationHost == 15){
 				m_currencyContract.tickLatch15M.countDown();
-			else if(durationHost == 5)
+				printOutBarMap(m_currencyContract.historical15MBarMap);
+				}
+			else if(durationHost == 5){
 				m_currencyContract.tickLatch5M.countDown();
+				printOutBarMap(m_currencyContract.historical5MBarMap);
+				printOutBarMap(m_currencyContract.historical15MBarMap);
+				printOutBarMap(m_currencyContract.historicalHourBarMap);
+	//			Calculate 15m and hourly bar chart from 15 minutes bar.
+				calculate15MnHourBarFrom5MBarMap();	
+				printOutBarMap(m_currencyContract.historical15MBarMap);
+				printOutBarMap(m_currencyContract.historicalHourBarMap);
+
+
+			}
 		}
 
 
+		void printOutBarMap(ConcurrentHashMap<Long, Bar> historicalBarMap){
+			
+			TreeSet<Long> keys = new TreeSet<Long>(historicalBarMap.keySet());
+			//		TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
+
+
+
+			Bar bar = null, new15MBar = null, newHourlyBar;
+			Calendar cal = Calendar.getInstance();
+
+			for (Long key : keys){
+				bar = historicalBarMap.get(key);
+				System.out.println(m_currencyContract.symbol() + m_currencyContract.currency() + " time: " + bar.formattedTime()  + " bar count: " + bar.count() + " bar open: " + bar.open() +  " bar high: " + bar.high() + " bar low: " + bar.low() + " bar close: " + bar.close());
+
+				
+				}
+		}
+		
 		void	calculate15MnHourBarFrom5MBarMap(){
 
 			TreeSet<Long> keys = new TreeSet<Long>(m_currencyContract.historical5MBarMap.keySet());
@@ -2594,8 +2625,9 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 //				}
 				
 				cal.setTime(tickTime.toDate());
+				//If bar time is 15 times, then it is a start of new bar. Or it is continuous of previous 15 minutes bar.
 				if(tickTime.getMinuteOfHour() % 15 != 0)
-					cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 15) + 15);
+					cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 15));
 				tickTime = new DateTime(cal.getTime());
 //				System.out.println("15 m " + tickTime.toString());
 
@@ -2622,8 +2654,9 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 				tickTime = new DateTime(bar.time() * 1000);
 				cal.setTime(tickTime.toDate());
+				//If bar time is 15 times, then it is a start of new bar. Or it is continuous of previous 15 minutes bar.
 				if(tickTime.getMinuteOfHour() != 0)
-					cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 60) + 60);
+					cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % 60));
 				tickTime = new DateTime(cal.getTime());
 //				System.out.println("60 m " + tickTime.toString());
 				newHourlyBar = m_currencyContract.historicalHourBarMap.get((long)cal.getTimeInMillis()/1000);
@@ -2656,8 +2689,11 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			cal.setTime(tickTime.toDate());
 			cal.add(Calendar.MINUTE, -1 * (tickTime.getMinuteOfHour() % duation) );
 			if(OldBarToUpdate == null){
-				OldBarToUpdate = new Bar(dateTime.getMillis() / 1000, high, low, open, close, 0, volume, 0);		
-				return OldBarToUpdate;
+				if(tickTime.getMinuteOfHour() % duation == 0){
+					return newBar = fiveMBar;
+				}else
+					newBar = new Bar(dateTime.getMillis() / 1000, high, low, open, close, 0, volume, 0);		
+				return newBar;
 			}
 
 			//Update previous hour's close and compare its high and low.
@@ -2672,7 +2708,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					low = OldBarToUpdate.low(); 
 				open = OldBarToUpdate.open();
 				close = fiveMBar.close();
-				newBar = new Bar(tickTime.getMillis() / 1000, high, low, open, close, 0, 0, 0);
+				newBar = OldBarToUpdate;
 			}else{
 
 				if(high < OldBarToUpdate.high())
@@ -2705,8 +2741,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		//Request one month day in initial request, then just one hour in following request.
 		DurationUnit durationToRequest;
 		if(isFirstTime){
-			durationToRequest = DurationUnit.MONTH;
-			length = 1;
+			durationToRequest = DurationUnit.DAY;
+			length = 2;
 		}
 		else{
 			durationToRequest = DurationUnit.SECOND;
@@ -2722,23 +2758,23 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
 		}
 
-		forexHistoricalHandler = new histortyDataHandler(currencyContract, 15);
-		if(forexHistoricalHandler != null && currencyContract != null)
-			controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._15_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
-		else
-		{
-			System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
-			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
-		}
-		
-		forexHistoricalHandler = new histortyDataHandler(currencyContract, 60);
-		if(forexHistoricalHandler != null && currencyContract != null)
-			controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._1_hour, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
-		else
-		{
-			System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
-			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
-		}
+//		forexHistoricalHandler = new histortyDataHandler(currencyContract, 15);
+//		if(forexHistoricalHandler != null && currencyContract != null)
+//			controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._15_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+//		else
+//		{
+//			System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+//			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+//		}
+//		
+//		forexHistoricalHandler = new histortyDataHandler(currencyContract, 60);
+//		if(forexHistoricalHandler != null && currencyContract != null)
+//			controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._1_hour, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+//		else
+//		{
+//			System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+//			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+//		}
 		
 	}
 
@@ -2980,7 +3016,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 							if(contractTechAnalyzerMap.containsKey(orderDetail.Symbol) == false){
 								techAnalyzer60M = new TechinicalAnalyzerTrader(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap);
 								contractTechAnalyzerMap.put(orderDetail.Symbol, techAnalyzer60M);
-								techAnalyzer60M.start();
+							//	techAnalyzer60M.start();
 								//								techAnalyzer60M.setPriority(Thread.NORM_PRIORITY +3);      
 
 								//								TechinicalAnalyzer techAnalyzer15M = new TechinicalAnalyzer(ApiDemo.INSTANCE, contractMap.get(orderDetail.Symbol),contractMap, orderHashMap, 15);
