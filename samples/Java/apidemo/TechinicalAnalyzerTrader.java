@@ -311,14 +311,19 @@ public class TechinicalAnalyzerTrader extends Thread{
 				
 				if(extraTAResult.technicalSignal.equals("UP")){
 					if(longTAResult.technicalSignal.equals("UP")){
-						if(currencyContractHost.m_currentTechnicalSignal60M.equals("DOWN")){
+						System.out.println(lastShortTick.getDateName() + " Up wait a good postion to Buy");
+
+					//	if(currencyContractHost.m_currentTechnicalSignal60M.equals("DOWN"))
+						{
 							pendingAction = "BUY";
 						}
 					}
 				}
 				else if(extraTAResult.technicalSignal.equals("DOWN")){
 					if(longTAResult.technicalSignal.equals("DOWN")){
-						if(currencyContractHost.m_currentTechnicalSignal60M.equals("UP")){
+						System.out.println(lastShortTick.getDateName() + " Down wait a good postion to sell");
+			//			if(currencyContractHost.m_currentTechnicalSignal60M.equals("UP"))
+						{
 							pendingAction = "SELL";
 						}
 					}
@@ -326,6 +331,11 @@ public class TechinicalAnalyzerTrader extends Thread{
 				
 				if(pendingAction.equals("BUY")){
 					if(mediumTAResult.technicalSignal.equals("UP")){
+						if(mediumTAResult.technicalSignal.equals("DWON")){
+							placeTestMarketOrder("BUY", lastShortTick);
+						}						
+					}
+					{
 						if(shortTAResult.technicalSignal.equals("UP")){
 							if(currencyContractHost.m_currentTechnicalSignal5M.equals("DOWN")){
 								placeTestMarketOrder("BUY", lastShortTick);
@@ -335,9 +345,14 @@ public class TechinicalAnalyzerTrader extends Thread{
 				}
 				else if(pendingAction.equals("SELL")){
 					if(mediumTAResult.technicalSignal.equals("DOWN")){
+						if(mediumTAResult.technicalSignal.equals("UP")){
+							placeTestMarketOrder("SELL", lastShortTick);
+						}						
+					}
+					{
 						if(shortTAResult.technicalSignal.equals("DOWN")){
 							if(currencyContractHost.m_currentTechnicalSignal5M.equals("UP")){
-								placeTestMarketOrder("SELL", lastShortTick);
+								placeTestMarketOrder("BUY", lastShortTick);
 							}
 						}
 					}
