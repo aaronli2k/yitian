@@ -1741,7 +1741,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 								placeMarketOrder(orderDetail);
 
 						}
-						else if(orderDetail.TradeMethod.equals("BUY")){
+						else if(orderDetail.EntryMethod != null && orderDetail.TradeMethod.equals("BUY")){
 							if(orderDetail.EntryMethod.equals("STOP"))
 							{
 								//This is a new order
@@ -1749,13 +1749,13 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 							}
 						}
 						else if(orderDetail.TradeMethod.equals("SELL")){
-							if(orderDetail.EntryMethod.equals("STOP"))
+							if(orderDetail.EntryMethod != null && orderDetail.EntryMethod.equals("STOP"))
 							{
 								bracketStopOrder(orderDetail, 0);
 							}
 						}
 						else if(orderDetail.TradeMethod.equals("BOTH")){
-							if(orderDetail.EntryMethod.equals("STOP")){
+							if(orderDetail.EntryMethod != null && orderDetail.EntryMethod.equals("STOP")){
 								//let's sumit buy order first 
 								orderDetail.TradeMethod = "BUY";
 								Order tempOrder = bracketStopOrder(orderDetail, 0);

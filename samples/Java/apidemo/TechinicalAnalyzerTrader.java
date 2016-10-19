@@ -242,20 +242,24 @@ public class TechinicalAnalyzerTrader extends Thread{
 					
 				}
 				
-				if(shortBarHashMap.size() == 0)
+				
+				
+				if(shortBarHashMap.size() == 0 || nextTickRunTime(lastShortTick, 15).toDate().after(new Date()))
 					newTickAvailable = false;
+				
+
 				
 				lastShortTick = techAnalyzerShort.analyze(lastShortTick.getEndTime().toDate());
 				
-				if(lastShortTick.getEndTime().getMinuteOfHour() % 15 == 0  || nextTickRunTime(lastShortTick, 15).isAfter(nextTickRunTime(lastMediumTick, 15)))
+				if(newTickAvailable == false || lastShortTick.getEndTime().getMinuteOfHour() % 15 == 0  || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastMediumTick, 15)))
 					lastMediumTick = techAnalyzerMedium.analyze(lastMediumTick.getEndTime().toDate());
 				
-				if(lastShortTick.getEndTime().getMinuteOfHour() == 0 || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastLongTick, 5)))
+				if(newTickAvailable == false || lastShortTick.getEndTime().getMinuteOfHour() == 0 || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastLongTick, 60)))
 					lastLongTick = techAnalyzerLong.analyze(lastLongTick.getEndTime().toDate());
 				
-				if(lastShortTick.getEndTime().getMinuteOfHour() == 0 &&  nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastLongTick, 5)))
-					lastExtraTick = techAnalyzerExtra.analyze(lastLongTick.getEndTime().toDate());
-				
+
+				if(newTickAvailable == false || lastShortTick.getEndTime().getMinuteOfHour() == 0 &&  nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastExtraTick, 240)))
+					lastExtraTick = techAnalyzerExtra.analyze(lastExtraTick.getEndTime().toDate());	
 					
 				
 				
