@@ -92,7 +92,8 @@ public class TechinicalAnalyzerTrader extends Thread{
 	final SimpleDateFormat DATEOnly_FORMAT = new SimpleDateFormat("yyyyMMdd");
 	final SimpleDateFormat TIMEOnly_FORMAT = new SimpleDateFormat("HH:mm:ss");
 	private ConcurrentHashMap<Long, Bar> shortBarHashMap, mediumBarHashMap, longBarHashMap;
-	private String shortTechnicalSignal, mediumTechnicalSignal, longTechnicalSignal;
+	private String shortTechnicalSignal, mediumTechnicalSignal, longTechnicalSignal, extraTechnicalSignal;
+	private ConcurrentHashMap<Long, Bar> extraBarHashMap;
   
 
 
@@ -105,13 +106,16 @@ public class TechinicalAnalyzerTrader extends Thread{
 		shortBarHashMap = currencyContract.historical5MBarMap;
 		mediumBarHashMap = currencyContract.historical15MBarMap;
 		longBarHashMap = currencyContract.historicalHourBarMap;
+		extraBarHashMap = currencyContract.historical4HourBarMap;
 		
 		shortTechnicalSignal = currencyContract.m_currentTechnicalSignal5M;
 		
 		mediumTechnicalSignal = currencyContract.m_currentTechnicalSignal15M;
 	
 		longTechnicalSignal = currencyContract.m_currentTechnicalSignal60M;
-		
+
+		extraTechnicalSignal = currencyContract.m_currentTechnicalSignal240M;
+
 	
 		System.out.println("**********************Techinical Analyzer Trader for " +currencyContract.symbol() + currencyContract.currency() + " Initialization **********************");
 
@@ -132,6 +136,10 @@ public class TechinicalAnalyzerTrader extends Thread{
 		Tick lastLongTick = null;
 		Tick lastMediumTick = null;
 		Tick lastShortTick = null;
+		Tick lastExtraTick = null;
+
+		TechinicalAnalyzer techAnalyzerExtra = new TechinicalAnalyzer(ApiDemo.INSTANCE, currencyContractHost,contractHashMapHost, orderHashMapHost, 240, extraBarHashMap, 300);
+
 		
 		TechinicalAnalyzer techAnalyzerLong = new TechinicalAnalyzer(ApiDemo.INSTANCE, currencyContractHost,contractHashMapHost, orderHashMapHost, 60, longBarHashMap, 800);
 		
@@ -158,34 +166,37 @@ public class TechinicalAnalyzerTrader extends Thread{
 			//            currencyContractHost.historicalBarMap = ticksAccess.readFromCsv("NZDUSD_ticks_history_2007_to_2016.csv");
 			//			ticksAccess.start();
 
-			try {
-				{
-					currencyContractHost.tickLatch60M.await();
-					currencyContractHost.tickLatch60M.reset();
-					lastLongTick = techAnalyzerLong.initDB();
-				}
-				
-			} catch (InterruptedException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
-
-			try {
-				{
-					currencyContractHost.tickLatch15M.await();
-					currencyContractHost.tickLatch15M.reset();
-					lastMediumTick = techAnalyzerMedium.initDB();
-				}
-				
-			} catch (InterruptedException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			}
+//			try {
+//				{
+////					currencyContractHost.tickLatch60M.await();
+////					currencyContractHost.tickLatch60M.reset();
+//
+//				}
+//				
+//			} catch (InterruptedException e1) {
+//				// TODO Auto-generated catch block
+//				e1.printStackTrace();
+//			}
+//
+//			try {
+//				{
+////					currencyContractHost.tickLatch15M.await();
+////					currencyContractHost.tickLatch15M.reset();
+//					
+//				}
+//				
+//			} catch (InterruptedException e1) {
+//				// TODO Auto-generated catch block
+//				e1.printStackTrace();
+//			}
 			
 			try {
 				{
 					currencyContractHost.tickLatch5M.await();
 					currencyContractHost.tickLatch5M.reset();
+					lastExtraTick = techAnalyzerExtra.initDB();
+					lastLongTick = techAnalyzerLong.initDB();
+					lastMediumTick = techAnalyzerMedium.initDB();
 					lastShortTick = techAnalyzerShort.initDB();
 				}
 				
@@ -242,7 +253,8 @@ public class TechinicalAnalyzerTrader extends Thread{
 				if(lastShortTick.getEndTime().getMinuteOfHour() == 0 || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastLongTick, 5)))
 					lastLongTick = techAnalyzerLong.analyze(lastLongTick.getEndTime().toDate());
 				
-				
+				if(lastShortTick.getEndTime().getMinuteOfHour() == 0 &&  nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastLongTick, 5)))
+					lastExtraTick = techAnalyzerExtra.analyze(lastLongTick.getEndTime().toDate());
 				
 					
 				

@@ -2544,6 +2544,8 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			
 			}
 			
+			//Update this hence no need to request longer history data.
+			m_currencyContract.isHistoryReqFirstTime = false;
 			contractMap.put(m_currencyContract.symbol() + m_currencyContract.currency(), m_currencyContract);
 			
 		}
@@ -2563,12 +2565,12 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				printOutBarMap(m_currencyContract.historical15MBarMap);
 				}
 			else if(durationHost == 5){
-				m_currencyContract.tickLatch5M.countDown();
 //				printOutBarMap(m_currencyContract.historical5MBarMap);
 //				printOutBarMap(m_currencyContract.historical15MBarMap);
 //				printOutBarMap(m_currencyContract.historicalHourBarMap);
 	//			Calculate 15m and hourly bar chart from 15 minutes bar.
 				calculate15MnHourBarFrom5MBarMap();	
+				m_currencyContract.tickLatch5M.countDown();
 //				printOutBarMap(m_currencyContract.historical15MBarMap);
 //				printOutBarMap(m_currencyContract.historicalHourBarMap);
 //				printOutBarMap(m_currencyContract.historical4HourBarMap);
@@ -2825,7 +2827,7 @@ private		Bar calculateNewBarFrom5MBar(Bar fiveMBar, Bar OldBarToUpdate, int duat
 		DurationUnit durationToRequest;
 		if(isFirstTime){
 			durationToRequest = DurationUnit.MONTH;
-			length = 2;
+			length = 1;
 		}
 		else{
 			durationToRequest = DurationUnit.SECOND;
@@ -2958,7 +2960,6 @@ private		Bar calculateNewBarFrom5MBar(Bar fiveMBar, Bar OldBarToUpdate, int duat
 			forex orderDetail;
 			DateFormat formatter; 
 			String orderDateStr;
-			Boolean isHistoryReqFirstTime = true;
 			ConcurrentHashMap<Long, forex> savedOrderHashMap = new ConcurrentHashMap<Long, forex>(orderHashMap);
 
 
@@ -3090,7 +3091,7 @@ private		Bar calculateNewBarFrom5MBar(Bar fiveMBar, Bar OldBarToUpdate, int duat
 						if(orderDetail != null ){
 							historicalDataReq.add(orderDetail.Symbol);
 							orderDateStr = formatter.format(new Date());
-							requestHistoricalBar(orderDateStr, contractMap.get(orderDetail.Symbol), isHistoryReqFirstTime);
+							requestHistoricalBar(orderDateStr, contractMap.get(orderDetail.Symbol), contractMap.get(orderDetail.Symbol).isHistoryReqFirstTime);
 
 
 
@@ -3121,7 +3122,6 @@ private		Bar calculateNewBarFrom5MBar(Bar fiveMBar, Bar OldBarToUpdate, int duat
 						treeadd = new TreeSet<Long>(orderHashMap.keySet());
 						treereverse=(TreeSet<Long>)treeadd.descendingSet();
 						iterator = treereverse.iterator(); 		
-						isHistoryReqFirstTime = false;
 						historicalDataReq.clear();     
 					}
 

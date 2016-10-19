@@ -142,6 +142,10 @@ public class TechinicalAnalyzer{
 			TICK_LIMIT = 600;
 
 		}
+		
+		barHashMap = barHashMapIn;
+		TICK_LIMIT = tickLimit;
+		
 		System.out.println("**********************Techinical Analyzer for " +currencyContract.symbol() + currencyContract.currency() + duration +  " minutes Initialization **********************");
 
 	}
@@ -163,9 +167,7 @@ public class TechinicalAnalyzer{
 			System.out.println(new Date() + "TimeSeries series = buildTimeSeriesFromMap(TICK_LIMIT); return a null pointer");
 			return null; //If series is null, there is something wrong.
 		}
-		// Building the trading strategy
-		longStrategy = buildLongStrategy(series);
-		shortStrategy = buildShortStrategy(series);
+
 
 		closePrice = new ClosePriceIndicator(series);
 
@@ -193,7 +195,9 @@ public class TechinicalAnalyzer{
 		longMaxSma = new SMAIndicator(maxPrice, 10);
 
 
-
+		// Building the trading strategy
+		longStrategy = buildLongStrategy(series);
+		shortStrategy = buildShortStrategy(series);
 
 
 		System.out.println("********************Finish initialize Database****************************************");

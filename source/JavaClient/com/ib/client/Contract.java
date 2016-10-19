@@ -51,6 +51,8 @@ public class Contract implements Cloneable {
     public String m_currentTechnicalSignal5M = "None";
     public String m_currentTechnicalSignal15M = "None";
     public String m_currentTechnicalSignal60M = "None";
+	public String m_currentTechnicalSignal240M = "None";
+
 
 
     public double m_maxPrice = 0.0;
@@ -79,6 +81,7 @@ public Bar    getHistoricalBar(long time){
 	public Double longMedSma = 0.0;
 	public Double mediumMedSma = 0.0;
 	public Double shortMedSma = 0.0;
+	public Boolean isHistoryReqFirstTime = true;
     
     // Get
     public double strike()          { return m_strike; }
