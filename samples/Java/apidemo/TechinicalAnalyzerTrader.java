@@ -453,37 +453,37 @@ public class TechinicalAnalyzerTrader extends Thread{
 						currencyContractHost.isShortDownTrendTouchednReversed = 2;
 					
 					
-//
-//				//currencyContractHost.isShortDownTrendTouchednReversed == 2 || 
-//	//			if(currencyContractHost.isMediumDownTrendTouchednReversed == 2 || currencyContractHost.isLongDownTrendTouchednReversed == 2)
-//					if(extraTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT) && longTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT) && currencyContractHost.m_currentTechnicalSignal60MUp.equals(TechnicalSignalTrend.EXIT_SHORT))
-//				{
-//					
-//					
-//						System.out.println(lastShortTick.getDateName() + " place order to Sell now @ price " + lastShortTick.getClosePrice());
-//
-//						{
-//							placeTestMarketOrder("SELL", lastShortTick);
-//							shorttradingRecord.enter(shortTAResult.endIndex, lastShortTick.getClosePrice(), Decimal.valueOf(25000));
-//							currencyContractHost.isShortDownTrendTouchednReversed = 0;
-//							currencyContractHost.isMediumDownTrendTouchednReversed = 0;
-//							currencyContractHost.isLongDownTrendTouchednReversed = 0;
-//							
-//						}
-//
-//			
-//					}
-//				
-//				//If extra change trend, time to close
-//				if(extraTAResult.technicalSignalDown.equals(TechnicalSignalTrend.EXIT_SHORT) && currencyContractHost.m_currentTechnicalSignal240MDown.equals(TechnicalSignalTrend.ENTER_SHORT))
-//				{
-//					System.out.println(lastShortTick.getDateName() + " Close short order now @ price " + lastShortTick.getClosePrice());
-//
-//					placeTestMarketOrder("CLOSE", lastShortTick);
-//					shorttradingRecord.exit(shortTAResult.endIndex, lastShortTick.getClosePrice(), Decimal.valueOf(25000));
-//				}
-//				
-//					
+
+				//currencyContractHost.isShortDownTrendTouchednReversed == 2 || 
+	//			if(currencyContractHost.isMediumDownTrendTouchednReversed == 2 || currencyContractHost.isLongDownTrendTouchednReversed == 2)
+					if(extraTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT) && longTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT) && currencyContractHost.m_currentTechnicalSignal60MDown.equals(TechnicalSignalTrend.EXIT_SHORT))
+				{
+					
+					
+						if(shorttradingRecord.isClosed())
+						{
+							placeTestMarketOrder("SELL", lastShortTick);
+							shorttradingRecord.enter(shortTAResult.endIndex, lastShortTick.getClosePrice(), Decimal.valueOf(25000));
+							currencyContractHost.isShortDownTrendTouchednReversed = 0;
+							currencyContractHost.isMediumDownTrendTouchednReversed = 0;
+							currencyContractHost.isLongDownTrendTouchednReversed = 0;
+							System.out.println(lastShortTick.getDateName() + " place order to Sell now @ price " + lastShortTick.getClosePrice());					
+						}
+
+			
+					}
+				
+				//If extra change trend, time to close
+				if(extraTAResult.technicalSignalDown.equals(TechnicalSignalTrend.EXIT_SHORT) && currencyContractHost.m_currentTechnicalSignal240MDown.equals(TechnicalSignalTrend.ENTER_SHORT))
+				{
+					if(!shorttradingRecord.isClosed()){
+					System.out.println(lastShortTick.getDateName() + " Close short order now @ price " + lastShortTick.getClosePrice());
+					placeTestMarketOrder("CLOSE", lastShortTick);
+					shorttradingRecord.exit(shortTAResult.endIndex, lastShortTick.getClosePrice(), Decimal.valueOf(25000));
+					}
+				}
+				
+					
 				
 				
 				
@@ -616,7 +616,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 		//If processed tick is ealier, don't submit the order.
 		Calendar cal = Calendar.getInstance();
 		cal.setTime(newTick.getEndTime().toDate());
-		cal.add(Calendar.MINUTE, +5);
+		cal.add(Calendar.MINUTE, +15);
 		if(new Date().after(cal.getTime())){
 			return;
 			}

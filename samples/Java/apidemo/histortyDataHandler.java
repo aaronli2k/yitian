@@ -37,6 +37,8 @@ public class histortyDataHandler implements IHistoricalDataHandler{
 				m_currencyContract.historicalHourBarMap.put((long)(bar.time()), bar);
 			else if(durationHost == 240)
 				m_currencyContract.historical4HourBarMap.put((long)(bar.time()), bar);
+			else if(durationHost == 1440)
+				m_currencyContract.historicalDailyBarMap.put((long)(bar.time()), bar);
 		}
 
 		//Update this hence no need to request longer history data.
@@ -51,7 +53,11 @@ public class histortyDataHandler implements IHistoricalDataHandler{
 		//			System.out.println(new Date() + " end of bar high: ");
 		System.out.println(new Date() + " Historical Data end: "+ m_currencyContract.symbol() + m_currencyContract.currency());
 
-		if(durationHost == 240){
+		if(durationHost == 1440){
+			m_currencyContract.tickLatch60M.countDown();
+			printOutBarMap(m_currencyContract.historicalDailyBarMap);
+		}
+		else if(durationHost == 240){
 			m_currencyContract.tickLatch60M.countDown();
 			printOutBarMap(m_currencyContract.historical4HourBarMap);
 		}
@@ -69,15 +75,70 @@ public class histortyDataHandler implements IHistoricalDataHandler{
 			//				printOutBarMap(m_currencyContract.historicalHourBarMap);
 			//			Calculate 15m and hourly bar chart from 15 minutes bar.
 			calculate15MnHourBarFrom5MBarMap();	
+//			CalDailyChartFromHourlyBar();
 			m_currencyContract.tickLatch5M.countDown();
-			//				printOutBarMap(m_currencyContract.historical15MBarMap);
-			//				printOutBarMap(m_currencyContract.historicalHourBarMap);
-			//				printOutBarMap(m_currencyContract.historical4HourBarMap);
-
+//			//				printOutBarMap(m_currencyContract.historical15MBarMap);
+//							printOutBarMap(m_currencyContract.historicalHourBarMap);
+//							printOutBarMap(m_currencyContract.historical4HourBarMap);
+//			printOutBarMap(m_currencyContract.historicalDailyBarMap);
 
 		}
 	}
 
+
+	private void CalDailyChartFromHourlyBar() {
+
+		ConcurrentHashMap<Long, Bar> historicalBarMap = m_currencyContract.historicalHourBarMap;
+
+		TreeSet<Long> keys = new TreeSet<Long>(historicalBarMap.keySet());
+		//		TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();
+		double open = 0, high = 0, low = 0, close;
+		int hourCount = 0;
+		DateTime barTime;
+
+		Bar bar = null, new15MBar = null, hourlyBar;
+		Calendar cal = Calendar.getInstance();
+
+		DateTimeZone tz;
+		DateTime nowLocal;
+		DateTime nowUTC2 = null;
+		
+		for (Long key : keys){
+			bar = historicalBarMap.get(key);
+			tz = DateTimeZone.getDefault();
+			nowLocal = new DateTime(bar.time() * 1000);
+			//			LocalDateTime nowUTC = nowLocal.withZone(DateTimeZone.UTC).toLocalDateTime();
+			nowUTC2 = nowLocal.withZone(DateTimeZone.UTC);
+			
+			if(nowUTC2.getHourOfDay() != 0){continue;}
+			
+			if(hourCount == 0){
+				hourCount++;
+				tz = DateTimeZone.getDefault();
+				nowLocal = new DateTime(bar.time() * 1000);
+				//			LocalDateTime nowUTC = nowLocal.withZone(DateTimeZone.UTC).toLocalDateTime();
+				nowUTC2 = nowLocal.withZone(DateTimeZone.UTC);
+
+				
+				high = bar.high();
+				low = bar.low();
+			}
+			if(high < bar.high())
+				high = bar.high();
+			if(low > bar.low())
+				low = bar.low();
+			if(hourCount == 23){
+				close = bar.close();
+				Bar dailyBar = new Bar(nowUTC2.getMillis() / 1000, high, low, open, close, 0, 0, 0);
+				hourCount = 0;
+				m_currencyContract.historicalDailyBarMap.put(dailyBar.time(), dailyBar);
+			}
+
+
+		}
+	
+		
+	}
 
 	void printOutBarMap(ConcurrentHashMap<Long, Bar> historicalBarMap){
 
@@ -201,12 +262,42 @@ public class histortyDataHandler implements IHistoricalDataHandler{
 			}
 
 
+			//How about a daily bar from hourly bar
+			//Daily chart time is base on UTC. It is too hard to calculate, better just stick with current time. it is samze as MT4.
+			
+			tz = DateTimeZone.getDefault();
+			nowLocal = new DateTime(newHourlyBar.time() * 1000);
+			//			LocalDateTime nowUTC = nowLocal.withZone(DateTimeZone.UTC).toLocalDateTime();
+			nowUTC2 = nowLocal.withZone(DateTimeZone.UTC);
 
+		//	Date dLocal = nowLocal.toDate();
+			//			Date dUTC = nowUTC.toDate();
+			dUTC2 = nowUTC2.toDate();
+			
+			
+			tickTime = new DateTime(newHourlyBar.time() * 1000);
+			cal.setTime(tickTime.toDate());
+			//If bar time is 15 times, then it is a start of new bar. Or it is continuous of previous 15 minutes bar.
+			if((tickTime.getHourOfDay()) % 24 != 0)
+				cal.add(Calendar.HOUR, -1 * tickTime.getHourOfDay() % 24);
+			//				else
+			//					System.out.println("Time to calculate a new 4 hour time bar");
+			tickTime = new DateTime(cal.getTime());
+			long timeInMillis = tickTime.getMillis();
+			//				System.out.println("60 m " + tickTime.toString());
+			Bar new24HourBar = m_currencyContract.historicalDailyBarMap.get(timeInMillis/1000);
+			new24HourBar = calculateNewBarFromHourlyBar(newHourlyBar, new24HourBar, 24, timeInMillis);
+			if(new24HourBar != null){
+				m_currencyContract.historicalDailyBarMap.put(timeInMillis / 1000, new24HourBar);				
+			}
 
+			
+			
+			
 		}
 	}
 
-	private		Bar calculateNewBarFromHourlyBar(Bar hourlyBar, Bar OldBarToUpdate, int duation, DateTime dateTime, DateTime nowUTC2){
+	private Bar calculateNewBarFromHourlyBar(Bar hourlyBar, Bar OldBarToUpdate, int i, long timeInMillis) {
 
 
 		Bar newBar = null;
@@ -222,7 +313,7 @@ public class histortyDataHandler implements IHistoricalDataHandler{
 		Long volume = hourlyBar.volume();
 
 		if(OldBarToUpdate == null){
-			newBar = new Bar(dateTime.getMillis() / 1000, high, low, open, close, 0, volume, 0);		
+			newBar = new Bar(timeInMillis/1000, high, low, open, close, 0, volume, 0);		
 			return newBar;
 		}
 
@@ -241,7 +332,7 @@ public class histortyDataHandler implements IHistoricalDataHandler{
 				low = OldBarToUpdate.low(); 
 			open = OldBarToUpdate.open();
 			close = hourlyBar.close();
-			newBar = new Bar(dateTime.getMillis() / 1000, high, low, open, close, 0, 0, 0);
+			newBar = new Bar(timeInMillis/1000, high, low, open, close, 0, 0, 0);
 		}
 
 
@@ -253,6 +344,56 @@ public class histortyDataHandler implements IHistoricalDataHandler{
 
 	}
 
+	private		Bar calculateNewBarFromHourlyBar(Bar hourlyBar, Bar OldBarToUpdate, int duation, DateTime dateTime, DateTime nowUTC2){
+
+
+		Bar newBar = null;
+		Calendar cal = Calendar.getInstance();
+
+
+		if(hourlyBar == null)
+			return hourlyBar;
+		double open = hourlyBar.open();
+		double high = hourlyBar.high();
+		double low = hourlyBar.low();
+		double close = hourlyBar.close();
+		Long volume = hourlyBar.volume();
+
+		if(OldBarToUpdate == null){
+			newBar = new Bar(dateTime.withZone(DateTimeZone.UTC).getMillis()/1000, high, low, open, close, 0, volume, 0);		
+			return newBar;
+		}
+
+		//Update previous hour's close and compare its high and low.
+		//	if((nowUTC2.getHourOfDay()) % duation  == 0 && nowUTC2.getMinuteOfHour() == 0){
+		////		cal.setTime(tickTime.toDate());
+		////		cal.add(Calendar.MINUTE, -1 * duation);
+		//
+		//		newBar = OldBarToUpdate;
+		//	}else
+		{
+
+			if(high < OldBarToUpdate.high())
+				high = OldBarToUpdate.high(); 
+			if(low > OldBarToUpdate.low())
+				low = OldBarToUpdate.low(); 
+			open = OldBarToUpdate.open();
+			close = hourlyBar.close();
+			newBar = new Bar(dateTime.withZone(DateTimeZone.UTC).getMillis()/1000, high, low, open, close, 0, 0, 0);
+		}
+
+
+		return newBar;
+
+
+
+
+
+	}
+
+	
+	
+	
 
 
 	private		Bar calculateNewBarFrom5MBar(Bar fiveMBar, Bar OldBarToUpdate, int duation, DateTime dateTime){

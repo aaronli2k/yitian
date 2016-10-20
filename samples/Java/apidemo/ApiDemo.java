@@ -82,6 +82,9 @@ import jxl.write.biff.RowsExceededException;
 import samples.testbed.orders.OrderSamples;
 
 public class ApiDemo implements IConnectionHandler, Runnable {
+	private static final boolean USING_BACKTEST_DATA = false;
+
+
 	static { NewLookAndFeel.register(); }
 	public static ApiDemo INSTANCE;
 
@@ -2539,32 +2542,34 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		// Getting the time series
 
 		//            //Simulated testing for different dataset.
+		if(USING_BACKTEST_DATA){
 		if(isFirstTime){
 			TicksAccesser ticksAccess = new TicksAccesser(null, currencyContract, 5, contractMap, "20160801", "20161001");
 			ticksAccess.readFromCsv("NZDUSD_ticks_history_2007_to_2016.csv");
 			ticksAccess.start();
 		}
-
+		}
+		else{
 		//Request one month day in initial request, then just one hour in following request.
 		DurationUnit durationToRequest;
 		if(isFirstTime){
 			durationToRequest = DurationUnit.MONTH;
-			length = 1;
+			length = 2;
 		}
 		else{
 			durationToRequest = DurationUnit.SECOND;
 			length = 14400;			
 		}
 
-		//		histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract, 5, contractMap);
-		//		if(forexHistoricalHandler != null && currencyContract != null)
-		//			controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
-		//		else
-		//		{
-		//			System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
-		//			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
-		//		}
-
+				histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract, 5, contractMap);
+				if(forexHistoricalHandler != null && currencyContract != null)
+					controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+				else
+				{
+					System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+					show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+				}
+		}
 		//		forexHistoricalHandler = new histortyDataHandler(currencyContract, 240);
 		//		if(forexHistoricalHandler != null && currencyContract != null)
 		//			controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._4_hours, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
@@ -2582,6 +2587,16 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		//			System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
 		//			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
 		//		}
+		
+//		
+//				histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract, 1440, contractMap);
+//				if(forexHistoricalHandler != null && currencyContract != null)
+//					controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._1_day, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+//				else
+//				{
+//					System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+//					show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+//				}
 
 	}
 
