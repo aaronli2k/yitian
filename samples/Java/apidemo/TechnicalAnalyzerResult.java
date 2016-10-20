@@ -1,17 +1,26 @@
 package apidemo;
 
+import com.ib.client.Types.TechnicalSignalTrend;
+
 import eu.verdelhan.ta4j.Tick;
+import eu.verdelhan.ta4j.TimeSeries;
 
 public class TechnicalAnalyzerResult {
 	public Tick processedTick = null;
-	public String technicalSignal = "None";
+	public TechnicalSignalTrend technicalSignalUp = TechnicalSignalTrend.NONE;
+	public TechnicalSignalTrend technicalSignalDown = TechnicalSignalTrend.NONE;
 	public double longSMA = 0.0;
 	public double shortSMA = 0.0;
+	public int endIndex;
+	public TimeSeries series;
 	
-	TechnicalAnalyzerResult(Tick tick, String signal, double lSMA, double sSMA){
+	TechnicalAnalyzerResult(Tick tick, int endIndexIn, TimeSeries seriesIn, TechnicalSignalTrend signalUp, TechnicalSignalTrend signalDown, double lSMA, double sSMA){
 		processedTick = tick;
-		technicalSignal = signal;
+		technicalSignalUp = signalUp;
+		technicalSignalDown = signalDown;
 		longSMA = lSMA;
 		shortSMA = sSMA;
+		endIndex = endIndexIn;
+		series = seriesIn;
 	}
 }

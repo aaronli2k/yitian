@@ -67,6 +67,7 @@ import org.joda.time.DateTime;
 import com.ib.client.Contract;
 import com.ib.client.Types.BarSize;
 import com.ib.client.Types.DurationUnit;
+import com.ib.client.Types.TechnicalSignalTrend;
 import com.ib.client.Types.WhatToShow;
 import com.ib.controller.Bar;
 import com.ib.controller.ApiController.IHistoricalDataHandler;
@@ -88,7 +89,6 @@ public class TechinicalAnalyzer{
 	private ConcurrentHashMap<Long, forex> orderHashMapHost;
 	private ConcurrentHashMap<String, Contract> ContractHashMapHost;
 	private ConcurrentHashMap<Long, Bar> barHashMap;
-	private String currentTechnicalSignal;
 
 	private int durationHost = 0;
 	private int TICK_LIMIT = 5000;
@@ -115,6 +115,8 @@ public class TechinicalAnalyzer{
 
 	private int fastSMAPeriod = 7;
 	private int slowSMAPeriod = 13;
+	private TechnicalSignalTrend currentTechnicalSignalDown = TechnicalSignalTrend.NONE;
+	private TechnicalSignalTrend currentTechnicalSignalUp = TechnicalSignalTrend.NONE;
 
 
 	public TechinicalAnalyzer(ApiDemo apiDemo, Contract currencyContract, ConcurrentHashMap<String, Contract> contractHashMap , ConcurrentHashMap<Long, forex> orderHashMap, int duration, ConcurrentHashMap<Long, Bar> barHashMapIn, int tickLimit){
@@ -253,7 +255,7 @@ public class TechinicalAnalyzer{
 		if (longStrategy.shouldEnter(endIndex)) {
 			// Our strategy should enter
 			System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes Strategy should ENTER LONG on " + endIndex);
-			currentTechnicalSignal = "ENTRY_LONG";
+			currentTechnicalSignalUp = TechnicalSignalTrend.ENTER_LONG;
 
 
 
@@ -261,7 +263,7 @@ public class TechinicalAnalyzer{
 		} else if (longStrategy.shouldExit(endIndex)) {
 			// Our strategy should exit
 			System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should EXIT LONG on " + endIndex);
-			currentTechnicalSignal = "EXIT_LONG";
+			currentTechnicalSignalUp = TechnicalSignalTrend.EXIT_LONG;
 
 
 
@@ -278,7 +280,7 @@ public class TechinicalAnalyzer{
 		if (shortStrategy.shouldEnter(endIndex)) {
 			// Our strategy should enter
 			System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should ENTER SHORT on " + endIndex);
-			currentTechnicalSignal = "ENTER_SHORT";
+			currentTechnicalSignalDown = TechnicalSignalTrend.ENTER_SHORT;
 
 
 
@@ -287,7 +289,7 @@ public class TechinicalAnalyzer{
 		} else if (shortStrategy.shouldExit(endIndex)) {
 			// Our strategy should exit
 			System.out.println(series.getLastTick().getSimpleDateName() + " " + durationHost + " minutes  Strategy should EXIT SHORT on " + endIndex);
-			currentTechnicalSignal = "EXIT_SHORT";
+			currentTechnicalSignalDown = TechnicalSignalTrend.EXIT_SHORT;
 
 
 
@@ -335,7 +337,7 @@ public class TechinicalAnalyzer{
 		//            vsBuyAndHold = new VersusBuyAndHoldCriterion(new TotalProfitCriterion());
 		//            System.out.println("Our profit vs buy-and-hold profit: " + vsBuyAndHold.calculate(series, shorttradingRecord));
 		//            
-		return new TechnicalAnalyzerResult(newTick, currentTechnicalSignal, longSma.getValue(endIndex).toDouble(), shortSma.getValue(endIndex).toDouble());
+		return new TechnicalAnalyzerResult(newTick, endIndex, series, currentTechnicalSignalUp, currentTechnicalSignalDown, longSma.getValue(endIndex).toDouble(), shortSma.getValue(endIndex).toDouble());
 	}
 
 
@@ -540,12 +542,12 @@ public class TechinicalAnalyzer{
 		//  - or if if the price looses more than 3%
 		//  - or if the price earns more than 2%
 		Rule sellingRule = null;
-		if(durationHost == 5){
-			sellingRule = ( new CrossedDownIndicatorRule(shortSma, longSma).or(new CrossedDownIndicatorRule(closePrice, shortSma)))
-					.and( new UnderIndicatorRule(sofStoch, sosStoch))
-					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
-		}else
+//		if(durationHost == 5){
+//			sellingRule = ( new CrossedDownIndicatorRule(shortSma, longSma).or(new CrossedDownIndicatorRule(closePrice, shortSma)))
+//					.and( new UnderIndicatorRule(sofStoch, sosStoch))
+//					.and(new UnderIndicatorRule(rsi, Decimal.valueOf("70")))
+//					.and(new OverIndicatorRule(rsi, Decimal.valueOf("20")));
+//		}else
 		{
 			sellingRule = ( new UnderIndicatorRule(shortSma, longSma).or(new UnderIndicatorRule(closePrice, shortSma)))
 					.and( new UnderIndicatorRule(sofStoch, sosStoch))

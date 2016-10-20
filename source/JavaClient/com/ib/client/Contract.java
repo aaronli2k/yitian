@@ -15,6 +15,7 @@ import com.ib.client.Types.Action;
 import com.ib.client.Types.Right;
 import com.ib.client.Types.SecIdType;
 import com.ib.client.Types.SecType;
+import com.ib.client.Types.TechnicalSignalTrend;
 import com.ib.controller.Bar;
 
 
@@ -48,11 +49,15 @@ public class Contract implements Cloneable {
     private double m_openPrice = 0.0;
     private double m_smaPrice = 0.0;
     
-    public String m_currentTechnicalSignal5M = "None";
-    public String m_currentTechnicalSignal15M = "None";
-    public String m_currentTechnicalSignal60M = "None";
-	public String m_currentTechnicalSignal240M = "None";
+    public TechnicalSignalTrend m_currentTechnicalSignal5MUp = TechnicalSignalTrend.NONE;
+    public TechnicalSignalTrend m_currentTechnicalSignal15MUp = TechnicalSignalTrend.NONE;
+    public TechnicalSignalTrend m_currentTechnicalSignal60MUp = TechnicalSignalTrend.NONE;
+    public TechnicalSignalTrend m_currentTechnicalSignal240MUp = TechnicalSignalTrend.NONE;
 
+    public TechnicalSignalTrend m_currentTechnicalSignal5MDown = TechnicalSignalTrend.NONE;
+    public TechnicalSignalTrend m_currentTechnicalSignal15MDown = TechnicalSignalTrend.NONE;
+    public TechnicalSignalTrend m_currentTechnicalSignal60MDown = TechnicalSignalTrend.NONE;
+    public TechnicalSignalTrend m_currentTechnicalSignal240MDown = TechnicalSignalTrend.NONE;
 
 
     public double m_maxPrice = 0.0;
@@ -83,6 +88,8 @@ public Bar    getHistoricalBar(long time){
 	public Double mediumMedSma = 0.0;
 	public Double shortMedSma = 0.0;
 	public Boolean isHistoryReqFirstTime = true;
+	public int isMediumUpTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
+	public int isMediumDownTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
     
     // Get
     public double strike()          { return m_strike; }
