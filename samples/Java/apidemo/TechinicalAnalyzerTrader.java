@@ -369,9 +369,10 @@ public class TechinicalAnalyzerTrader extends Thread{
 					if(extraTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG) && longTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG) && currencyContractHost.m_currentTechnicalSignal60MUp.equals(TechnicalSignalTrend.EXIT_LONG))
 					{
 					
-						System.out.println(lastShortTick.getDateName() + " place order to Buy now @ " + lastShortTick.getClosePrice());
-
+						
+						if(longtradingRecord.isClosed())
 						{
+							System.out.println(lastShortTick.getDateName() + " place order to Buy now @ " + lastShortTick.getClosePrice());
 							placeTestMarketOrder("BUY", lastShortTick);
 							longtradingRecord.enter(shortTAResult.endIndex, lastShortTick.getClosePrice(), Decimal.valueOf(25000));
 							currencyContractHost.isShortUpTrendTouchednReversed = 0;
@@ -385,9 +386,11 @@ public class TechinicalAnalyzerTrader extends Thread{
 				
 				//If extra change trend, time to close
 				if(extraTAResult.technicalSignalUp.equals(TechnicalSignalTrend.EXIT_LONG) && currencyContractHost.m_currentTechnicalSignal240MUp.equals(TechnicalSignalTrend.ENTER_LONG)){
-					placeTestMarketOrder("CLOSE", lastShortTick);
-					longtradingRecord.exit(shortTAResult.endIndex, lastShortTick.getClosePrice(), Decimal.valueOf(25000));
-					System.out.println(lastShortTick.getDateName() + " Close Long order to now @ " + lastShortTick.getClosePrice());
+					if(!longtradingRecord.isClosed()){
+						placeTestMarketOrder("CLOSE", lastShortTick);
+						longtradingRecord.exit(shortTAResult.endIndex, lastShortTick.getClosePrice(), Decimal.valueOf(25000));
+						System.out.println(lastShortTick.getDateName() + " Close Long order to now @ " + lastShortTick.getClosePrice());
+						}
 				}
 				
 				
