@@ -60,6 +60,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -92,7 +94,9 @@ public class TechinicalAnalyzerTrader extends Thread{
 	private ConcurrentHashMap<String, Contract> contractHashMapHost;
 	private final int TICK_LIMIT = 5000;
 	
+	private final boolean PRINT_OUT_MESSAGE = false;
 
+	
 	final SimpleDateFormat DATEOnly_FORMAT = new SimpleDateFormat("yyyyMMdd");
 	final SimpleDateFormat TIMEOnly_FORMAT = new SimpleDateFormat("HH:mm:ss");
 	private ConcurrentHashMap<Long, Bar> shortBarHashMap, mediumBarHashMap, longBarHashMap;
@@ -164,12 +168,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 
 
 			System.out.println("**********************Techinical Analyzer Trader " + currencyContractHost.symbol() + currencyContractHost.currency() + " Running **********************");
-			// Getting the time series
-
-			//            //Simulated testing for different dataset.
-			//            TicksAccesser ticksAccess = new TicksAccesser(null);
-			//            currencyContractHost.historicalBarMap = ticksAccess.readFromCsv("NZDUSD_ticks_history_2007_to_2016.csv");
-			//			ticksAccess.start();
+			
 
 //			try {
 //				{
@@ -254,23 +253,23 @@ public class TechinicalAnalyzerTrader extends Thread{
 				
 
 				
-				shortTAResult = techAnalyzerShort.analyze(lastShortTick.getEndTime().toDate());
+				shortTAResult = techAnalyzerShort.analyze(lastShortTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);
 				lastShortTick = shortTAResult.processedTick;
 				
 				if(newTickAvailable == false || lastShortTick.getEndTime().getMinuteOfHour() % 15 == 0  || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastMediumTick, 15)))
 				{	
-					mediumTAResult = techAnalyzerMedium.analyze(lastMediumTick.getEndTime().toDate());
+					mediumTAResult = techAnalyzerMedium.analyze(lastMediumTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);
 					lastMediumTick = mediumTAResult.processedTick;
 				}
 				if(newTickAvailable == false || lastShortTick.getEndTime().getMinuteOfHour() == 0 || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastLongTick, 60)))
 				{	
-					longTAResult = techAnalyzerLong.analyze(lastLongTick.getEndTime().toDate());
+					longTAResult = techAnalyzerLong.analyze(lastLongTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);
 					lastLongTick = longTAResult.processedTick;
 				}
 
 				if(newTickAvailable == false || lastShortTick.getEndTime().getMinuteOfHour() == 0 &&  nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastExtraTick, 240)))
 				{	
-					extraTAResult = techAnalyzerExtra.analyze(lastExtraTick.getEndTime().toDate());	
+					extraTAResult = techAnalyzerExtra.analyze(lastExtraTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);	
 					lastExtraTick = extraTAResult.processedTick;
 					
 				}
@@ -280,6 +279,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 					continue;					
 				}
 				
+			if(PRINT_OUT_MESSAGE){	
 				//Print out result for analysis purpose
 				System.out.println(lastShortTick.getDateName() + " ******Technical analysis result **** " );
 				
@@ -299,7 +299,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 				System.out.println(lastLongTick.getDateName() + " ******Technical analysis Long result for SHORT **** " +  " Signal: " + longTAResult.technicalSignalDown + " longSMA:  " + longTAResult.longSMA + " shortSMA: " + longTAResult.shortSMA);
 				
 				System.out.println(lastExtraTick.getDateName() + " ******Technical analysis Extra result for SHORT**** " +  " Signal: " + extraTAResult.technicalSignalDown + " longSMA:  " + extraTAResult.longSMA + " shortSMA: " + extraTAResult.shortSMA);
-				
+			}
 
 				
 				//Entry condition for long.
@@ -320,14 +320,16 @@ public class TechinicalAnalyzerTrader extends Thread{
 //					currencyContractHost.isMediumUpTrendTouchednReversed = 0;
 //				}
 				
-				System.out.println("Current currencyContractHost.isMediumUpTrendTouchednReversed: " + currencyContractHost.isMediumUpTrendTouchednReversed);
+				if(PRINT_OUT_MESSAGE)
+					System.out.println("Current currencyContractHost.isMediumUpTrendTouchednReversed: " + currencyContractHost.isMediumUpTrendTouchednReversed);
 				
 				//IF both extra and long is up, but medium is down, it is stage 1. reverse.
 				if(extraTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG)){
 					
 					//if current extra trend is up and long trend is down. seek a good position to enter the trade.
-					if(longTAResult.technicalSignalUp.equals(TechnicalSignalTrend.EXIT_LONG) && currencyContractHost.m_currentTechnicalSignal60MUp.equals(TechnicalSignalTrend.EXIT_LONG)){
-						System.out.println(lastShortTick.getDateName() + " Up wait a good postion to Buy");
+					if(longTAResult.technicalSignalUp.equals(TechnicalSignalTrend.EXIT_LONG) && currencyContractHost.m_currentTechnicalSignal60MUp.equals(TechnicalSignalTrend.ENTER_LONG)){
+						if(PRINT_OUT_MESSAGE)
+							System.out.println(lastShortTick.getDateName() + " Up wait a good postion to Buy");
 						currencyContractHost.isLongUpTrendTouchednReversed = 1;
 					}
 					
@@ -337,7 +339,8 @@ public class TechinicalAnalyzerTrader extends Thread{
 					}
 					
 					if(longTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG)){
-						System.out.println(lastShortTick.getDateName() + " Up wait a good postion to Buy");
+						if(PRINT_OUT_MESSAGE)
+							System.out.println(lastShortTick.getDateName() + " Up wait a good postion to Buy");
 						if(mediumTAResult.technicalSignalUp.equals(TechnicalSignalTrend.EXIT_LONG))
 							currencyContractHost.isMediumUpTrendTouchednReversed = 1;
 						}
@@ -348,6 +351,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 					
 					
 					if(longTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG) && mediumTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG) ){
+						if(PRINT_OUT_MESSAGE)
 						System.out.println(lastShortTick.getDateName() + " Up wait a good postion to Buy");
 						if(shortTAResult.technicalSignalUp.equals(TechnicalSignalTrend.EXIT_LONG))
 							currencyContractHost.isShortUpTrendTouchednReversed = 1;
@@ -362,7 +366,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 				//currencyContractHost.isShortUpTrendTouchednReversed == 2 || 
 				if(currencyContractHost.isMediumUpTrendTouchednReversed == 2 || currencyContractHost.isLongUpTrendTouchednReversed == 2){
 					
-						System.out.println(lastShortTick.getDateName() + " place order to Buy now");
+						System.out.println(lastShortTick.getDateName() + " place order to Buy now @ " + lastShortTick.getClosePrice());
 
 						{
 							placeTestMarketOrder("BUY", lastShortTick);
@@ -380,13 +384,13 @@ public class TechinicalAnalyzerTrader extends Thread{
 				if(extraTAResult.technicalSignalUp.equals(TechnicalSignalTrend.EXIT_LONG) && !currencyContractHost.m_currentTechnicalSignal240MUp.equals(TechnicalSignalTrend.EXIT_LONG) && !currencyContractHost.m_currentTechnicalSignal240MUp.equals(TechnicalSignalTrend.NONE)){
 					placeTestMarketOrder("CLOSE", lastShortTick);
 					longtradingRecord.exit(shortTAResult.endIndex);
-
+					System.out.println(lastShortTick.getDateName() + " Close Long order to now @ " + lastShortTick.getClosePrice());
 				}
 				
 				
-				//Entry condition for long.
+				//Entry condition for Short.
 				//Extra in Down trend.
-				//Long from up to down, then to up again. Now it is time to buy.
+				//Long from up to down, then to up again. Now it is time to sell.
 				//Then use medium or short as entry point.
 				
 				
@@ -397,18 +401,19 @@ public class TechinicalAnalyzerTrader extends Thread{
 					currencyContractHost.isShortDownTrendTouchednReversed = 0;
 				}
 				
-//				//if long change direction or first time get its value. Reset medium up trend to no change.
+//				//if short change direction or first time get its value. Reset medium up trend to no change.
 //				if(longTAResult.technicalSignalDown.equals(currencyContractHost.m_currentTechnicalSignal60MDown) == false){
 //					currencyContractHost.isMediumDownTrendTouchednReversed = 0;
 //				}
 				
 				System.out.println("Current currencyContractHost.isMediumDownTrendTouchednReversed: " + currencyContractHost.isMediumDownTrendTouchednReversed);
 				
-				//IF both extra and long is up, but medium is down, it is stage 1. reverse.
+				//IF both extra and long is down, but medium is long, it is stage 1. reverse.
 				if(extraTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT)){
 					
 					//if current extra trend is up and long trend is down. seek a good position to enter the trade.
 					if(longTAResult.technicalSignalDown.equals(TechnicalSignalTrend.EXIT_SHORT) && currencyContractHost.m_currentTechnicalSignal60MDown.equals(TechnicalSignalTrend.EXIT_SHORT)){
+						if(PRINT_OUT_MESSAGE)
 						System.out.println(lastShortTick.getDateName() + " Down wait a good postion to Buy");
 						currencyContractHost.isLongDownTrendTouchednReversed = 1;
 					}
@@ -419,6 +424,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 					}
 					
 					if(longTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT)){
+						if(PRINT_OUT_MESSAGE)
 						System.out.println(lastShortTick.getDateName() + " Down wait a good postion to sell");
 						if(mediumTAResult.technicalSignalDown.equals(TechnicalSignalTrend.EXIT_SHORT))
 							currencyContractHost.isMediumDownTrendTouchednReversed = 1;
@@ -430,6 +436,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 					
 					
 					if(longTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT) && mediumTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT) ){
+						if(PRINT_OUT_MESSAGE)
 						System.out.println(lastShortTick.getDateName() + " Down wait a good postion to Sell");
 						if(shortTAResult.technicalSignalDown.equals(TechnicalSignalTrend.EXIT_SHORT))
 							currencyContractHost.isShortDownTrendTouchednReversed = 1;
@@ -444,11 +451,12 @@ public class TechinicalAnalyzerTrader extends Thread{
 				//currencyContractHost.isShortDownTrendTouchednReversed == 2 || 
 				if(currencyContractHost.isMediumDownTrendTouchednReversed == 2 || currencyContractHost.isLongDownTrendTouchednReversed == 2){
 					
-						System.out.println(lastShortTick.getDateName() + " place order to Sell now");
+					
+						System.out.println(lastShortTick.getDateName() + " place order to Sell now @ price " + lastShortTick.getClosePrice());
 
 						{
-							placeTestMarketOrder("BUY", lastShortTick);
-							longtradingRecord.enter(shortTAResult.endIndex);
+							placeTestMarketOrder("SELL", lastShortTick);
+							shorttradingRecord.enter(shortTAResult.endIndex);
 							currencyContractHost.isShortDownTrendTouchednReversed = 0;
 							currencyContractHost.isMediumDownTrendTouchednReversed = 0;
 							currencyContractHost.isLongDownTrendTouchednReversed = 0;
@@ -460,9 +468,10 @@ public class TechinicalAnalyzerTrader extends Thread{
 				
 				//If extra change trend, time to close
 				if(extraTAResult.technicalSignalDown.equals(TechnicalSignalTrend.EXIT_SHORT) && !currencyContractHost.m_currentTechnicalSignal240MDown.equals(TechnicalSignalTrend.EXIT_SHORT) && !currencyContractHost.m_currentTechnicalSignal240MDown.equals(TechnicalSignalTrend.NONE)){
-					placeTestMarketOrder("CLOSE", lastShortTick);
-					longtradingRecord.exit(shortTAResult.endIndex);
+					System.out.println(lastShortTick.getDateName() + " Close short order now @ price " + lastShortTick.getClosePrice());
 
+					placeTestMarketOrder("CLOSE", lastShortTick);
+					shorttradingRecord.exit(shortTAResult.endIndex);
 				}
 				
 					
@@ -485,16 +494,16 @@ public class TechinicalAnalyzerTrader extends Thread{
 				currencyContractHost.shortMedSma = shortTAResult.longSMA;
 				
 				contractHashMapHost.put(currencyContractHost.symbol() + currencyContractHost.currency(), currencyContractHost);
-				
-				//If processed tick is ealier, don't submit the order.
-				Calendar cal = Calendar.getInstance();
-				cal.setTime(shortTAResult.processedTick.getEndTime().toDate());
-				cal.add(Calendar.MINUTE, +5);
-				if(new Date().after(cal.getTime())){
-					continue;
-				}
-				
 				analyzeRecord(shortTAResult.series, longtradingRecord, shorttradingRecord);
+
+//				//If processed tick is ealier, don't submit the order.
+//				Calendar cal = Calendar.getInstance();
+//				cal.setTime(shortTAResult.processedTick.getEndTime().toDate());
+//				cal.add(Calendar.MINUTE, +5);
+//				if(new Date().after(cal.getTime())){
+//					continue;
+//				}
+				
 				
 				
 
@@ -512,7 +521,22 @@ public class TechinicalAnalyzerTrader extends Thread{
 					
 					            // Getting the cash flow of the resulting trades
 					            CashFlow cashFlow = new CashFlow(series, longtradingRecord);
-					
+					            
+					            System.out.println("Number of trades for our Long strategy: " + longtradingRecord.getTradeCount());
+					            
+					            List<Trade> List = longtradingRecord.getTrades();
+					            Iterator<Trade> tradeIterator = List.iterator();
+					            Order record;
+					            Tick tick;
+					            while(tradeIterator.hasNext()){
+					            	
+					            	record = tradeIterator.next().getEntry();
+					            	record.getPrice();
+					            	record.getType();
+					            	tick = series.getTick(record.getIndex());
+					            	System.out.println(tick.getDateName() + " " + record.getType() + " @ " + record.getPrice());
+					            }
+					            
 					            // Getting the profitable trades ratio
 					            AnalysisCriterion profitTradesRatio = new AverageProfitableTradesCriterion();
 					            System.out.println("Profitable trades ratio: " + profitTradesRatio.calculate(series, longtradingRecord));
@@ -530,7 +554,9 @@ public class TechinicalAnalyzerTrader extends Thread{
 					
 					            // Getting the cash flow of the resulting trades
 					             cashFlow = new CashFlow(series, shorttradingRecord);
-					
+						           
+					             System.out.println("Number of trades for our Short strategy: " + shorttradingRecord.getTradeCount());
+	
 					            // Getting the profitable trades ratio
 					            profitTradesRatio = new AverageProfitableTradesCriterion();
 					            System.out.println("Profitable trades ratio: " + profitTradesRatio.calculate(series, shorttradingRecord));

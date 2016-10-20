@@ -202,7 +202,7 @@ public class Ta4J_backtest  extends Thread{
 				continue;
 			 TimeSeries oneYearSeries = new TimeSeries(currencyContractHost.symbol() + currencyContractHost.currency() + "_ticks", ticks);
 	//	      allTicks.addAll(ticks);
-		       new TicksAccesser(oneYearSeries).writeToCsv();
+		 //      new TicksAccesser(oneYearSeries).writeToCsv();
 		       System.out.println(new Date() + "Write ticks into file " + currencyContractHost.symbol() + currencyContractHost.currency() + "_ticks.csv"); 
 		       
 		       //before adjusting calendar to new date, ensure that we receive all ticks.

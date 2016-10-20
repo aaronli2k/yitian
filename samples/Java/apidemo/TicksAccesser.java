@@ -47,6 +47,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.ref.WeakReference;
 import java.nio.charset.Charset;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
@@ -55,6 +58,7 @@ import java.util.logging.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.Instant;
 
+import com.ib.client.Contract;
 import com.ib.controller.Bar;
 import com.opencsv.CSVReader;
 
@@ -66,9 +70,29 @@ import ta4jexamples.loaders.CsvTradesLoader;
 public class TicksAccesser extends Thread{
 	TimeSeries series;
 	String fileNameLocal;
-	public ConcurrentHashMap<Long, Bar> historicalBarMap = new ConcurrentHashMap<Long, Bar>();
-	public TicksAccesser(TimeSeries seriesIn){
+	histortyDataHandler datahandler;
+	ConcurrentHashMap<String, Contract> contractMap;
+	public ConcurrentHashMap<Long, Bar> historicalBarMap;// = new ConcurrentHashMap<Long, Bar>();
+	
+    SimpleDateFormat DATEOnly_FORMAT = new SimpleDateFormat("yyyyMMdd");
+    Date startDate = null;
+		Date endDate = null;
+
+
+	
+	public TicksAccesser(TimeSeries seriesIn, Contract currencyContract, int Duration, ConcurrentHashMap<String, Contract> contractMapIn, String startYYYYmmDD, String endYYYYmmDD){
 		series = seriesIn;
+		contractMap = contractMapIn;
+		datahandler = new histortyDataHandler(currencyContract, Duration, contractMapIn);
+		historicalBarMap = currencyContract.historical5MBarMap;
+		//	final SimpleDateFormat DATEOnly_FORMAT = new SimpleDateFormat("yyyyMMdd");
+		try {
+			startDate = DATEOnly_FORMAT.parse(startYYYYmmDD);
+			endDate = DATEOnly_FORMAT.parse(endYYYYmmDD);
+		} catch (ParseException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	public ConcurrentHashMap<Long, Bar> readFromCsv(String fileName){
@@ -147,9 +171,25 @@ public class TicksAccesser extends Thread{
                        double maxPrice = Double.parseDouble(lines[5]);
                        double minPrice = Double.parseDouble(lines[6]);
                        Bar newBar = new Bar(endTime, maxPrice, minPrice, openPrice, closePrice, 0, 0, 0);
-                       historicalBarMap.put(endTime, newBar);
-                       if(historicalBarMap.size() > 7000)
+                      
+
+//           			//only process date between startDate and endDate
+           			if(new DateTime(newBar.time() * 1000).toDate().before(startDate)){
+ //          				System.out.println("First Tick to process time: " + startDate);
+           				return;
+           			}
+           			
+//           			//only process date between startDate and endDate
+           			if(new DateTime(newBar.time() * 1000).toDate().after(endDate)){
+//           				System.out.println("Last Tick to process time: " + endDate);
+           				return;
+           			}
+                       
+                       datahandler.historicalData(newBar, false);
+          //             historicalBarMap.put(endTime, newBar);
+                       if(historicalBarMap.size() > 6000)
                        {
+                    	   datahandler.historicalDataEnd();
                     	   try {
 							Thread.sleep(1000);
 						} catch (InterruptedException e) {

@@ -188,7 +188,7 @@ public class TechinicalAnalyzer{
 	}
 
 
-	public   TechnicalAnalyzerResult analyze(Date lastProcessedtime ){
+	public   TechnicalAnalyzerResult analyze(Date lastProcessedtime, boolean PRINT_OUT_MESSAGE ){
 		Tick newTick  = null;
 		Bar bar = null;
 		int endIndex = 0;
@@ -229,16 +229,18 @@ public class TechinicalAnalyzer{
 		lastProcessedtime = newTick.getEndTime().toDate();
 
 		//                Tick newTick = generateRandomTick();
+		if(PRINT_OUT_MESSAGE){
 		System.out.println("-----------Techinical Analyzer " + currencyContractHost.symbol() + currencyContractHost.currency() + "------\n"
 				+ "Tick "+ newTick.getDateName() +" added, close price = " + newTick.getClosePrice().toDouble()
 				+ " open price = " + newTick.getOpenPrice().toDouble() + " High price = " + newTick.getMaxPrice().toDouble()  
 				 + " Low price = " + newTick.getMinPrice().toDouble() );
 		//                series.addTick(newTick);
-
+		}
 
 
 		endIndex = series.getEnd();
 
+		if(PRINT_OUT_MESSAGE){
 
 		System.out.println(series.getLastTick().getDateName() + " "  + durationHost + " minutes" + "------Techinical Analyzer begin" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
 		System.out.println(series.getLastTick().getDateName() + " Closed Price: " + closePrice.getValue(endIndex));
@@ -250,7 +252,7 @@ public class TechinicalAnalyzer{
 		System.out.println(series.getLastTick().getDateName() + durationHost  + " minutes Stoch K corss down D  is " + new CrossedDownIndicatorRule(sofStoch, sosStoch).isSatisfied(endIndex));
 		System.out.println(series.getLastTick().getDateName() + durationHost  + " minutes Stoch K under D  is " + new UnderIndicatorRule(sofStoch, sosStoch).isSatisfied(endIndex));
 		System.out.println(series.getLastTick().getDateName().toString()+ " " + durationHost + " minutes" +  "-----Techinical Analyzer end" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
-
+		}
 
 		if (longStrategy.shouldEnter(endIndex)) {
 			// Our strategy should enter
@@ -271,7 +273,8 @@ public class TechinicalAnalyzer{
 
 		}else{
 			// Our strategy should WAIT
-			System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes LONG Strategy should WAIT  on " + endIndex);
+			if(PRINT_OUT_MESSAGE)
+				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes LONG Strategy should WAIT  on " + endIndex);
 
 		}
 
@@ -296,7 +299,8 @@ public class TechinicalAnalyzer{
 
 		}else{
 			// Our strategy should WAIT
-			System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes SHORT Strategy should WAIT  on " + endIndex);
+			if(PRINT_OUT_MESSAGE)
+				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes SHORT Strategy should WAIT  on " + endIndex);
 		}
 
 
@@ -364,11 +368,35 @@ public class TechinicalAnalyzer{
 			if(bar == null)
 				continue;
 
-			//Let's keep 1 day data to process
-			if(new DateTime(bar.time() * 1000).toDate().after(cal.getTime())){
-				System.out.println("Tick time: " + cal.getTime());
-				break;
-			}
+//			//Let's keep 1 day data to process
+//			if(new DateTime(bar.time() * 1000).toDate().after(cal.getTime())){
+//				System.out.println("Tick time: " + cal.getTime());
+//				break;
+//			}
+			
+//			Date startDate = null;
+//			Date endDate = null;
+//			//	final SimpleDateFormat DATEOnly_FORMAT = new SimpleDateFormat("yyyyMMdd");
+//			try {
+//				startDate = DATEOnly_FORMAT.parse("20160101");
+//				endDate = DATEOnly_FORMAT.parse("20161001");
+//			} catch (ParseException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//
+////			//only process date between startDate and endDate
+//			if(new DateTime(bar.time() * 1000).toDate().before(startDate)){
+//				System.out.println("First Tick to process time: " + startDate);
+//				continue;
+//			}
+//			
+////			//only process date between startDate and endDate
+//			if(new DateTime(bar.time() * 1000).toDate().after(endDate)){
+//				System.out.println("Last Tick to process time: " + cal.getTime());
+//				break;
+//			}
+			
 			double open = bar.open();
 			double high = bar.high();
 			double low = bar.low();

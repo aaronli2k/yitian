@@ -1659,57 +1659,57 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 						if(!orderDetail.TradeMethod.equals("CLOSE"))//always close the order.
 						{
-						//Make sure that we would NOT submit an duplicate order with current open order;
-						for (Entry<Integer, forex> entry : liveForexOrderMap.entrySet()) {
-							forex order2Loop = entry.getValue();
-							//						    forex tmpOrder = orderHashMap.get(order2Loop.seqOrderNo());
-							Order entryOrder = submittedOrderHashMap.get(entry.getKey());
-							if(entryOrder == null)
-								entryOrder = liveOrderMap.get(entry.getKey());
+							//Make sure that we would NOT submit an duplicate order with current open order;
+							for (Entry<Integer, forex> entry : liveForexOrderMap.entrySet()) {
+								forex order2Loop = entry.getValue();
+								//						    forex tmpOrder = orderHashMap.get(order2Loop.seqOrderNo());
+								Order entryOrder = submittedOrderHashMap.get(entry.getKey());
+								if(entryOrder == null)
+									entryOrder = liveOrderMap.get(entry.getKey());
 
-							if(entryOrder == null)
-								continue;
-							if(orderDetail.Symbol.equals(order2Loop.Symbol)){
-								{
-									//duplicated parent order is OK. All parent order has time in force as "GTD" good to date.
-									if(liveOrderMap.get(entry.getKey()).tif().equals("GTD"))
-										continue;
+								if(entryOrder == null)
+									continue;
+								if(orderDetail.Symbol.equals(order2Loop.Symbol)){
+									{
+										//duplicated parent order is OK. All parent order has time in force as "GTD" good to date.
+										if(liveOrderMap.get(entry.getKey()).tif().equals("GTD"))
+											continue;
 
-									if(entryOrder.parentId() == 0 && entryOrder.tif().equals("GTC"))
-									{	
-										needToSubmit = false;
-										orderDetail.OrderStatus = "Cancelled";
-										orderDetail.comment = "Cancelled due to duplicated order in open order";						    		
-										orderHashMap.put(orderDetail.orderSeqNo, orderDetail);
-										System.out.println(new Date() + " No need to submit Order:  " + liveOrderMap.get(entry.getKey()).parentId());	
-										break;
+										if(entryOrder.parentId() == 0 && entryOrder.tif().equals("GTC"))
+										{	
+											needToSubmit = false;
+											orderDetail.OrderStatus = "Cancelled";
+											orderDetail.comment = "Cancelled due to duplicated order in open order";						    		
+											orderHashMap.put(orderDetail.orderSeqNo, orderDetail);
+											System.out.println(new Date() + " No need to submit Order:  " + liveOrderMap.get(entry.getKey()).parentId());	
+											break;
+										}
+
+										if(entryOrder.parentId() != 0 && liveOrderMap.containsKey(entryOrder.parentId()))
+											continue;
+
+										//If order's parent order has been executed. Then skip current order to avoid duplicate
+
+										if(executedOrderMap.containsKey(entryOrder.parentId()))
+										{						    		
+											needToSubmit = false;
+											orderDetail.OrderStatus = "Cancelled";
+											orderDetail.comment = "Cancelled due to duplicated order in open order";						    		
+											orderHashMap.put(orderDetail.orderSeqNo, orderDetail);
+											System.out.println(new Date() + " No need to submit because of executed parent OrderId:  " + liveOrderMap.get(entry.getKey()).parentId());
+											break;
+										}	
+
+										//						    		System.out.println(" I escpe hee: " + entryOrder.orderId() + entryOrder.orderType() + entryOrder.parentId());
+										//						    		System.out.println("Is its parent Id in executedOrderMap ? " + executedOrderMap.containsKey(entryOrder.parentId()));
+										//						    		System.out.println("Is its in submittedOrderHashMap ? " + submittedOrderHashMap.containsKey(entryOrder.orderId()));
+										//						    		System.out.println("Is its in liveOrderMap ? " + liveOrderMap.containsKey(entryOrder.orderId()));
+
+
 									}
-
-									if(entryOrder.parentId() != 0 && liveOrderMap.containsKey(entryOrder.parentId()))
-										continue;
-
-									//If order's parent order has been executed. Then skip current order to avoid duplicate
-
-									if(executedOrderMap.containsKey(entryOrder.parentId()))
-									{						    		
-										needToSubmit = false;
-										orderDetail.OrderStatus = "Cancelled";
-										orderDetail.comment = "Cancelled due to duplicated order in open order";						    		
-										orderHashMap.put(orderDetail.orderSeqNo, orderDetail);
-										System.out.println(new Date() + " No need to submit because of executed parent OrderId:  " + liveOrderMap.get(entry.getKey()).parentId());
-										break;
-									}	
-
-									//						    		System.out.println(" I escpe hee: " + entryOrder.orderId() + entryOrder.orderType() + entryOrder.parentId());
-									//						    		System.out.println("Is its parent Id in executedOrderMap ? " + executedOrderMap.containsKey(entryOrder.parentId()));
-									//						    		System.out.println("Is its in submittedOrderHashMap ? " + submittedOrderHashMap.containsKey(entryOrder.orderId()));
-									//						    		System.out.println("Is its in liveOrderMap ? " + liveOrderMap.containsKey(entryOrder.orderId()));
-
-
-								}
-							}    
+								}    
+							}
 						}
-					}
 
 						if(needToSubmit == false)
 							continue;
@@ -1940,13 +1940,13 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		}
 
 		//For testing purpose.
-//		//If its parent Order isn't executed, don't change stop Price.
-//		if(!executedOrderMap.containsKey(order.parentId()))
-//			return;
-//
-//		//If its parent Order isn't executed, don't change stop Price.
-//		if(liveOrderMap.containsKey(order.parentId()))
-//			return;
+		//		//If its parent Order isn't executed, don't change stop Price.
+		//		if(!executedOrderMap.containsKey(order.parentId()))
+		//			return;
+		//
+		//		//If its parent Order isn't executed, don't change stop Price.
+		//		if(liveOrderMap.containsKey(order.parentId()))
+		//			return;
 
 		Order stopLoss = new Order();
 		stopLoss.orderId(order.orderId());
@@ -1994,28 +1994,28 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				newStopPrice = maPrice * (1 + Percent/100);
 			}
 			else if(openPrice == 0.0){
-//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < maPrice * (1 + Percent/100))
-//					newStopPrice = currencyContract.extraMedSma;
-//				else
-					newStopPrice = maPrice * (1 + Percent/100);
+				//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < maPrice * (1 + Percent/100))
+				//					newStopPrice = currencyContract.extraMedSma;
+				//				else
+				newStopPrice = maPrice * (1 + Percent/100);
 			}
 			else if(maPrice < (openPrice * (1 - 0.2/100))){
-//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < maPrice * (1 + Percent/100))
-//					newStopPrice = currencyContract.extraMedSma;
-//				else						
-					newStopPrice = maPrice * (1 + Percent/100);
+				//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < maPrice * (1 + Percent/100))
+				//					newStopPrice = currencyContract.extraMedSma;
+				//				else						
+				newStopPrice = maPrice * (1 + Percent/100);
 			}
 			//If current ask price 0.2 % is bigger than actual price, adjust STOP price to actual open price 
 			else if(maPrice < (openPrice * (1 - 0.15/100))){
-//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 - Percent/100))
-//					newStopPrice = currencyContract.extraMedSma;
-//				else						
-					newStopPrice = openPrice * (1 - Percent/100);
+				//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 - Percent/100))
+				//					newStopPrice = currencyContract.extraMedSma;
+				//				else						
+				newStopPrice = openPrice * (1 - Percent/100);
 			}else{//defaul set stop price as 0.15 loss from current price
-//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 + Percent/100))
-//					newStopPrice = currencyContract.extraMedSma;
-//				else
-					newStopPrice = openPrice * (1 + Percent/100);
+				//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 + Percent/100))
+				//					newStopPrice = currencyContract.extraMedSma;
+				//				else
+				newStopPrice = openPrice * (1 + Percent/100);
 			}
 			newStopPrice = fixDoubleDigi(newStopPrice);
 
@@ -2036,28 +2036,28 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 				newStopPrice = maPrice * (1 - Percent/100);
 			}
 			else if(openPrice == 0.0){
-//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 - Percent/100))
-//					newStopPrice = currencyContract.extraMedSma;
-//				else						
-					newStopPrice = maPrice * (1 - Percent/100);
+				//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma < openPrice * (1 - Percent/100))
+				//					newStopPrice = currencyContract.extraMedSma;
+				//				else						
+				newStopPrice = maPrice * (1 - Percent/100);
 			}
 			else if(maPrice > (openPrice * (1 + 0.2/100))){
-//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 - Percent/100))
-//					newStopPrice = currencyContract.extraMedSma;
-//				else						
-					newStopPrice = maPrice * (1 - Percent/100);
+				//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 - Percent/100))
+				//					newStopPrice = currencyContract.extraMedSma;
+				//				else						
+				newStopPrice = maPrice * (1 - Percent/100);
 			}
 			//If current bid price 0.2 % is higher than actual price, adjust STOP price to actual open price 
 			else if(maPrice > (openPrice * (1 + 0.15/100))){
-//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 + Percent/100))
-//					newStopPrice = currencyContract.extraMedSma;
-//				else						
-					newStopPrice = openPrice * (1 + Percent/100);
+				//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 + Percent/100))
+				//					newStopPrice = currencyContract.extraMedSma;
+				//				else						
+				newStopPrice = openPrice * (1 + Percent/100);
 			}else{//defaul set stop price as  0.15 loss from current price
-//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 - Percent/100))
-//					newStopPrice = currencyContract.extraMedSma;
-//				else						
-					newStopPrice = openPrice * (1 - Percent/100);
+				//				if(	currencyContract.extraMedSma > 0.0 && currencyContract.extraMedSma > openPrice * (1 - Percent/100))
+				//					newStopPrice = currencyContract.extraMedSma;
+				//				else						
+				newStopPrice = openPrice * (1 - Percent/100);
 			}
 			newStopPrice = fixDoubleDigi(newStopPrice);
 
@@ -2530,11 +2530,20 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 	ForexLiveOrderHandler liveOrderListener = new ForexLiveOrderHandler();
 	reportListener tradeReportListener = new reportListener();	
 
-	
+
 
 
 	public void requestHistoricalBar(String endTime, Contract currencyContract, Boolean isFirstTime){
 		int length = 0;
+
+		// Getting the time series
+
+		//            //Simulated testing for different dataset.
+		if(isFirstTime){
+			TicksAccesser ticksAccess = new TicksAccesser(null, currencyContract, 5, contractMap, "20160801", "20161001");
+			ticksAccess.readFromCsv("NZDUSD_ticks_history_2007_to_2016.csv");
+			ticksAccess.start();
+		}
 
 		//Request one month day in initial request, then just one hour in following request.
 		DurationUnit durationToRequest;
@@ -2547,14 +2556,14 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			length = 14400;			
 		}
 
-		histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract, 5, contractMap);
-		if(forexHistoricalHandler != null && currencyContract != null)
-			controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
-		else
-		{
-			System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
-			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
-		}
+		//		histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract, 5, contractMap);
+		//		if(forexHistoricalHandler != null && currencyContract != null)
+		//			controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._5_mins, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+		//		else
+		//		{
+		//			System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+		//			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+		//		}
 
 		//		forexHistoricalHandler = new histortyDataHandler(currencyContract, 240);
 		//		if(forexHistoricalHandler != null && currencyContract != null)
