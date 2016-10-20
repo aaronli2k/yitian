@@ -256,7 +256,8 @@ public class TechinicalAnalyzer{
 
 		if (longStrategy.shouldEnter(endIndex)) {
 			// Our strategy should enter
-			System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes Strategy should ENTER LONG on " + endIndex);
+			if(PRINT_OUT_MESSAGE)
+				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes Strategy should ENTER LONG on " + endIndex);
 			currentTechnicalSignalUp = TechnicalSignalTrend.ENTER_LONG;
 
 
@@ -264,7 +265,8 @@ public class TechinicalAnalyzer{
 
 		} else if (longStrategy.shouldExit(endIndex)) {
 			// Our strategy should exit
-			System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should EXIT LONG on " + endIndex);
+			if(PRINT_OUT_MESSAGE)
+				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should EXIT LONG on " + endIndex);
 			currentTechnicalSignalUp = TechnicalSignalTrend.EXIT_LONG;
 
 
@@ -282,7 +284,8 @@ public class TechinicalAnalyzer{
 		endIndex = series.getEnd();
 		if (shortStrategy.shouldEnter(endIndex)) {
 			// Our strategy should enter
-			System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should ENTER SHORT on " + endIndex);
+			if(PRINT_OUT_MESSAGE)
+				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should ENTER SHORT on " + endIndex);
 			currentTechnicalSignalDown = TechnicalSignalTrend.ENTER_SHORT;
 
 
@@ -291,7 +294,8 @@ public class TechinicalAnalyzer{
 
 		} else if (shortStrategy.shouldExit(endIndex)) {
 			// Our strategy should exit
-			System.out.println(series.getLastTick().getSimpleDateName() + " " + durationHost + " minutes  Strategy should EXIT SHORT on " + endIndex);
+			if(PRINT_OUT_MESSAGE)
+				System.out.println(series.getLastTick().getSimpleDateName() + " " + durationHost + " minutes  Strategy should EXIT SHORT on " + endIndex);
 			currentTechnicalSignalDown = TechnicalSignalTrend.EXIT_SHORT;
 
 
