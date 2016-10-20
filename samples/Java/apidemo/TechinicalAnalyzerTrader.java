@@ -307,41 +307,70 @@ public class TechinicalAnalyzerTrader extends Thread{
 				//Long from up to down, then to up again. Now it is time to buy.
 				//Then use medium or short as entry point.
 				
-				boolean tradePlaced = false;
 				
 				//if extra change direction or first time get its value. Reset medium up trend to no change.
 				if(extraTAResult.technicalSignalUp.equals(currencyContractHost.m_currentTechnicalSignal240MUp) == false){
+					currencyContractHost.isLongUpTrendTouchednReversed = 0;
 					currencyContractHost.isMediumUpTrendTouchednReversed = 0;
-					
+					currencyContractHost.isShortUpTrendTouchednReversed = 0;
 				}
 				
-				//if long change direction or first time get its value. Reset medium up trend to no change.
-				if(longTAResult.technicalSignalUp.equals(currencyContractHost.m_currentTechnicalSignal60MUp) == false){
-					currencyContractHost.isMediumUpTrendTouchednReversed = 0;
-				}
+//				//if long change direction or first time get its value. Reset medium up trend to no change.
+//				if(longTAResult.technicalSignalUp.equals(currencyContractHost.m_currentTechnicalSignal60MUp) == false){
+//					currencyContractHost.isMediumUpTrendTouchednReversed = 0;
+//				}
+				
+				System.out.println("Current currencyContractHost.isMediumUpTrendTouchednReversed: " + currencyContractHost.isMediumUpTrendTouchednReversed);
 				
 				//IF both extra and long is up, but medium is down, it is stage 1. reverse.
 				if(extraTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG)){
+					
+					//if current extra trend is up and long trend is down. seek a good position to enter the trade.
+					if(longTAResult.technicalSignalUp.equals(TechnicalSignalTrend.EXIT_LONG) && currencyContractHost.m_currentTechnicalSignal60MUp.equals(TechnicalSignalTrend.EXIT_LONG)){
+						System.out.println(lastShortTick.getDateName() + " Up wait a good postion to Buy");
+						currencyContractHost.isLongUpTrendTouchednReversed = 1;
+					}
+					
+					//if current long trend is up again and it has been reversed. Time to buy
+					if(longTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG) && currencyContractHost.isLongUpTrendTouchednReversed == 1)
+						currencyContractHost.isLongUpTrendTouchednReversed = 2;
+					}
+					
 					if(longTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG)){
 						System.out.println(lastShortTick.getDateName() + " Up wait a good postion to Buy");
 						if(mediumTAResult.technicalSignalUp.equals(TechnicalSignalTrend.EXIT_LONG))
 							currencyContractHost.isMediumUpTrendTouchednReversed = 1;
 						}
-					
+				
 					//if current medium trend is up again and it has been reversed. Time to buy
 					if(mediumTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG) && currencyContractHost.isMediumUpTrendTouchednReversed == 1)
 						currencyContractHost.isMediumUpTrendTouchednReversed = 2;
-					}
 					
+					
+					if(longTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG) && mediumTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG) ){
+						System.out.println(lastShortTick.getDateName() + " Up wait a good postion to Buy");
+						if(shortTAResult.technicalSignalUp.equals(TechnicalSignalTrend.EXIT_LONG))
+							currencyContractHost.isShortUpTrendTouchednReversed = 1;
+						}
 				
-				if(currencyContractHost.isMediumUpTrendTouchednReversed == 2){
+					//if current medium trend is up again and it has been reversed. Time to buy
+					if(shortTAResult.technicalSignalUp.equals(TechnicalSignalTrend.ENTER_LONG) && currencyContractHost.isShortUpTrendTouchednReversed == 1)
+						currencyContractHost.isShortUpTrendTouchednReversed = 2;
+					
+					
+
+				//currencyContractHost.isShortUpTrendTouchednReversed == 2 || 
+				if(currencyContractHost.isMediumUpTrendTouchednReversed == 2 || currencyContractHost.isLongUpTrendTouchednReversed == 2){
 					
 						System.out.println(lastShortTick.getDateName() + " place order to Buy now");
 
 						{
 							placeTestMarketOrder("BUY", lastShortTick);
 							longtradingRecord.enter(shortTAResult.endIndex);
+							currencyContractHost.isShortUpTrendTouchednReversed = 0;
 							currencyContractHost.isMediumUpTrendTouchednReversed = 0;
+							currencyContractHost.isLongUpTrendTouchednReversed = 0;
+							
 						}
 
 			
@@ -355,56 +384,87 @@ public class TechinicalAnalyzerTrader extends Thread{
 				}
 				
 				
-				//Entry condition for short.
+				//Entry condition for long.
 				//Extra in Down trend.
-				//SHORT from Down to down, then to Down again. Now it is time to buy.
+				//Long from up to down, then to up again. Now it is time to buy.
 				//Then use medium or short as entry point.
 				
-				tradePlaced = false;
 				
-				//if extra change direction or first time get its value. Reset medium Down trend to no change.
+				//if extra change direction or first time get its value. Reset medium up trend to no change.
 				if(extraTAResult.technicalSignalDown.equals(currencyContractHost.m_currentTechnicalSignal240MDown) == false){
+					currencyContractHost.isLongDownTrendTouchednReversed = 0;
 					currencyContractHost.isMediumDownTrendTouchednReversed = 0;
-					
+					currencyContractHost.isShortDownTrendTouchednReversed = 0;
 				}
 				
-				//if SHORT change direction or first time get its value. Reset medium Down trend to no change.
-				if(longTAResult.technicalSignalDown.equals(currencyContractHost.m_currentTechnicalSignal60MDown) == false){
-					currencyContractHost.isMediumDownTrendTouchednReversed = 0;
-				}
+//				//if long change direction or first time get its value. Reset medium up trend to no change.
+//				if(longTAResult.technicalSignalDown.equals(currencyContractHost.m_currentTechnicalSignal60MDown) == false){
+//					currencyContractHost.isMediumDownTrendTouchednReversed = 0;
+//				}
 				
-				//IF both extra and long is Down, but medium is down, it is stage 1. reverse.
+				System.out.println("Current currencyContractHost.isMediumDownTrendTouchednReversed: " + currencyContractHost.isMediumDownTrendTouchednReversed);
+				
+				//IF both extra and long is up, but medium is down, it is stage 1. reverse.
 				if(extraTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT)){
+					
+					//if current extra trend is up and long trend is down. seek a good position to enter the trade.
+					if(longTAResult.technicalSignalDown.equals(TechnicalSignalTrend.EXIT_SHORT) && currencyContractHost.m_currentTechnicalSignal60MDown.equals(TechnicalSignalTrend.EXIT_SHORT)){
+						System.out.println(lastShortTick.getDateName() + " Down wait a good postion to Buy");
+						currencyContractHost.isLongDownTrendTouchednReversed = 1;
+					}
+					
+					//if current long trend is up again and it has been reversed. Time to sell
+					if(longTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT) && currencyContractHost.isLongDownTrendTouchednReversed == 1)
+						currencyContractHost.isLongDownTrendTouchednReversed = 2;
+					}
+					
 					if(longTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT)){
-						System.out.println(lastShortTick.getDateName() + " Down wait a good postion to Sell");
+						System.out.println(lastShortTick.getDateName() + " Down wait a good postion to sell");
 						if(mediumTAResult.technicalSignalDown.equals(TechnicalSignalTrend.EXIT_SHORT))
 							currencyContractHost.isMediumDownTrendTouchednReversed = 1;
 						}
-					
-					//if current medium trend is Down again and it has been reversed. Time to sell
+				
+					//if current medium trend is up again and it has been reversed. Time to buy
 					if(mediumTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT) && currencyContractHost.isMediumDownTrendTouchednReversed == 1)
 						currencyContractHost.isMediumDownTrendTouchednReversed = 2;
-					}
 					
+					
+					if(longTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT) && mediumTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT) ){
+						System.out.println(lastShortTick.getDateName() + " Down wait a good postion to Sell");
+						if(shortTAResult.technicalSignalDown.equals(TechnicalSignalTrend.EXIT_SHORT))
+							currencyContractHost.isShortDownTrendTouchednReversed = 1;
+						}
 				
-				if(currencyContractHost.isMediumDownTrendTouchednReversed == 2){					
+					//if current medium trend is up again and it has been reversed. Time to sell
+					if(shortTAResult.technicalSignalDown.equals(TechnicalSignalTrend.ENTER_SHORT) && currencyContractHost.isShortDownTrendTouchednReversed == 1)
+						currencyContractHost.isShortDownTrendTouchednReversed = 2;
+					
+					
+
+				//currencyContractHost.isShortDownTrendTouchednReversed == 2 || 
+				if(currencyContractHost.isMediumDownTrendTouchednReversed == 2 || currencyContractHost.isLongDownTrendTouchednReversed == 2){
+					
 						System.out.println(lastShortTick.getDateName() + " place order to Sell now");
 
 						{
 							placeTestMarketOrder("BUY", lastShortTick);
 							longtradingRecord.enter(shortTAResult.endIndex);
+							currencyContractHost.isShortDownTrendTouchednReversed = 0;
 							currencyContractHost.isMediumDownTrendTouchednReversed = 0;
+							currencyContractHost.isLongDownTrendTouchednReversed = 0;
+							
 						}
 
 			
 					}
 				
-				
 				//If extra change trend, time to close
 				if(extraTAResult.technicalSignalDown.equals(TechnicalSignalTrend.EXIT_SHORT) && !currencyContractHost.m_currentTechnicalSignal240MDown.equals(TechnicalSignalTrend.EXIT_SHORT) && !currencyContractHost.m_currentTechnicalSignal240MDown.equals(TechnicalSignalTrend.NONE)){
 					placeTestMarketOrder("CLOSE", lastShortTick);
 					longtradingRecord.exit(shortTAResult.endIndex);
+
 				}
+				
 					
 				
 				

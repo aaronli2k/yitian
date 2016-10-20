@@ -90,7 +90,13 @@ public Bar    getHistoricalBar(long time){
 	public Boolean isHistoryReqFirstTime = true;
 	public int isMediumUpTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
 	public int isMediumDownTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
-    
+
+	public int isShortUpTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
+	public int isShortDownTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
+	
+	public int isLongUpTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
+	public int isLongDownTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
+	
     // Get
     public double strike()          { return m_strike; }
     public int conid()              { return m_conid; }
