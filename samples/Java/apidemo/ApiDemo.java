@@ -1637,9 +1637,14 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					systemTimePlus2M = new Date(serverTimeCalendar.getTimeInMillis() + 50 * 1000);	
 
 					//Compare system time and order to make sure that we submit the order on time or this is a market order which should be submitted immedietely
-					if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime) || (orderDetail.EntryMethod != null && orderDetail.EntryMethod.equals("MKT") && orderDetail.OrderStatus != null && !orderDetail.OrderStatus.isEmpty())){
+					if(systemTimePlus1M.before(orderTime) && systemTimePlus2M.after(orderTime) || (orderDetail.EntryMethod != null && orderDetail.EntryMethod.equals("MKT") )){
 
 						boolean needToSubmit = true;
+//						
+//						if(orderDetail.OrderStatus != null)
+//							if(!orderDetail.OrderStatus.isEmpty())
+//								continue;
+						
 						if(orderDetail.OCA == true){ //first is OCA is false. which is only a single order.
 
 							//here is the multiple order. 

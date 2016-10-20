@@ -613,10 +613,10 @@ public class TechinicalAnalyzerTrader extends Thread{
 	private void placeTestMarketOrder(String action, Tick newTick){
 
 		
-		//If processed tick is ealier, don't submit the order.
+		//If processed tick is earlier which means it is buidling up data base only, don't submit the order.
 		Calendar cal = Calendar.getInstance();
 		cal.setTime(newTick.getEndTime().toDate());
-		cal.add(Calendar.MINUTE, +15);
+		cal.add(Calendar.MINUTE, +10);
 		if(new Date().after(cal.getTime())){
 			return;
 			}
