@@ -292,26 +292,26 @@ public class TechinicalAnalyzerTrader extends Thread{
 					newTickAvailable = false;
 				
 
-				if(newTickAvailable == false || !nextTickRunTime(lastShortTick, 5).isBefore(nextTickRunTime(lastDailyTick, 1440)))
+				if(newTickAvailable == false || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastDailyTick, 1440)))
 				{	
 					dailyTAResult = techAnalyzerDaily.analyze(dailyLongStrategy, dailyShortStrategy, lastDailyTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);	
 					lastDailyTick = dailyTAResult.processedTick;					
 				}
 				
-				if(newTickAvailable == false || !nextTickRunTime(lastShortTick, 5).isBefore(nextTickRunTime(lastExtraTick, 240)))
+				if(newTickAvailable == false || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastExtraTick, 240)))
 				{	
 					extraTAResult = techAnalyzerExtra.analyze(extraLongStrategy, extraShortStrategy, lastExtraTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);	
 					lastExtraTick = extraTAResult.processedTick;
 					
 				}
 				
-				if(newTickAvailable == false || !nextTickRunTime(lastShortTick, 5).isBefore(nextTickRunTime(lastLongTick, 60)))
+				if(newTickAvailable == false || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastLongTick, 60)))
 				{	
 					longTAResult = techAnalyzerLong.analyze(longLongStrategy, longShortStrategy, lastLongTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);
 					lastLongTick = longTAResult.processedTick;
 				}
 				
-				if(newTickAvailable == false || !nextTickRunTime(lastShortTick, 5).isBefore(nextTickRunTime(lastMedianTick, 15)))
+				if(newTickAvailable == false || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastMedianTick, 15)))
 				{	
 					medianTAResult = techAnalyzerMedium.analyze(medianLongStrategy, medianShortStrategy, lastMedianTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);
 					lastMedianTick = medianTAResult.processedTick;
