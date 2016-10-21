@@ -40,6 +40,16 @@ import eu.verdelhan.ta4j.analysis.criteria.RewardRiskRatioCriterion;
 import eu.verdelhan.ta4j.analysis.criteria.TotalProfitCriterion;
 import eu.verdelhan.ta4j.analysis.criteria.VersusBuyAndHoldCriterion;
 import eu.verdelhan.ta4j.indicators.CachedIndicator;
+import eu.verdelhan.ta4j.indicators.candles.BearishEngulfingIndicator;
+import eu.verdelhan.ta4j.indicators.candles.BearishHaramiIndicator;
+import eu.verdelhan.ta4j.indicators.candles.BullishEngulfingIndicator;
+import eu.verdelhan.ta4j.indicators.candles.BullishHaramiIndicator;
+import eu.verdelhan.ta4j.indicators.candles.DojiIndicator;
+import eu.verdelhan.ta4j.indicators.candles.LowerShadowIndicator;
+import eu.verdelhan.ta4j.indicators.candles.RealBodyIndicator;
+import eu.verdelhan.ta4j.indicators.candles.ThreeBlackCrowsIndicator;
+import eu.verdelhan.ta4j.indicators.candles.ThreeWhiteSoldiersIndicator;
+import eu.verdelhan.ta4j.indicators.candles.UpperShadowIndicator;
 import eu.verdelhan.ta4j.indicators.oscillators.StochasticOscillatorDIndicator;
 import eu.verdelhan.ta4j.indicators.oscillators.StochasticOscillatorKIndicator;
 import eu.verdelhan.ta4j.indicators.simple.ClosePriceIndicator;
@@ -48,6 +58,7 @@ import eu.verdelhan.ta4j.indicators.simple.MedianPriceIndicator;
 import eu.verdelhan.ta4j.indicators.simple.MinPriceIndicator;
 import eu.verdelhan.ta4j.indicators.simple.PriceVariationIndicator;
 import eu.verdelhan.ta4j.indicators.simple.TypicalPriceIndicator;
+import eu.verdelhan.ta4j.indicators.trackers.EMAIndicator;
 import eu.verdelhan.ta4j.indicators.trackers.MACDIndicator;
 import eu.verdelhan.ta4j.indicators.trackers.RSIIndicator;
 import eu.verdelhan.ta4j.indicators.trackers.SMAIndicator;
@@ -120,12 +131,30 @@ public class TechinicalAnalyzer{
 	private SMAIndicator longMedSma;
 
 //	
-	private TechnicalSignalTrend currentTechnicalSignalDown = TechnicalSignalTrend.NONE;
-	private TechnicalSignalTrend currentTechnicalSignalUp = TechnicalSignalTrend.NONE;
+	private boolean currentTechnicalSignalLongEntry = false;
+	private boolean currentTechnicalSignalLongExit = false;
+
+	private boolean currentTechnicalSignalShortEntry = false;
+	private boolean currentTechnicalSignalShortExit = false;
 	private TypicalPriceIndicator typicalPrice;
 	private PriceVariationIndicator priceVariation;
 	private MACDIndicator macd;
+	private EMAIndicator emaMacd;
 
+	
+	//various pattern recornizor 
+	private BullishEngulfingIndicator bullishEngulfingIndicator;
+	private BearishEngulfingIndicator bearishEngulfingIndicator;
+	private UpperShadowIndicator upperShadowIndicator;
+	private ThreeWhiteSoldiersIndicator threeWhiteSoldiersIndicator;
+	private ThreeBlackCrowsIndicator threeBlackCrowsIndicator; 
+	private RealBodyIndicator realBodyIndicator;
+	private LowerShadowIndicator lowerShadowIndicator;
+	private DojiIndicator dojiIndicator;
+	private BullishHaramiIndicator bullishHaramiIndicator;
+	private BearishHaramiIndicator bearishHaramiIndicator;
+
+	
 
 	public TechinicalAnalyzer(ApiDemo apiDemo, Contract currencyContract, ConcurrentHashMap<String, Contract> contractHashMap , ConcurrentHashMap<Long, forex> orderHashMap, int duration, ConcurrentHashMap<Long, Bar> barHashMapIn, int tickLimit){
 		currencyContractHost = currencyContract;
@@ -201,15 +230,36 @@ public class TechinicalAnalyzer{
 		longMaxSma = new SMAIndicator(maxPrice, 10);
 
 		macd = new MACDIndicator(priceIndicator, 9, 26);
+		emaMacd = new EMAIndicator(macd, 18);
 		
 		
 		// Building the trading strategy
 		longStrategy = buildLongStrategy(series);
 		shortStrategy = buildShortStrategy(series);
 
+		bullishEngulfingIndicator = new BullishEngulfingIndicator(series);
+		bearishEngulfingIndicator = new BearishEngulfingIndicator(series);
+		upperShadowIndicator = new UpperShadowIndicator(series);
+		threeWhiteSoldiersIndicator = new ThreeWhiteSoldiersIndicator(series, 3, Decimal.valueOf("0.1"));
+		threeBlackCrowsIndicator = new ThreeBlackCrowsIndicator(series, 3, Decimal.valueOf("0.1")); 
+		realBodyIndicator = new RealBodyIndicator(series);
+		lowerShadowIndicator = new LowerShadowIndicator(series);
+		dojiIndicator = new DojiIndicator(series, 5, Decimal.valueOf(0.1)); //factor is 0.1
+		bullishHaramiIndicator = new BullishHaramiIndicator(series);
+		bearishHaramiIndicator = new BearishHaramiIndicator(series);
 
 		System.out.println("********************Finish initialize Database****************************************");
-		return new TimeframeSettings(sosStoch, sofStoch, closePrice, medianPrice, priceVariation, typicalPrice, macd, shortSma, longSma, rsi, series.getLastTick(), series);
+		return new TimeframeSettings(sosStoch, sofStoch, closePrice, medianPrice, priceVariation, typicalPrice, macd, emaMacd, shortSma, longSma, rsi, series.getLastTick(), series,
+				bullishEngulfingIndicator,
+		bearishEngulfingIndicator,
+		upperShadowIndicator,
+		threeWhiteSoldiersIndicator,
+		threeBlackCrowsIndicator,
+		realBodyIndicator,
+		lowerShadowIndicator,
+		dojiIndicator,
+		bullishHaramiIndicator,
+		bearishHaramiIndicator);
 
 		
 
@@ -286,20 +336,19 @@ public class TechinicalAnalyzer{
 		System.out.println(series.getLastTick().getDateName().toString()+ " " + durationHost + " minutes" +  "-----Techinical Analyzer end" + currencyContractHost.symbol() + currencyContractHost.currency() + "------");
 		}
 
-		if (longStrategy.shouldEnter(endIndex)) {
+		if (currentTechnicalSignalLongEntry = longStrategy.shouldEnter(endIndex)) {
 			// Our strategy should enter
 			if(PRINT_OUT_MESSAGE)
 				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes Strategy should ENTER LONG on " + endIndex);
-			currentTechnicalSignalUp = TechnicalSignalTrend.ENTER_LONG;
+			
 
 
 
 
-		} else if (longStrategy.shouldExit(endIndex)) {
+		} else if (currentTechnicalSignalLongExit = longStrategy.shouldExit(endIndex)) {
 			// Our strategy should exit
 			if(PRINT_OUT_MESSAGE)
 				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should EXIT LONG on " + endIndex);
-			currentTechnicalSignalUp = TechnicalSignalTrend.EXIT_LONG;
 
 
 
@@ -314,21 +363,19 @@ public class TechinicalAnalyzer{
 
 		//If it is a short
 		endIndex = series.getEnd();
-		if (shortStrategy.shouldEnter(endIndex)) {
+		if (currentTechnicalSignalShortEntry = shortStrategy.shouldEnter(endIndex)) {
 			// Our strategy should enter
 			if(PRINT_OUT_MESSAGE)
 				System.out.println(series.getLastTick().getDateName() + " " + durationHost + " minutes  Strategy should ENTER SHORT on " + endIndex);
-			currentTechnicalSignalDown = TechnicalSignalTrend.ENTER_SHORT;
 
 
 
 
 
-		} else if (shortStrategy.shouldExit(endIndex)) {
+		} else if (currentTechnicalSignalShortExit = shortStrategy.shouldExit(endIndex)) {
 			// Our strategy should exit
 			if(PRINT_OUT_MESSAGE)
 				System.out.println(series.getLastTick().getSimpleDateName() + " " + durationHost + " minutes  Strategy should EXIT SHORT on " + endIndex);
-			currentTechnicalSignalDown = TechnicalSignalTrend.EXIT_SHORT;
 
 
 
@@ -377,7 +424,7 @@ public class TechinicalAnalyzer{
 		//            vsBuyAndHold = new VersusBuyAndHoldCriterion(new TotalProfitCriterion());
 		//            System.out.println("Our profit vs buy-and-hold profit: " + vsBuyAndHold.calculate(series, shorttradingRecord));
 		//            
-		return new TechnicalAnalyzerResult(newTick, endIndex, series, currentTechnicalSignalUp, currentTechnicalSignalDown, longSma.getValue(endIndex).toDouble(), shortSma.getValue(endIndex).toDouble());
+		return new TechnicalAnalyzerResult(newTick, endIndex, series, currentTechnicalSignalLongEntry, currentTechnicalSignalLongExit, currentTechnicalSignalShortEntry, currentTechnicalSignalShortExit, longSma.getValue(endIndex).toDouble(), shortSma.getValue(endIndex).toDouble());
 	}
 
 
