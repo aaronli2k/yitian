@@ -82,7 +82,11 @@ import jxl.write.biff.RowsExceededException;
 import samples.testbed.orders.OrderSamples;
 
 public class ApiDemo implements IConnectionHandler, Runnable {
-	private static final boolean USING_BACKTEST_DATA = false;
+	private static final boolean USING_BACKTEST_DATA = true;
+
+	private static final String ANALYSIS_START_DAY = "20160601";
+
+	private static final String ANALYSIS_END_DAY = "20161001";
 
 
 	static { NewLookAndFeel.register(); }
@@ -2549,7 +2553,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		//            //Simulated testing for different dataset.
 		if(USING_BACKTEST_DATA){
 		if(isFirstTime){
-			TicksAccesser ticksAccess = new TicksAccesser(null, currencyContract, 5, contractMap, "20160801", "20161001");
+			TicksAccesser ticksAccess = new TicksAccesser(null, currencyContract, 5, contractMap, ANALYSIS_START_DAY, ANALYSIS_END_DAY);
 			ticksAccess.readFromCsv("NZDUSD_ticks_history_2007_to_2016.csv");
 			ticksAccess.start();
 		}

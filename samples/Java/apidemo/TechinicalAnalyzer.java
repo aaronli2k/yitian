@@ -27,6 +27,7 @@ package apidemo;
 
 
 import eu.verdelhan.ta4j.Decimal;
+import eu.verdelhan.ta4j.Indicator;
 import eu.verdelhan.ta4j.Order;
 import eu.verdelhan.ta4j.Rule;
 import eu.verdelhan.ta4j.Strategy;
@@ -38,12 +39,16 @@ import eu.verdelhan.ta4j.analysis.criteria.AverageProfitableTradesCriterion;
 import eu.verdelhan.ta4j.analysis.criteria.RewardRiskRatioCriterion;
 import eu.verdelhan.ta4j.analysis.criteria.TotalProfitCriterion;
 import eu.verdelhan.ta4j.analysis.criteria.VersusBuyAndHoldCriterion;
+import eu.verdelhan.ta4j.indicators.CachedIndicator;
 import eu.verdelhan.ta4j.indicators.oscillators.StochasticOscillatorDIndicator;
 import eu.verdelhan.ta4j.indicators.oscillators.StochasticOscillatorKIndicator;
 import eu.verdelhan.ta4j.indicators.simple.ClosePriceIndicator;
 import eu.verdelhan.ta4j.indicators.simple.MaxPriceIndicator;
 import eu.verdelhan.ta4j.indicators.simple.MedianPriceIndicator;
 import eu.verdelhan.ta4j.indicators.simple.MinPriceIndicator;
+import eu.verdelhan.ta4j.indicators.simple.PriceVariationIndicator;
+import eu.verdelhan.ta4j.indicators.simple.TypicalPriceIndicator;
+import eu.verdelhan.ta4j.indicators.trackers.MACDIndicator;
 import eu.verdelhan.ta4j.indicators.trackers.RSIIndicator;
 import eu.verdelhan.ta4j.indicators.trackers.SMAIndicator;
 import eu.verdelhan.ta4j.trading.rules.CrossedDownIndicatorRule;
@@ -72,6 +77,7 @@ import com.ib.client.Types.WhatToShow;
 import com.ib.controller.Bar;
 import com.ib.controller.ApiController.IHistoricalDataHandler;
 
+import ta4jexamples.indicators.TimeframeSettings;
 import ta4jexamples.loaders.CsvTradesLoader;
 
 /**
@@ -110,13 +116,15 @@ public class TechinicalAnalyzer{
 	private SMAIndicator longMinSma;
 	private MaxPriceIndicator maxPrice;
 	private SMAIndicator longMaxSma;
-	private MedianPriceIndicator medPrice;
+	private MedianPriceIndicator medianPrice;
 	private SMAIndicator longMedSma;
 
-	private int fastSMAPeriod = 7;
-	private int slowSMAPeriod = 13;
+//	
 	private TechnicalSignalTrend currentTechnicalSignalDown = TechnicalSignalTrend.NONE;
 	private TechnicalSignalTrend currentTechnicalSignalUp = TechnicalSignalTrend.NONE;
+	private TypicalPriceIndicator typicalPrice;
+	private PriceVariationIndicator priceVariation;
+	private MACDIndicator macd;
 
 
 	public TechinicalAnalyzer(ApiDemo apiDemo, Contract currencyContract, ConcurrentHashMap<String, Contract> contractHashMap , ConcurrentHashMap<Long, forex> orderHashMap, int duration, ConcurrentHashMap<Long, Bar> barHashMapIn, int tickLimit){
@@ -133,7 +141,7 @@ public class TechinicalAnalyzer{
 
 	}
 
-	public Tick initDB(){
+	public TimeframeSettings initDB(int fastSMAPeriod, int slowSMAPeriod, int priceToUse){
 		System.out.println("**********************Techinical Analyzer " + currencyContractHost.symbol() + currencyContractHost.currency() + durationHost +  " minutes  Running **********************");
 		// Getting the time series
 
@@ -154,44 +162,68 @@ public class TechinicalAnalyzer{
 
 		closePrice = new ClosePriceIndicator(series);
 
-		// Getting the simple moving average (SMA) of the close price over the last 5 ticks
-		shortSma = new SMAIndicator(closePrice, fastSMAPeriod);
+		medianPrice = new MedianPriceIndicator(series);
 
-		// Here is the 5-ticks-SMA value at the 42nd index
-		System.out.println("5-ticks-SMA value at the 42nd index: " + shortSma.getValue(42).toDouble());
+		typicalPrice = new TypicalPriceIndicator(series);
+
+		Indicator<Decimal> priceIndicator = closePrice;
+
+		if(priceToUse == 0)
+			priceIndicator = closePrice;
+		else if(priceToUse == 1)
+			priceIndicator = medianPrice;
+		else if(priceToUse == 2)
+			priceIndicator = typicalPrice;
+		
+		priceVariation = new PriceVariationIndicator(series);
+
+		
+		// Getting the simple moving average (SMA) of the close price over the last 5 ticks
+		shortSma = new SMAIndicator(priceIndicator, fastSMAPeriod);
+
+		// Here is the 5-ticks-SMA value at the 5nd index
+		System.out.println("5-ticks-SMA value at the 42nd index: " + shortSma.getValue(5).toDouble());
 
 		// Getting a longer SMA (e.g. over the 30 last ticks)
-		longSma = new SMAIndicator(closePrice, slowSMAPeriod);
+		longSma = new SMAIndicator(priceIndicator, slowSMAPeriod);
 
 
 		// Relative strength index
-		rsi = new RSIIndicator(closePrice, 14);
+		rsi = new RSIIndicator(priceIndicator, 14);
 
 		sofStoch = new StochasticOscillatorKIndicator(series, 14);
 		smaStoch = new SMAIndicator(sofStoch, 3);
 		sosStoch = new StochasticOscillatorDIndicator(smaStoch);
 
-		medPrice = new MedianPriceIndicator(series);
-		longMedSma = new SMAIndicator(medPrice, 10);
+		longMedSma = new SMAIndicator(priceIndicator, 10);
 
 		maxPrice = new MaxPriceIndicator(series);
 		longMaxSma = new SMAIndicator(maxPrice, 10);
 
-
+		macd = new MACDIndicator(priceIndicator, 9, 26);
+		
+		
 		// Building the trading strategy
 		longStrategy = buildLongStrategy(series);
 		shortStrategy = buildShortStrategy(series);
 
 
 		System.out.println("********************Finish initialize Database****************************************");
-		return series.getLastTick();
+		return new TimeframeSettings(sosStoch, sofStoch, closePrice, medianPrice, priceVariation, typicalPrice, macd, shortSma, longSma, rsi, series.getLastTick(), series);
+
+		
+
 	}
 
 
-	public   TechnicalAnalyzerResult analyze(Date lastProcessedtime, boolean PRINT_OUT_MESSAGE ){
+	public   TechnicalAnalyzerResult analyze(Strategy longStrategy , Strategy shortStrategy, Date lastProcessedtime, boolean PRINT_OUT_MESSAGE ){
 		Tick newTick  = null;
 		Bar bar = null;
 		int endIndex = 0;
+		
+		this.longStrategy = longStrategy;
+		this.shortStrategy = shortStrategy;
+		
 		
 		SortedSet<Long> keys = new TreeSet<Long>(barHashMap.keySet());
 		//								TreeSet<Long> treereverse = (TreeSet<Long>) keys.descendingSet();

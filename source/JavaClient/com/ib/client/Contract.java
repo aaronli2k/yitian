@@ -18,6 +18,8 @@ import com.ib.client.Types.SecType;
 import com.ib.client.Types.TechnicalSignalTrend;
 import com.ib.controller.Bar;
 
+import ta4jexamples.indicators.TimeframeSettings;
+
 
 
 public class Contract implements Cloneable {
@@ -96,6 +98,12 @@ public Bar    getHistoricalBar(long time){
 	
 	public int isLongUpTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
 	public int isLongDownTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
+	
+	public TimeframeSettings dailyIndicatorSet = null;
+	public TimeframeSettings fourHourIndicatorSet = null;
+	public TimeframeSettings hourlyIndicatorSet = null;
+	public TimeframeSettings fourteenMIndicatorSet = null;
+	public TimeframeSettings fiveMIndicatorSet = null;
 	
     // Get
     public double strike()          { return m_strike; }
