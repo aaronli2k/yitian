@@ -58,4 +58,7 @@ public class BullishEngulfingIndicatorTest {
         assertFalse(bep.getValue(3));
         assertFalse(bep.getValue(4));
     }
+    
+    
+    
 }

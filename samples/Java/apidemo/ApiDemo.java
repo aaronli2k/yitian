@@ -538,7 +538,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
         m_frame.setTitle("Built @ " + new Date()); 
         
         // make initial connection to local host, port 4001, client id 0, no connection options
-		controller().connect( "127.0.0.1", 7496, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
+		controller().connect( "127.0.0.1", 4001, 0, m_connectionConfiguration.getDefaultConnectOptions() != null ? "" : null );
     
 		 Thread me = Thread.currentThread();
 		 
@@ -579,7 +579,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 	//	 for(Entry<String, Contract> currentContract : contractMap.entrySet())
 		 {
-			 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, contractMap, serverTimeCalendar, orderHashMap);		 
+			 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, contractMap, serverTimeCalendar);		 
 			 Ta4J_backtest.start();
 //			 try {
 ////				Ta4J_backtest.join();

@@ -22,8 +22,12 @@
  */
 package ta4jexamples;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import eu.verdelhan.ta4j.AnalysisCriterion;
 import eu.verdelhan.ta4j.Strategy;
+import eu.verdelhan.ta4j.Tick;
 import eu.verdelhan.ta4j.Decimal;
 import eu.verdelhan.ta4j.Rule;
 import eu.verdelhan.ta4j.TimeSeries;
@@ -33,8 +37,11 @@ import eu.verdelhan.ta4j.analysis.criteria.AverageProfitableTradesCriterion;
 import eu.verdelhan.ta4j.analysis.criteria.RewardRiskRatioCriterion;
 import eu.verdelhan.ta4j.analysis.criteria.TotalProfitCriterion;
 import eu.verdelhan.ta4j.analysis.criteria.VersusBuyAndHoldCriterion;
+import eu.verdelhan.ta4j.indicators.candles.BullishEngulfingIndicator;
 import eu.verdelhan.ta4j.indicators.simple.ClosePriceIndicator;
 import eu.verdelhan.ta4j.indicators.trackers.SMAIndicator;
+import eu.verdelhan.ta4j.mocks.MockTick;
+import eu.verdelhan.ta4j.mocks.MockTimeSeries;
 import eu.verdelhan.ta4j.trading.rules.CrossedDownIndicatorRule;
 import eu.verdelhan.ta4j.trading.rules.CrossedUpIndicatorRule;
 import eu.verdelhan.ta4j.trading.rules.StopGainRule;
@@ -48,8 +55,38 @@ import ta4jexamples.loaders.CsvTradesLoader;
  */
 public class Quickstart {
 
+	 private TimeSeries series;
+
+	    
+	    public void setUp() {
+	        List<Tick> ticks = new ArrayList<Tick>();
+	        // open, close, high, low
+	        ticks.add(new MockTick(10, 18, 20, 10));
+	        ticks.add(new MockTick(17, 16, 19, 15));
+	        ticks.add(new MockTick(15, 18, 19, 14));
+	        ticks.add(new MockTick(15, 11, 15, 8));
+	        ticks.add(new MockTick(11, 12, 12, 10));
+	        series = new MockTimeSeries(ticks);
+	    }
+	    
+	 
+	    public void getValue() {
+	        BullishEngulfingIndicator bep = new BullishEngulfingIndicator(series);
+	        System.out.println(" value is " + bep.getValue(0));
+	        System.out.println(" value is " + bep.getValue(1));
+	        System.out.println(" value is " + bep.getValue(2));
+	        System.out.println(" value is " + bep.getValue(3));
+	        System.out.println(" value is " + bep.getValue(4));
+	    }
+	
+	
     public static void main(String[] args) {
 
+    	Quickstart sample = new Quickstart();
+    	sample.setUp();
+    	sample.getValue();
+    	
+    	
         // Getting a time series (from any provider: CSV, web service, etc.)
         TimeSeries series = CsvTradesLoader.loadBitstampSeries();
 
@@ -111,6 +148,10 @@ public class Quickstart {
         AnalysisCriterion vsBuyAndHold = new VersusBuyAndHoldCriterion(new TotalProfitCriterion());
         System.out.println("Our profit vs buy-and-hold profit: " + vsBuyAndHold.calculate(series, tradingRecord));
 
+        
+        
+        
+        
         // Your turn!
         System.exit(0);
     }

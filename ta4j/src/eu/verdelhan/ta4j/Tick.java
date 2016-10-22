@@ -283,7 +283,7 @@ public class Tick {
      * @return a human-friendly string of the end timestamp
      */
     public String getDateName() {
-        return endTime.toString("hh:mm dd/MM/yyyy");
+        return endTime.toString("HH:mm dd/MM/yyyy");
     }
 
     /**

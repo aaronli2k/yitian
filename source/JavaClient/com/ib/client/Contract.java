@@ -9,11 +9,18 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
+import com.ib.client.Types.Action;
 import com.ib.client.Types.Right;
 import com.ib.client.Types.SecIdType;
 import com.ib.client.Types.SecType;
+import com.ib.client.Types.TechnicalSignalTrend;
 import com.ib.controller.Bar;
+
+import ta4jexamples.indicators.TimeframeSettings;
+
+
 
 public class Contract implements Cloneable {
     private int     m_conid;
@@ -43,19 +50,61 @@ public class Contract implements Cloneable {
     private double m_closePrice = 0.0;
     private double m_openPrice = 0.0;
     private double m_smaPrice = 0.0;
+    
+    public TechnicalSignalTrend m_currentTechnicalSignal5MUp = TechnicalSignalTrend.NONE;
+    public TechnicalSignalTrend m_currentTechnicalSignal15MUp = TechnicalSignalTrend.NONE;
+    public TechnicalSignalTrend m_currentTechnicalSignal60MUp = TechnicalSignalTrend.NONE;
+    public TechnicalSignalTrend m_currentTechnicalSignal240MUp = TechnicalSignalTrend.NONE;
+
+    public TechnicalSignalTrend m_currentTechnicalSignal5MDown = TechnicalSignalTrend.NONE;
+    public TechnicalSignalTrend m_currentTechnicalSignal15MDown = TechnicalSignalTrend.NONE;
+    public TechnicalSignalTrend m_currentTechnicalSignal60MDown = TechnicalSignalTrend.NONE;
+    public TechnicalSignalTrend m_currentTechnicalSignal240MDown = TechnicalSignalTrend.NONE;
+
+
     public double m_maxPrice = 0.0;
     public double m_minPrice = 0.0;
-    public ConcurrentHashMap<Long, Bar> historicalBarMap = new ConcurrentHashMap<Long, Bar>();
+    public ConcurrentHashMap<Long, Bar> historical5MBarMap = new ConcurrentHashMap<Long, Bar>();
+    public ConcurrentHashMap<Long, Bar> historical15MBarMap = new ConcurrentHashMap<Long, Bar>();
+    public ConcurrentHashMap<Long, Bar> historicalHourBarMap = new ConcurrentHashMap<Long, Bar>();
+    public ConcurrentHashMap<Long, Bar> historical4HourBarMap = new ConcurrentHashMap<Long, Bar>();
+    public ConcurrentHashMap<Long, Bar> historicalDailyBarMap = new ConcurrentHashMap<Long, Bar>();
+
     
-public void    putHistoricalBar(Long timeString, Bar historicalBar){
-	historicalBarMap.put(timeString, historicalBar);
+    public utility.ResettableCountDownLatch tickLatch60M = new utility.ResettableCountDownLatch(1);
+    public utility.ResettableCountDownLatch tickLatch15M = new utility.ResettableCountDownLatch(1);
+    public utility.ResettableCountDownLatch tickLatch5M = new utility.ResettableCountDownLatch(1);
+
+    
+
+    public void    putHistoricalBar(long time, Bar historicalBar){
+	historical5MBarMap.put(time, historicalBar);
 }
 
-public Bar    getHistoricalBar(Long timeString){
-	return historicalBarMap.get(timeString);
+public Bar    getHistoricalBar(long time){
+	return historical5MBarMap.get(time);
 }
     private MovingAverage sma = new MovingAverage(20);
-    
+	public Double extraMedSma = 0.0;
+    public Double longMedSma = 0.0;
+	public Double mediumMedSma = 0.0;
+	public Double shortMedSma = 0.0;
+	public Boolean isHistoryReqFirstTime = true;
+	public int isMediumUpTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
+	public int isMediumDownTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
+
+	public int isShortUpTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
+	public int isShortDownTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
+	
+	public int isLongUpTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
+	public int isLongDownTrendTouchednReversed = 0; //0 = not reverse. 1, reverse, 2, come back
+	
+	public TimeframeSettings dailyIndicatorSet = null;
+	public TimeframeSettings fourHourIndicatorSet = null;
+	public TimeframeSettings hourlyIndicatorSet = null;
+	public TimeframeSettings fourteenMIndicatorSet = null;
+	public TimeframeSettings fiveMIndicatorSet = null;
+	
     // Get
     public double strike()          { return m_strike; }
     public int conid()              { return m_conid; }
