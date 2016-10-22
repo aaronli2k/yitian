@@ -235,10 +235,6 @@ public class Types {
 	public static enum DurationUnit {
 		SECOND, DAY, WEEK, MONTH, YEAR;
 	}
-	
-	public static enum TechnicalSignalTrend {
-		NONE, ENTER_LONG, EXIT_LONG, ENTER_SHORT, EXIT_SHORT;
-	}
 
 	public static enum DeepType {
 	    INSERT, UPDATE, DELETE;
