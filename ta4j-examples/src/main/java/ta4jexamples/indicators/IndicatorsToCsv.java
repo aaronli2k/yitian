@@ -37,6 +37,7 @@ import eu.verdelhan.ta4j.indicators.trackers.WilliamsRIndicator;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import ta4jexamples.loaders.CsvTradesLoader;
@@ -88,50 +89,49 @@ public class IndicatorsToCsv {
         /**
          * Building header
          */
-        StringBuilder sb = new StringBuilder("timestamp,date,time,close,typical,variation,sma8,sma20,ema8,ema20,ppo,roc,rsi,williamsr,atr,sd\n");
+        StringBuilder sb = new StringBuilder("timestamp,date,open,high,low,close\n");
 
         /**
          * Adding indicators values
          */
+//		 SimpleDateFormat formatter = new SimpleDateFormat("yyyyMMdd");
+        sb.setLength(0);
+
+        SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd HH:mm");
         final int nbTicks = series.getTickCount();
         for (int i = 0; i < nbTicks; i++) {
             sb.append(series.getTick(i).getEndTime().getMillis() / 1000d).append(',')
-            .append(series.getTick(i).getEndTime().toLocalDate()).append(',')
-            .append(series.getTick(i).getEndTime().toLocalTime()).append(',')
-            .append(closePrice.getValue(i)).append(',')
-            .append(typicalPrice.getValue(i)).append(',')
-            .append(priceVariation.getValue(i)).append(',')
-            .append(shortSma.getValue(i)).append(',')
-            .append(longSma.getValue(i)).append(',')
-            .append(shortEma.getValue(i)).append(',')
-            .append(longEma.getValue(i)).append(',')
-            .append(ppo.getValue(i)).append(',')
-            .append(roc.getValue(i)).append(',')
-            .append(rsi.getValue(i)).append(',')
-            .append(williamsR.getValue(i)).append(',')
-            .append(atr.getValue(i)).append(',')
-            .append(sd.getValue(i)).append('\n');
-        }
-
-        /**
-         * Writing CSV file
-         */
-        BufferedWriter writer = null;
-        try {
-            writer = new BufferedWriter(new FileWriter(series.getName() +  "indicators.csv"));
-            writer.write(sb.toString());
-        } catch (IOException ioe) {
-            Logger.getLogger(IndicatorsToCsv.class.getName()).log(Level.SEVERE, "Unable to write CSV file", ioe);
-        } finally {
+            .append(format.format(series.getTick(i).getEndTime().toDate())).append(',')
+            .append(" ").append(',')
+            .append(series.getTick(i).getOpenPrice().toDouble()).append(',')
+            .append(series.getTick(i).getMaxPrice().toDouble()).append(',')
+            .append(series.getTick(i).getMinPrice().toDouble()).append(',')
+            .append(series.getTick(i).getClosePrice().toDouble()).append(',')
+            .append('\n');
+            /**
+             * Writing CSV file
+             */
+            BufferedWriter writer = null;
             try {
-                if (writer != null) {
-                    writer.close();
-                }
+                writer = new BufferedWriter(new FileWriter(series.getName() +  "indicators.csv", true));
+                writer.write(sb.toString());
+                sb.setLength(0);
             } catch (IOException ioe) {
+                Logger.getLogger(IndicatorsToCsv.class.getName()).log(Level.SEVERE, "Unable to write CSV file", ioe);
+            } finally {
+                try {
+                    if (writer != null) {
+                        writer.close();
+                    }
+                } catch (IOException ioe) {
+                }
             }
+
+        
+            
         }
 
-    
+     
 	}
     public static void main(String[] args) {
 

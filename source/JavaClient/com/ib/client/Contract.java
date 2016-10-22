@@ -45,13 +45,13 @@ public class Contract implements Cloneable {
     private double m_smaPrice = 0.0;
     public double m_maxPrice = 0.0;
     public double m_minPrice = 0.0;
-    public ConcurrentHashMap<String, Bar> historicalBarMap = new ConcurrentHashMap<String, Bar>();
+    public ConcurrentHashMap<Long, Bar> historicalBarMap = new ConcurrentHashMap<Long, Bar>();
     
-public void    putHistoricalBar(String timeString, Bar historicalBar){
+public void    putHistoricalBar(Long timeString, Bar historicalBar){
 	historicalBarMap.put(timeString, historicalBar);
 }
 
-public Bar    getHistoricalBar(String timeString){
+public Bar    getHistoricalBar(Long timeString){
 	return historicalBarMap.get(timeString);
 }
     private MovingAverage sma = new MovingAverage(20);
