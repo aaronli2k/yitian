@@ -87,7 +87,7 @@ import ta4jexamples.loaders.CsvTradesLoader;
  * <p>
  */
 public class TechinicalAnalyzerTrader extends Thread{
-	private final boolean PRINT_OUT_MESSAGE = true;
+	private final boolean PRINT_OUT_MESSAGE = false;
 	private final int fastSMAPeriod = 7;
 	private final int slowSMAPeriod = 13;
 	private final int priceToUse = 0; //0: closePrice, 1: medianPrice, 2: typicalPrice
@@ -244,21 +244,21 @@ public class TechinicalAnalyzerTrader extends Thread{
 			//			mediumBarHashMap.clear();
 			//			longBarHashMap.clear();
 
-			// Building the trading strategy
-			Strategy dailyLongStrategy = buildLongStrategy(dailyTimeFrameSetting.series, dailyTimeFrameSetting, 1440);
-			Strategy dailyShortStrategy = buildShortStrategy(dailyTimeFrameSetting.series, dailyTimeFrameSetting, 1440);
-
-			Strategy extraLongStrategy = buildLongStrategy(extraTimeFrameSetting.series, extraTimeFrameSetting, 240);
-			Strategy extraShortStrategy = buildShortStrategy(extraTimeFrameSetting.series, extraTimeFrameSetting, 240);
-
-			Strategy longLongStrategy = buildLongStrategy(longTimeFrameSetting.series, longTimeFrameSetting, 60);
-			Strategy longShortStrategy = buildShortStrategy(longTimeFrameSetting.series, longTimeFrameSetting, 60);
-
-			Strategy medianLongStrategy = buildLongStrategy(medianTimeFrameSetting.series, medianTimeFrameSetting, 15);
-			Strategy medianShortStrategy = buildShortStrategy(medianTimeFrameSetting.series, medianTimeFrameSetting, 15);
-
-			Strategy shortLongStrategy = buildLongStrategy(shortTimeFrameSetting.series, shortTimeFrameSetting, 5);
-			Strategy shortShortStrategy = buildShortStrategy(shortTimeFrameSetting.series, shortTimeFrameSetting, 5);
+//			// Building the trading strategy
+//			Strategy dailyLongStrategy = buildLongStrategy(dailyTimeFrameSetting.series, dailyTimeFrameSetting, 1440);
+//			Strategy dailyShortStrategy = buildShortStrategy(dailyTimeFrameSetting.series, dailyTimeFrameSetting, 1440);
+//
+//			Strategy extraLongStrategy = buildLongStrategy(extraTimeFrameSetting.series, extraTimeFrameSetting, 240);
+//			Strategy extraShortStrategy = buildShortStrategy(extraTimeFrameSetting.series, extraTimeFrameSetting, 240);
+//
+//			Strategy longLongStrategy = buildLongStrategy(longTimeFrameSetting.series, longTimeFrameSetting, 60);
+//			Strategy longShortStrategy = buildShortStrategy(longTimeFrameSetting.series, longTimeFrameSetting, 60);
+//
+//			Strategy medianLongStrategy = buildLongStrategy(medianTimeFrameSetting.series, medianTimeFrameSetting, 15);
+//			Strategy medianShortStrategy = buildShortStrategy(medianTimeFrameSetting.series, medianTimeFrameSetting, 15);
+//
+//			Strategy shortLongStrategy = buildLongStrategy(shortTimeFrameSetting.series, shortTimeFrameSetting, 5);
+//			Strategy shortShortStrategy = buildShortStrategy(shortTimeFrameSetting.series, shortTimeFrameSetting, 5);
 
 			newTickAvailable = true;
 			// Initializing the trading history
@@ -297,30 +297,30 @@ public class TechinicalAnalyzerTrader extends Thread{
 
 				if(newTickAvailable == false || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastDailyTick, 1440)))
 				{	
-					dailyTAResult = techAnalyzerDaily.analyze(dailyLongStrategy, dailyShortStrategy, lastDailyTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);	
+					dailyTAResult = techAnalyzerDaily.analyze( lastDailyTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);	
 					lastDailyTick = dailyTAResult.processedTick;					
 				}
 
 				if(newTickAvailable == false || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastExtraTick, 240)))
 				{	
-					extraTAResult = techAnalyzerExtra.analyze(extraLongStrategy, extraShortStrategy, lastExtraTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);	
+					extraTAResult = techAnalyzerExtra.analyze(lastExtraTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);	
 					lastExtraTick = extraTAResult.processedTick;
 
 				}
 
 				if(newTickAvailable == false || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastLongTick, 60)))
 				{	
-					longTAResult = techAnalyzerLong.analyze(longLongStrategy, longShortStrategy, lastLongTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);
+					longTAResult = techAnalyzerLong.analyze(lastLongTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);
 					lastLongTick = longTAResult.processedTick;
 				}
 
 				if(newTickAvailable == false || nextTickRunTime(lastShortTick, 5).isAfter(nextTickRunTime(lastMedianTick, 15)))
 				{	
-					medianTAResult = techAnalyzerMedium.analyze(medianLongStrategy, medianShortStrategy, lastMedianTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);
+					medianTAResult = techAnalyzerMedium.analyze(lastMedianTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);
 					lastMedianTick = medianTAResult.processedTick;
 				}
 
-				shortTAResult = techAnalyzerShort.analyze(shortLongStrategy, shortShortStrategy, lastShortTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);
+				shortTAResult = techAnalyzerShort.analyze( lastShortTick.getEndTime().toDate(), PRINT_OUT_MESSAGE);
 				lastShortTick = shortTAResult.processedTick;
 
 
@@ -592,266 +592,7 @@ public class TechinicalAnalyzerTrader extends Thread{
 		System.out.println(new Date() + " Market order placed for " + orderDetail.Symbol); 
 	}
 
-	/**
-	 * @param series a time series
-	 * @param timeFrameSetting 
-	 * @return a dummy strategy
-	 */
-	private Strategy buildLongStrategy(TimeSeries series, TimeframeSettings timeFrameSetting, int duration) {
-		if (series == null) {
-			throw new IllegalArgumentException("Series cannot be null");
-		}
-
-		Rule entryRule = null;
-		Rule exitRule = null;
-
-		// Ok, now let's building our trading rules for daily!
-
-		// Buying rules
-		// We want to buy:
-		//  - if the short SMA over long SMA
-		//  - and MACD is above emaMacd
-		// RSI is not oversold and overbought
-		if(duration == 1440)
-		{
-			entryRule = ( new OverIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new OverIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new OverIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-
-		// Selling rules
-		// We want to sell:
-		//  - if the short SMA under long SMA
-		//  - and MACD is below emaMacd
-		if(duration == 1440)
-		{
-			exitRule = ( new UnderIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new UnderIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new UnderIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-
-
-		//Four hour rules. Use same rules as daily
-		// Buying rules
-		// We want to buy:
-		//  - if the short SMA over long SMA
-		//  - and MACD is above emaMacd
-		// RSI is not oversold and overbought
-		if(duration == 240)
-		{
-			entryRule = ( new OverIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new OverIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new OverIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-
-		// Selling rules
-		// We want to sell:
-		//  - if the short SMA under long SMA
-		//  - and MACD is below emaMacd
-		if(duration == 240)
-		{
-			exitRule = ( new UnderIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new UnderIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new UnderIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-
-
-		//Four hour rules. Use same rules as daily now. But we should fine tune it later.
-		// Buying rules
-		// We want to buy:
-		//  - if the short SMA over long SMA
-		//  - and MACD is above emaMacd
-		// RSI is not oversold and overbought
-		if(duration == 60)
-		{
-			entryRule = ( new OverIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new OverIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new OverIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-
-		// Selling rules
-		// We want to sell:
-		//  - if the short SMA under long SMA
-		//  - and MACD is below emaMacd
-		if(duration == 60)
-		{
-			exitRule = ( new UnderIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new UnderIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new UnderIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-
-
-		//15 minutes and 5 minutes
-		// Buying rules
-		// We want to entery the trade:
-		//  use patern to enter the trade
-		if(duration == 15 || duration == 5 )
-		{
-			entryRule = ( new BooleanIndicatorRule(timeFrameSetting.bullishEngulfingIndicator)
-					.or(new BooleanIndicatorRule(timeFrameSetting.bullishHaramiIndicator))
-					.or(new BooleanIndicatorRule(timeFrameSetting.dojiIndicator))
-					.or(new BooleanIndicatorRule(timeFrameSetting.threeWhiteSoldiersIndicator))		
-
-					)
-					//							.and( new OverIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					//							.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					//							.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")))
-					;
-		}		
-
-		if(duration == 15 || duration == 5 )
-		{
-			exitRule = ( new UnderIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new UnderIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new UnderIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}		
-		
-		
-
-		// Signals
-		// Buy when SMA goes over close price
-		// Sell when close price goes over SMA
-		Strategy buySellSignals = new Strategy(entryRule, exitRule);
-		return buySellSignals;
-	}
-
-
-
-	/**
-	 * @param series a time series
-	 * @param timeFrameSetting 
-	 * @return a dummy strategy
-	 */
-	private Strategy buildShortStrategy(TimeSeries series, TimeframeSettings timeFrameSetting, int duration) {
-		if (series == null) {
-			throw new IllegalArgumentException("Series cannot be null");
-		}
-
-		Rule entryRule = null;
-		Rule exitRule = null;
-
-		// Ok, now let's building our trading rules for daily!
-
-		// Buying rules
-		// We want to buy:
-		//  - if the short SMA over long SMA
-		//  - and MACD is above emaMacd
-		// RSI is not oversold and overbought
-		if(duration == 1440)
-		{
-			exitRule = ( new OverIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new OverIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new OverIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-
-		// Selling rules
-		// We want to sell:
-		//  - if the short SMA under long SMA
-		//  - and MACD is below emaMacd
-		if(duration == 1440)
-		{
-			entryRule = ( new UnderIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new UnderIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new UnderIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-
-
-		//Four hour rules. Use same rules as daily
-		// Buying rules
-		// We want to buy:
-		//  - if the short SMA over long SMA
-		//  - and MACD is above emaMacd
-		// RSI is not oversold and overbought
-		if(duration == 240)
-		{
-			exitRule = ( new OverIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new OverIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new OverIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-
-		// Selling rules
-		// We want to sell:
-		//  - if the short SMA under long SMA
-		//  - and MACD is below emaMacd
-		if(duration == 240)
-		{
-			entryRule = ( new UnderIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new UnderIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new UnderIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-
-
-		//Four hour rules. Use same rules as daily now. But we should fine tune it later.
-		// Buying rules
-		// We want to buy:
-		//  - if the short SMA over long SMA
-		//  - and MACD is above emaMacd
-		// RSI is not oversold and overbought
-		if(duration == 60)
-		{
-			exitRule = ( new OverIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new OverIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new OverIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-
-		// Selling rules
-		// We want to sell:
-		//  - if the short SMA under long SMA
-		//  - and MACD is below emaMacd
-		if(duration == 60)
-		{
-			entryRule = ( new UnderIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new UnderIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-					.and( new UnderIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-
-
-		//Use pattern to recognize reversal on 15 and 5 minutes time frame.
-
-
-
-		//15 minutes and 5 minutes
-		// Buying rules
-		// We want to entery the trade:
-		//  use patern to enter the trade
-		if(duration == 15 || duration == 5 )
-		{
-			entryRule = ( new BooleanIndicatorRule(timeFrameSetting.bearishEngulfingIndicator)
-					.or(new BooleanIndicatorRule(timeFrameSetting.bearishHaramiIndicator))
-					.or(new BooleanIndicatorRule(timeFrameSetting.dojiIndicator))
-					.or(new BooleanIndicatorRule(timeFrameSetting.threeBlackCrowsIndicator))		
-
-					)
-					//							.and( new OverIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-					//							.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-					//							.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")))
-					;
-		}	
-		
-		if(duration == 15 || duration == 5 )
-		{	
-		exitRule = ( new OverIndicatorRule(timeFrameSetting.shortSMA, timeFrameSetting.longSMA).or(new OverIndicatorRule(timeFrameSetting.closePrice, timeFrameSetting.shortSMA)))
-				.and( new OverIndicatorRule(timeFrameSetting.macd, timeFrameSetting.emaMacd))
-				.and(new UnderIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("70")))
-				.and(new OverIndicatorRule(timeFrameSetting.RSI, Decimal.valueOf("20")));
-		}
-		
-		Strategy buySellSignals = new Strategy(entryRule, exitRule);
-		return buySellSignals;
-	}
+	
 
 
 

@@ -113,7 +113,7 @@ public class Ta4J_backtest  extends Thread{
 		Date pastDate = serverTimeCalendar.getTime();
 		Calendar localCal = Calendar.getInstance();
 		localCal.setTime(pastDate);
-		localCal.add(Calendar.YEAR, -10);
+		localCal.add(Calendar.YEAR, -8);
 		Date oneYearAgoDate = localCal.getTime();
 	    final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 

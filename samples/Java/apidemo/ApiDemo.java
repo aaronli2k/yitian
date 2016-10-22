@@ -86,7 +86,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 	private static final String ANALYSIS_START_DAY = "20160601";
 
-	private static final String ANALYSIS_END_DAY = "20161001";
+	private static final String ANALYSIS_END_DAY = "20161101";
 
 
 	static { NewLookAndFeel.register(); }
@@ -585,21 +585,14 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 			e.printStackTrace();
 		}	
 
-		(new OrderManagingThread()).start();
-		(new OrderSubmittingThread()).start();
-		(new MarketDataManagingThread()).start();
+//		(new OrderManagingThread()).start();
+//		(new OrderSubmittingThread()).start();
+//		(new MarketDataManagingThread()).start();
 
 		//	 for(Entry<String, Contract> currentContract : contractMap.entrySet())
 		{
-			//			 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, contractMap, serverTimeCalendar, orderHashMap);		 
-			//			 Ta4J_backtest.start();
-			//			 try {
-			////				Ta4J_backtest.join();
-			//			} 
-			//			 catch (InterruptedException e) {
-			//				// TODO Auto-generated catch block
-			//				e.printStackTrace();
-			//			}
+						 Ta4J_backtest Ta4J_backtest = new Ta4J_backtest(this, contractMap, serverTimeCalendar, orderHashMap);		 
+						 Ta4J_backtest.start();
 		}
 
 
@@ -1498,7 +1491,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 				//Check connection with server every second.
 				//Check whether current connection is disconnected. If yes, connect it and skip below action
-				if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED"))
+				if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED") && !USING_BACKTEST_DATA )
 				{
 					// 			m_connectionPanel.onConnect();
 					continue;
@@ -1860,7 +1853,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 				//Check connection with server every second.
 				//Check whether current connection is disconnected. If yes, connect it and skip below action
-				if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED"))
+				if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED")  && !USING_BACKTEST_DATA)
 				{
 					//	m_connectionPanel.onConnect();
 					continue;
@@ -2549,6 +2542,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		int length = 0;
 
 		// Getting the time series
+		DurationUnit durationToRequest = null;
 
 		//            //Simulated testing for different dataset.
 		if(USING_BACKTEST_DATA){
@@ -2560,7 +2554,6 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		}
 		else{
 		//Request one month day in initial request, then just one hour in following request.
-		DurationUnit durationToRequest;
 		if(isFirstTime){
 			durationToRequest = DurationUnit.MONTH;
 			length = 2;
@@ -2578,7 +2571,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 					System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
 					show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
 				}
-		}
+		
 		//		forexHistoricalHandler = new histortyDataHandler(currencyContract, 240);
 		//		if(forexHistoricalHandler != null && currencyContract != null)
 		//			controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._4_hours, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
@@ -2597,16 +2590,16 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 		//			show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
 		//		}
 		
-//		
-//				histortyDataHandler forexHistoricalHandler = new histortyDataHandler(currencyContract, 1440, contractMap);
-//				if(forexHistoricalHandler != null && currencyContract != null)
-//					controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._1_day, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
-//				else
-//				{
-//					System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
-//					show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
-//				}
-
+		
+				forexHistoricalHandler = new histortyDataHandler(currencyContract, 1440, contractMap);
+				if(forexHistoricalHandler != null && currencyContract != null)
+					controller().reqHistoricalData(currencyContract, endTime, length, durationToRequest, BarSize._1_day, WhatToShow.MIDPOINT, true, forexHistoricalHandler);
+				else
+				{
+					System.out.println("Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+					show(new Date() + "Null pointer here, Please check your order" + currencyContract + forexHistoricalHandler);
+				}
+		}
 	}
 
 	public void placeMarketOrder(forex orderDetail){		
@@ -2730,7 +2723,7 @@ public class ApiDemo implements IConnectionHandler, Runnable {
 
 				//Check connection with server every second.
 				//Check whether current connection is disconnected. If yes, connect it and skip below action
-				if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED"))
+				if(m_connectionPanel.m_status.getText().toUpperCase().equals("DISCONNECTED")  && !USING_BACKTEST_DATA)
 				{
 					m_connectionPanel.onConnect();
 					continue;
